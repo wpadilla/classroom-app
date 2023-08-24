@@ -260,7 +260,7 @@ function App() {
     return (
         <div className="App">
             <div className="app-header">
-                <Button color="info" onClick={() => setEnableAdminView(!enableAdminView)}>Toggle</Button>
+                <Button className="d-none" color="info" onClick={() => setEnableAdminView(!enableAdminView)}>Toggle</Button>
                 {/*<Button color="info" onClick={() => sendEvaluationMessage(classStructure.students)}>Enviar Evaluacion a*/}
                 {/*    todos</Button>*/}
                 {/*<Button color="info" onClick={addClassStructure}>Add collection</Button>*/}

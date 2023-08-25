@@ -272,7 +272,7 @@ function App() {
 
 *Participacion:* ${student.evaluation.participation} puntos ${participationUpdated}
 *Pruebas:* ${student.evaluation.test} puntos ${testsUpdated}
-*Exposición:* ${student.evaluation.exposition ? student.evaluation.exposition + 'puntos' : 'Aun no has hecho una exposición 👀'} 
+*Exposición:* ${student.evaluation.exposition ? student.evaluation.exposition + ' puntos' : 'Aun no has hecho una exposición 👀'} 
 *Tienes un total de ${points} puntos.*
 
 ${lastMessage}`;

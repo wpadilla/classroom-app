@@ -1,4 +1,5 @@
-import React, {ChangeEvent, useEffect, useMemo} from 'react';
+import React, {ChangeEvent, useEffect, useMemo, useState} from 'react';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import {
     Badge,
@@ -118,7 +119,7 @@ function App() {
 
     useEffect(() => {
         getClassStructure();
-        // login('wpadilla');
+        login('wpadilla');
         return () => {
             unsubscribe();
         }
@@ -164,7 +165,7 @@ function App() {
 
 
     const handleStudentEvaluation = (student: IStudent, type: 'participation' | 'test' | 'exposition', isSubstraction?: boolean) => () => {
-        const points = type === 'participation' ? 1 : 3;
+        const points = type === 'test' ? 3 : type === 'exposition' ? 5 : 1;
         const newClassStructure = {
             ...classStructure,
             students: classStructure.students.map(s => {
@@ -196,9 +197,12 @@ function App() {
         const mustHaveTest = test * classProgressPercentage / 100
 
         const res = {
-            participation: student.evaluation.participation < mustHaveParticipation,
-            exposition: student.evaluation.exposition < mustHaveExposition,
-            test: student.evaluation.test < mustHaveTest,
+            mustHaveParticipation,
+            mustHaveExposition,
+            mustHaveTest,
+            incompleteParticipation: student.evaluation.participation < mustHaveParticipation,
+            incompleteExposition: student.evaluation.exposition < mustHaveExposition,
+            incompleteTests: student.evaluation.test < mustHaveTest,
         };
         return res;
     };
@@ -236,11 +240,18 @@ function App() {
         } as IStudent);
     }
 
+    const onChangeClassStructure = ({target: {type, value, name}}: ChangeEvent<HTMLInputElement>) => {
+        const val = type === 'number' ? parseInt(value) : value;
+        setClassStructure({
+            ...classStructure,
+            [name]: val,
+        } as IClassStructure);
+    }
+
     const sendMessage = async (contacts: IStudent[], message: IWhatsappMessage) =>
         await sendWhatsappMessage('wpadilla', contacts, message)
 
     const sendEvaluationMessage = (selectedStudents: IStudent[]) => {
-        return;
         Promise.all(selectedStudents.map(async s => {
             await sendMessage([s], {
                 text: getEvaluationMsg(s),
@@ -251,25 +262,54 @@ function App() {
     }
 
     const getEvaluationMsg = (student: IStudent) => {
-        const {participation, test, exposition} = studentEvaluationEnable(student);
+        const {incompleteParticipation, incompleteTests, mustHaveParticipation, mustHaveTest} = studentEvaluationEnable(student);
         const points = getStudentPoints(student);
-        const msg = `Hola ${student.firstName}! ${participation ? 'Falta participacion' : test ? 'Faltan pruebas' : exposition ? 'Falta exposicion' : '¡Al dia!'} (${points} puntos)`;
+        const participationUpdated = incompleteParticipation ? `_(Deberias tener ${mustHaveParticipation} para estar en 100 💯🔥)_.` : ''
+        const testsUpdated = incompleteTests ? `_(Deberias tener ${mustHaveTest} puntos para estar en 100 💯🔥)_.` : '';
+
+        const lastMessage = !incompleteParticipation && !incompleteTests ? '*_¡Felicidades estas al dia!_* 💯🔥' : '_Recuerda participar y llenar siempre las pruebas para que estes al dia_';
+        const msg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 este es el resumen de tu evaluacion de las clases de SEAN.
+
+*Participacion:* ${student.evaluation.participation} puntos ${participationUpdated}
+*Pruebas:* ${student.evaluation.test} puntos ${testsUpdated}
+*Exposición:* ${student.evaluation.exposition ? student.evaluation.exposition + 'puntos' : 'Aun no has hecho una exposición 👀'} 
+*Tienes un total de ${points} puntos.*
+
+${lastMessage}`;
         return msg;
+    }
+
+    const [adminCode, setAdminCode] = useState<string>('');
+    const onChangeAdminCode =  ({target: {value}}: ChangeEvent<HTMLInputElement>) => setAdminCode(value);
+
+    const handleAdminView = () => {
+        if(adminCode === '15282118') {
+            setEnableAdminView(!enableAdminView);
+        } else if(enableAdminView) {
+            setEnableAdminView(false);
+        }
     }
 
     return (
         <div className="App">
             <div className="app-header">
-                <Button className="d-none" color="info" onClick={() => setEnableAdminView(!enableAdminView)}>Toggle</Button>
-                {/*<Button color="info" onClick={() => sendEvaluationMessage(classStructure.students)}>Enviar Evaluacion a*/}
-                {/*    todos</Button>*/}
+                <FormGroup className="d-flex align-items-center gap-2">
+                    {!enableAdminView && <Input type="number" onChange={onChangeAdminCode}/>}
+                    <Button color={enableAdminView ? 'danger' : "info"} className="text-nowrap" onClick={handleAdminView}>{enableAdminView ? 'Desactivar' : 'Activar'} Admin</Button>
+                </FormGroup>
+                {enableAdminView && <Button color="info">Enviar Evaluacion a
+                    todos</Button>}
                 {/*<Button color="info" onClick={addClassStructure}>Add collection</Button>*/}
 
+                <FormGroup>
+                    <Label>Clase actual</Label>
+                    <Input type="number" name="givenClasses" value={classStructure.givenClasses} onChange={onChangeClassStructure} />
+                </FormGroup>
             </div>
             <ListGroup className="students-list">
                 {
                     classStructure.students.map(student => {
-                            const {participation, test} = studentEvaluationEnable(student);
+                            const {incompleteParticipation, incompleteTests, incompleteExposition} = studentEvaluationEnable(student);
                             const points = getStudentPoints(student);
                             return (
                                 <ListGroupItem className="student-item" key={student.id}>
@@ -277,15 +317,15 @@ function App() {
                                     <div className="d-flex align-items-center flex-column gap-1">
                                         <b>Estado</b>
                                         <Badge
-                                            color={!participation && !test ? "primary" : 'warning'}>
-                                            {!participation && !test ? '¡Al dia!' : participation ? 'Falta participacion' : test ? 'Faltan pruebas' : ''}
+                                            color={!incompleteParticipation && !incompleteTests ? "primary" : 'warning'}>
+                                            {!incompleteParticipation && !incompleteTests ? '¡Al dia!' : incompleteParticipation ? 'Falta participacion' : incompleteTests ? 'Faltan pruebas' : ''}
                                         </Badge>
                                     </div>
                                     <div className="student-actions">
                                         <div className="student-action-item">
                                             <b>Participación</b>
                                             <div className="d-flex align-items-center gap-3">
-                                                <Button disabled={!participation}
+                                                <Button disabled={!incompleteParticipation}
                                                         onClick={handleStudentEvaluation(student, 'participation')}>
                                                     +1
                                                 </Button>
@@ -299,13 +339,27 @@ function App() {
                                             <b>Pruebas</b>
                                             <div className="d-flex align-items-center gap-3">
 
-                                                <Button disabled={!test}
+                                                <Button disabled={!incompleteTests}
                                                         onClick={handleStudentEvaluation(student, 'test')}>
                                                     +3
                                                 </Button>
                                                 <Button
                                                     onClick={handleStudentEvaluation(student, 'test', true)}>
                                                     -3
+                                                </Button>
+                                            </div>
+                                        </div>}
+                                        {enableAdminView && <div className="student-action-item">
+                                            <b>Exposicion</b>
+                                            <div className="d-flex align-items-center gap-3">
+
+                                                <Button disabled={!incompleteExposition}
+                                                        onClick={handleStudentEvaluation(student, 'exposition')}>
+                                                    +5
+                                                </Button>
+                                                <Button disabled={incompleteExposition}
+                                                    onClick={handleStudentEvaluation(student, 'exposition', true)}>
+                                                    -5
                                                 </Button>
                                             </div>
                                         </div>}
@@ -319,7 +373,7 @@ function App() {
                                                 <div className="student-action-item">
                                                     <Button color="info" outline
                                                             onClick={() => sendEvaluationMessage([student])}>Enviar
-                                                        Evaluacion</Button>
+                                                        E.</Button>
                                                 </div>
 
                                             </>}

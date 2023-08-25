@@ -29,6 +29,7 @@ export interface IWhatsappMessage {
     photo?: Blob;
 }
 
+export const wsApi = "https://www.betuel-promotions.xyz/api/whatsapp/"
 
 export const startWhatsappServices = async (
     start = true,
@@ -36,7 +37,7 @@ export const startWhatsappServices = async (
     removeSession?: boolean
 ) => {
     try {
-        return await fetch(`${process.env.REACT_APP_PROMOTION_API}whatsapp`, {
+        return await fetch(wsApi, {
             method: "POST",
             headers: {
                 Accept: "application/json",
@@ -57,7 +58,7 @@ export const sendWhatsappMessage = async (
 ) => {
     try {
         return await fetch(
-            `${process.env.REACT_APP_PROMOTION_API}whatsapp/message`,
+            `${wsApi}message`,
             {
                 method: "POST",
                 headers: {
@@ -83,7 +84,7 @@ export const getWhatsappSeedData = async (
 ) => {
     try {
         return await fetch(
-            `${process.env.REACT_APP_PROMOTION_API}whatsapp/seed/${sessionId}/${seedType}`,
+            `${wsApi}seed/${sessionId}/${seedType}`,
             {
                 method: "GET",
                 headers: {

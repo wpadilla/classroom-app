@@ -301,10 +301,11 @@ ${lastMessage}`;
                     todos</Button>}
                 {/*<Button color="info" onClick={addClassStructure}>Add collection</Button>*/}
 
-                <FormGroup>
+                { enableAdminView && <FormGroup>
                     <Label>Clase actual</Label>
-                    <Input type="number" name="givenClasses" value={classStructure.givenClasses} onChange={onChangeClassStructure} />
-                </FormGroup>
+                    <Input type="number" name="givenClasses" value={classStructure.givenClasses}
+                           onChange={onChangeClassStructure}/>
+                </FormGroup>}
             </div>
             <ListGroup className="students-list">
                 {

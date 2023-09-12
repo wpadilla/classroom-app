@@ -37,7 +37,7 @@ export const startWhatsappServices = async (
     removeSession?: boolean
 ) => {
     try {
-        return await fetch(wsApi, {
+        return await fetch(`${wsApi}start`, {
             method: "POST",
             headers: {
                 Accept: "application/json",

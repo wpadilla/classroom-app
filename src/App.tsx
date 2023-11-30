@@ -87,7 +87,6 @@ function App() {
                     if (docSnapshot.exists()) {
                         // Document data exists
                         const data = docSnapshot.data();
-                        console.log(data, classStructure, 'compare');
                         if (JSON.stringify(data) !== JSON.stringify(classStructure)) {
                             setOldClassStructure(data as any);
                             setClassStructure(data as any);
@@ -129,7 +128,6 @@ function App() {
         }
     }, [])
 
-console.log('class', classStructure)
     const login = async (sessionId: string) => {
         const response: any = await (await startWhatsappServices(true, sessionId)).json();
         console.log('response', response);

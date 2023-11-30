@@ -19,7 +19,7 @@ const firebaseConfig = {
 };
 
 export const docName = 'classStructure'
-export const docId = 'N3aGPNe2hm23NPEeVpyC'
+export const docId = 'bSgeILnVvFlPcf1moVp6-sean1-Nov-2023'
 // Initialize Firebase
 export const firebaseApp = initializeApp(firebaseConfig);
 export const firebaseStoreDB = getFirestore(firebaseApp);

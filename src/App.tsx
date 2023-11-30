@@ -76,6 +76,8 @@ function App() {
             participation: 20,
         }
     } as IClassStructure);
+    const hasEnded = useMemo(() => classStructure.givenClasses >= classStructure.classes, [classStructure.givenClasses, classStructure.classes]);
+
     // const [classStructureDoc, setClassStructureDoc] = React.useState<any>();
 
     const unsubscribe =
@@ -267,8 +269,26 @@ function App() {
         const participationUpdated = incompleteParticipation ? `_(Deberias tener ${mustHaveParticipation} para estar en 100 💯🔥)_.` : ''
         const testsUpdated = incompleteTests ? `_(Deberias tener ${mustHaveTest} puntos para estar en 100 💯🔥)_.` : '';
 
-        const lastMessage = !incompleteParticipation && !incompleteTests ? '*_¡Felicidades estas al dia!_* 💯🔥' : '_Recuerda participar y llenar siempre las pruebas para que estes al dia_';
-        const msg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 este es el resumen de tu evaluacion de las clases de SEAN.
+        let lastMessage = !incompleteParticipation && !incompleteTests ? '*_¡Felicidades estas al dia!_* 💯🔥' : '_Recuerda participar y llenar siempre las pruebas para que estes al dia_';
+        let initialMsg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 este es el resumen de tu evaluacion de las clases de SEAN.`
+        if(hasEnded) {
+            initialMsg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 ¡Felicidades, ya terminamos SEAN! 🥳 este es el resumen de tu puntuacion.`
+            const perfectPuntuation = !incompleteParticipation && !incompleteTests;
+            if(perfectPuntuation) {
+                lastMessage = `Te felicito ${student.firstName} 🥳, eres de los pocos estudiantes que obtuvo la *Puntuación Perfecta* 💯 le pido a Dios que siga colocando sabiduria y disposición en ti 🙏🏻, seguro que Dios esta muy orgulloso de lo que has logrado 🙌🏻 ha sido un honor ser tu Maestro durante este tiempo y espero seguir viendote crecer en Dios. Te reto a que sigas con mas fuerza y entusiasmo estudiando la vida de Jesús, no retrocedas sino que entregate aun más ❤️‍🔥, espero que disfutes la lectura de tu nuevo libro y que sigas imitando los pasos de nuestro *Salvador* ✝️❤️‍🔥
+                
+_Y ahora, que toda la gloria sea para Dios, quien puede lograr mucho más de lo que pudiéramos pedir o incluso imaginar mediante su gran poder, que actúa en nosotros._
+Efesios 3:20`
+            } else if(points < 100 && points >= 90) {
+                lastMessage = `Has hecho un excelente trabajo ${student.firstName}, tu esfuerzo y disposicion para completar esta etapa de aprendizaje a dado sus frutos ?? tuviste una nota muy buena pero no te conformes, entregate mas en el proximo nivel hasta alcanzar la *Puntuacion Perfecta* 💯 y lo mas importante procura seguir imitando y conociendo a Jesús, Dios esta haciendo grandes cosas en tu vida`
+            } else if (points < 90 && points >= 80) {
+
+            } else if (points < 80) {
+
+            }
+        }
+
+        const msg = `${initialMsg}
 
 *Participacion:* ${student.evaluation.participation} puntos ${participationUpdated}
 *Pruebas:* ${student.evaluation.test} puntos ${testsUpdated}

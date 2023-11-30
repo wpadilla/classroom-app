@@ -170,7 +170,7 @@ function App() {
         const points = type === 'test' ? 3 : type === 'exposition' ? 5 : 1;
         const newClassStructure = {
             ...classStructure,
-            students: classStructure.students.map(s => {
+            students: classStructure?.students?.map(s => {
                 if (s.id === student.id) {
                     return {
                         ...s,
@@ -190,7 +190,15 @@ function App() {
         return student.evaluation.test + student.evaluation.exposition + student.evaluation.participation;
     }
     const studentEvaluationEnable = (student: IStudent) => {
-        const {participation, exposition, test} = classStructure.evaluation;
+        if(!student?.evaluation) return {
+            mustHaveParticipation: true,
+            mustHaveExposition: true,
+            mustHaveTest: true,
+            incompleteParticipation: true,
+            incompleteExposition: true,
+            incompleteTests: true,
+        };
+        const {participation, exposition, test} = classStructure?.evaluation || {};
         const {givenClasses} = classStructure;
         const classProgressPercentage = givenClasses * 100 / classStructure.classes
 
@@ -223,7 +231,7 @@ function App() {
 
         setClassStructure({
             ...classStructure,
-            students: [...classStructure.students, newStudentData]
+            students: [...(classStructure?.students || []), newStudentData]
         })
     }
 
@@ -254,7 +262,7 @@ function App() {
         await sendWhatsappMessage('wpadilla', contacts, message)
 
     const sendEvaluationMessage = (selectedStudents: IStudent[]) => {
-        Promise.all(selectedStudents.map(async s => {
+        Promise.all(selectedStudents?.map(async s => {
             await sendMessage([s], {
                 text: getEvaluationMsg(s),
             });
@@ -264,6 +272,7 @@ function App() {
     }
 
     const getEvaluationMsg = (student: IStudent) => {
+
         const {incompleteParticipation, incompleteTests, mustHaveParticipation, mustHaveTest} = studentEvaluationEnable(student);
         const points = getStudentPoints(student);
         const participationUpdated = incompleteParticipation ? `_(Deberias tener ${mustHaveParticipation} para estar en 100 💯🔥)_.` : ''
@@ -329,7 +338,7 @@ ${lastMessage}`;
             </div>
             <ListGroup className="students-list">
                 {
-                    classStructure.students.map(student => {
+                    classStructure?.students?.map(student => {
                             const {incompleteParticipation, incompleteTests, incompleteExposition} = studentEvaluationEnable(student);
                             const points = getStudentPoints(student);
                             return (

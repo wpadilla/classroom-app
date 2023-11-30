@@ -51,21 +51,22 @@ const updateClassStructure =
         const res = await updateDoc(docRef, data as any);
     }, 900)
 
+const initialClassStructure ={
+    students: [],
+    classes: 10,
+    givenClasses: 6,
+    evaluation: {
+        test: 75,
+        exposition: 5,
+        participation: 20,
+    }
+} as IClassStructure;
 function App() {
     const [newStudent, setNewStudent] = React.useState<IStudent>();
     const [removeStudentId, setRemoveStudentId] = React.useState<number>();
     const [enableAdminView, setEnableAdminView] = React.useState<boolean>(false);
     const [logged, setLogged] = React.useState<boolean>(false);
-    const [classStructure, setClassStructure] = React.useState<IClassStructure>({
-        students: [],
-        classes: 10,
-        givenClasses: 6,
-        evaluation: {
-            test: 75,
-            exposition: 5,
-            participation: 20,
-        }
-    } as IClassStructure);
+    const [classStructure, setClassStructure] = React.useState<IClassStructure>(initialClassStructure);
     const [oldClassStructure, setOldClassStructure] = React.useState<IClassStructure>({
         students: [],
         classes: 10,
@@ -86,6 +87,7 @@ function App() {
                     if (docSnapshot.exists()) {
                         // Document data exists
                         const data = docSnapshot.data();
+                        console.log(data, classStructure, 'compare');
                         if (JSON.stringify(data) !== JSON.stringify(classStructure)) {
                             setOldClassStructure(data as any);
                             setClassStructure(data as any);
@@ -127,7 +129,7 @@ function App() {
         }
     }, [])
 
-
+console.log('class', classStructure)
     const login = async (sessionId: string) => {
         const response: any = await (await startWhatsappServices(true, sessionId)).json();
         console.log('response', response);
@@ -190,15 +192,7 @@ function App() {
         return student.evaluation.test + student.evaluation.exposition + student.evaluation.participation;
     }
     const studentEvaluationEnable = (student: IStudent) => {
-        if(!student?.evaluation) return {
-            mustHaveParticipation: true,
-            mustHaveExposition: true,
-            mustHaveTest: true,
-            incompleteParticipation: true,
-            incompleteExposition: true,
-            incompleteTests: true,
-        };
-        const {participation, exposition, test} = classStructure?.evaluation || {};
+        const {participation, exposition, test} = classStructure.evaluation;
         const {givenClasses} = classStructure;
         const classProgressPercentage = givenClasses * 100 / classStructure.classes
 

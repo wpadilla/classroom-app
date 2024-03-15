@@ -273,20 +273,25 @@ function App() {
         let lastMessage = !incompleteParticipation && !incompleteTests ? '*_¡Felicidades estas al dia!_* 💯🔥' : '_Recuerda participar y llenar siempre las pruebas para que estes al dia_';
         let initialMsg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 este es el resumen de tu evaluacion de las clases de SEAN.`
         if(hasEnded) {
-            initialMsg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 ¡Felicidades, ya terminamos SEAN! 🥳 este es el resumen de tu puntuacion.`
+            initialMsg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 ¡Ya terminamos SEAN 1! 🥳 este es el resumen de tu puntuación.`
             const perfectPuntuation = !incompleteParticipation && !incompleteTests;
-            if(perfectPuntuation) {
-                lastMessage = `Te felicito ${student.firstName} 🥳, eres de los pocos estudiantes que obtuvo la *Puntuación Perfecta* 💯 le pido a Dios que siga colocando sabiduria y disposición en ti 🙏🏻, seguro que Dios esta muy orgulloso de lo que has logrado 🙌🏻 ha sido un honor ser tu Maestro durante este tiempo y espero seguir viendote crecer en Dios. Te reto a que sigas con mas fuerza y entusiasmo estudiando la vida de Jesús, no retrocedas sino que entregate aun más ❤️‍🔥, espero que disfutes la lectura de tu nuevo libro y que sigas imitando los pasos de nuestro *Salvador* ✝️❤️‍🔥
-                
+            const byeMessage = `Ha sido un honor ser tu Maestro durante este tiempo y espero seguir viendote crecer en Dios 🙏🏻❤️
+
 _Y ahora, que toda la gloria sea para Dios, quien puede lograr mucho más de lo que pudiéramos pedir o incluso imaginar mediante su gran poder, que actúa en nosotros._
 Efesios 3:20`
+            if(perfectPuntuation) {
+                lastMessage = `Te felicito ${student.firstName}, pasaste a SEAN 2 🥳, eres de los pocos estudiantes que obtuvo la *Puntuación Perfecta* 💯 le pido a Dios que siga colocando sabiduria y disposición en ti 🙏🏻, seguro que Dios esta muy orgulloso de lo que has logrado 🙌🏻 te reto a que sigas con mas fuerza y entusiasmo estudiando la vida de Jesús, no retrocedas sino que entregate aun más ❤️‍🔥, espero que disfutes la lectura de tu nuevo libro y que sigas imitando los pasos de nuestro *Salvador* ✝️❤️‍🔥`
             } else if(points < 100 && points >= 90) {
-                lastMessage = `Has hecho un excelente trabajo ${student.firstName}, tu esfuerzo y disposicion para completar esta etapa de aprendizaje a dado sus frutos ?? tuviste una nota muy buena pero no te conformes, entregate mas en el proximo nivel hasta alcanzar la *Puntuacion Perfecta* 💯 y lo mas importante procura seguir imitando y conociendo a Jesús, Dios esta haciendo grandes cosas en tu vida`
+                lastMessage = `Te felicito ${student.firstName}, pasaste a SEAN 2 🥳 has hecho un excelente trabajo, tu esfuerzo y disposicion para completar esta etapa de aprendizaje han dado sus frutos, tuviste una nota muy buena pero no te conformes, entregate mas en el proximo nivel hasta alcanzar los 100 puntos (*La Puntuación Perfecta* 💯) y lo mas importante procura seguir imitando y conociendo a Jesús, Dios esta haciendo grandes cosas en tu vida 🙌🙌🙌🙌`
             } else if (points < 90 && points >= 80) {
-
+                lastMessage = `Te felicito ${student.firstName}, pasaste a SEAN 2 🥳 hiciste un buen trabajo pero sé que puedes dar más 🔥, no te conformes con una calificación de _${points} puntos_ en tu proxima clase de sean, Dios tiene cosas más grandes para tí ❤️ sigue aprendiendo más de Jesús 🙌🙌🙌🙌`
             } else if (points < 80) {
-
+                lastMessage = ` ${student.firstName} Hiciste un buen trabajo en SEAN 1 🙌, pero lamentablemente, no obtuviste los puntos suficientes para pasar a SEAN 2 😢, mi recomendación es que repitas con nosotros SEAN 1 ❤️ son solo 2 meses y te aseguro que serán de mucha bendición, no dejes que esto te desanime, sino todo lo contrario, usalo como un impulso para seguir adelante con más fuerza 💪 y conocer más de Jesus🙌`
             }
+            lastMessage = `${lastMessage} 
+
+${byeMessage}`;
+
         }
 
         const msg = `${initialMsg}

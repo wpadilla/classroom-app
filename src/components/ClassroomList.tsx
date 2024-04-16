@@ -1,12 +1,24 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {Table, Button, FormGroup, Label, Input, Container} from 'reactstrap';
-import {IClassroom, studentStatusList, studentStatusNames} from "../models/clasroomModel";
+import {
+    Table,
+    Button,
+    FormGroup,
+    Label,
+    Input,
+    Container,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ModalHeader
+} from 'reactstrap';
+import {IClasses, IClassroom, IStudent, studentStatusList, studentStatusNames} from "../models/clasroomModel";
 import {useSearchParams} from "react-router-dom";
 import {toast} from "react-toastify";
 import InputMask from "react-input-mask";
 import {IWhatsappMessage, sendWhatsappMessage} from "../services/whatsapp";
 import {addDoc, collection} from "firebase/firestore";
 import {classroomCollectionName, docName, firebaseStoreDB} from "../utils/firebase";
+import {generateCustomID} from "../utils/generators";
 
 interface ClassroomsListProps {
     classrooms: IClassroom[];
@@ -217,8 +229,6 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             return true;
         });
 
-        console.log('<== changedClassrooms =>', changedClassrooms);
-
         updateChangedClassrooms(changedClassrooms);
 
     }, [classroomData]);
@@ -250,6 +260,64 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
         setSelectedClassrooms(selectedClassrooms.map(c => ({...c, students: []})))
         setLoading(false);
     };
+
+    const addNewClass = (classroom: IClassroom) => () => {
+        const newClass: IClasses = {
+            id: generateCustomID(),
+            name: `Semana ${classroom.classes.length + 1}`,
+            date: new Date(),
+        }
+
+        setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
+            ...c,
+            classes: [...c.classes, newClass]
+        } : c));
+
+    }
+
+    const deleteClass = (classroomId: string) => {
+        setClassroomData(prev => prev.map(c => c.id === classroomId ? {
+            ...c,
+            classes: c.classes.slice(0, c.classes.length - 1)
+        } : c));
+    }
+
+    const [addNewStudentClassroomId, setAddNewStudentClassroomId] = useState<string | null>(null);
+
+    const resetAddNewStudentClassroom = () => setAddNewStudentClassroomId(null);
+    const [newStudent, setNewStudent] = useState({firstName: '', lastName: '', phone: ''});
+    const onChangeNewStudent = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.type === 'tel') {
+            e.target.value = e.target.value.replace(/[- ()+_]/g, '')
+        }
+        console.log('type', e.target.value);
+
+        setNewStudent(prev => ({...prev, [e.target.name]: e.target.value}))
+    }
+
+    const addNewStudent = async () => {
+        if (!addNewStudentClassroomId) return;
+        const newStudentData: IStudent = {
+            ...newStudent,
+            id: generateCustomID(),
+            role: 'student',
+            evaluation: {
+                test: 0,
+                exposition: 0,
+                participation: 0,
+                assistance: []
+            },
+            assistance: []
+        }
+
+        setClassroomData(prev => prev.map(c => c.id === addNewStudentClassroomId ? {
+            ...c,
+            students: [...c.students, newStudentData]
+        } : c));
+
+        setNewStudent({firstName: '', lastName: '', phone: ''})
+        setAddNewStudentClassroomId(null);
+    }
 
     return (
         <Container style={{width: '100%', minHeight: '100dvh'}}
@@ -289,7 +357,18 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                     <div key={classroom.id} className="classroom-block mb-4 p-3 border w-100">
                         <h3>{classroom.name} -
                             Profesor/a: {`${classroom.teacher.firstName} ${classroom.teacher.lastName}`}</h3>
-                        <div className="d-flex gap-2 align-items-center my-3">
+                        <div
+                            className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky top-0 bg-white p-2 w-100">
+                            <div className="d-flex w-100 gap-3 align-items-center">
+                                <Button color="primary" className="w-100 text-nowrap"
+                                        onClick={() => toggleEditMode(classroom.id)}>
+                                    {editMode[classroom.id] ? 'Guardar' : 'Editar'}
+                                </Button>
+                                <Button color="primary" className="w-100 text-nowrap"
+                                        onClick={() => setAddNewStudentClassroomId(classroom.id)}>
+                                    Agregar Estudiante
+                                </Button>
+                            </div>
                             {isAdmin &&
                                 <>
                                     <Button color="primary" onClick={() => toggleSelectAll(classroom.id, true)}>Select
@@ -299,20 +378,35 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                     </Button>
                                 </>
                             }
-                            <Button color="primary" onClick={() => toggleEditMode(classroom.id)}>
-                                {editMode[classroom.id] ? 'Save' : 'Edit'}
-                            </Button>
+                            {isAdmin && <div className="w-100">
+                                <Input type="number" value={classroom.materialPrice} onChange={(e) =>
+                                    setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
+                                        ...c,
+                                        materialPrice: Number(e.target.value)
+                                    } : c))} placeholder="Precio del material"/>
+                            </div>}
                         </div>
                         <FormGroup>
-                            <Label for={`selectClass${classroom.id}`}>Seleccionar Clase</Label>
-                            <Input type="select" id={`selectClass${classroom.id}`}
-                                   value={selectedClass[classroom.id] || ''}
-                                   onChange={e => handleClassChange(e.target.value, classroom.id)}>
-                                <option value="">Seleccionar</option>
-                                {classroom.classes.map(cl => (
-                                    <option key={cl.id} value={cl.id}>{cl.name}</option>
-                                ))}
-                            </Input>
+                            <Label className="w-100" for={`selectClass${classroom.id}`}>Seleccionar Clase</Label>
+                            <div className="d-flex align-items-center gap-2 flex-lg-row flex-column">
+                                <Input type="select" id={`selectClass${classroom.id}`}
+                                       value={selectedClass[classroom.id] || ''}
+                                       onChange={e => handleClassChange(e.target.value, classroom.id)}>
+                                    <option value="">Seleccionar</option>
+                                    {classroom.classes.map(cl => (
+                                        <option key={cl.id} value={cl.id}>{cl.name}</option>
+                                    ))}
+                                </Input>
+                                {isAdmin &&
+                                    <div className="d-flex align-items-center gap-3">
+                                        <Button color="primary" className="text-nowrap"
+                                                onClick={addNewClass(classroom)}>Agregar
+                                            Clase</Button>
+                                        <Button color="danger" className="text-nowrap"
+                                                onClick={() => deleteClass(classroom.id)}>Eliminar
+                                            Clase</Button>
+                                    </div>}
+                            </div>
                         </FormGroup>
                         <Table striped>
                             <thead>
@@ -322,7 +416,9 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                 <th>Apellido</th>
                                 {isAdmin && <th>Telefono</th>}
                                 <th>Asistencia</th>
-                                <th>Estado</th>
+                                {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
+                                    <th>Estado</th>}
+
                                 {isAdmin && <th>Actions</th>}
                             </tr>
                             </thead>
@@ -363,15 +459,16 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                             {student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'Marcar Ausente' : 'Marcar Presente'}
                                         </Button>
                                     </td>
-                                    <td>
-                                        <Input type="select" value={student.status || ''}
-                                               onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
-                                            <option value="">Estado</option>
-                                            {studentStatusList.map(status =>
-                                                <option key={status}
-                                                        value={status}>{studentStatusNames[status]}</option>)}
-                                        </Input>
-                                    </td>
+                                    {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
+                                        <td>
+                                            <Input type="select" value={student.status || ''}
+                                                   onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
+                                                <option value="">Estado</option>
+                                                {studentStatusList.map(status =>
+                                                    <option key={status}
+                                                            value={status}>{studentStatusNames[status]}</option>)}
+                                            </Input>
+                                        </td>}
                                     {isAdmin &&
                                         <td>
                                             <div className="d-flex gap-4 align-items-center">
@@ -387,6 +484,13 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                                     checked={isStudentSelected(classroom.id, student.id)}
                                                     onChange={() => toggleStudentSelection(classroom.id, student.id)}
                                                 />
+                                                <Button color="danger"
+                                                        onClick={() => setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
+                                                            ...c,
+                                                            students: c.students.filter(s => s.id !== student.id)
+                                                        } : c))}>
+                                                    Eliminar
+                                                </Button>
                                             </div>
                                         </td>}
                                 </tr>
@@ -396,6 +500,25 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                     </div>
                 ))}
             </>}
+            <Modal isOpen={!!addNewStudentClassroomId} toggle={resetAddNewStudentClassroom}>
+                <ModalBody>
+                    <ModalHeader>
+                        Agregar Estudiante
+                    </ModalHeader>
+                    <FormGroup className="d-flex gap-3 flex-column mt-4 mb-4">
+                        <Input type="text" placeholder="Nombre" name="firstName" onChange={onChangeNewStudent}
+                               value={newStudent.firstName}/>
+                        <Input type="text" placeholder="Apellido" name="lastName" onChange={onChangeNewStudent}
+                               value={newStudent.lastName}/>
+                        <InputMask className="form-control" type="tel" placeholder="Telefono" name="phone"
+                                   onChange={onChangeNewStudent} value={newStudent.phone} mask="+1 (999) 999-9999"/>
+                    </FormGroup>
+                    <ModalFooter>
+                        <Button color="danger" onClick={resetAddNewStudentClassroom} outline>Cancelar</Button>
+                        <Button color="primary" onClick={addNewStudent} outline>Agregar</Button>
+                    </ModalFooter>
+                </ModalBody>
+            </Modal>
         </Container>
     );
 };

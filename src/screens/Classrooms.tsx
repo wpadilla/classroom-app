@@ -5,6 +5,7 @@ import _ from "lodash";
 import {IClassroom} from "../models/clasroomModel";
 import React, {useEffect, useMemo, useState} from "react";
 import {mockClassrooms} from "../data/mock";
+import {toast} from "react-toastify";
 
 
 // const docRef = doc(firebaseStoreDB, classroomCollectionName, classroomsDocId);
@@ -13,6 +14,7 @@ const updateClassrooms =
     _.debounce(async (data: IClassroom) => {
         const docRef = doc(firebaseStoreDB, classroomCollectionName, data.id);
         await updateDoc(docRef, data as any);
+        toast('Actualizacion Exitosa!', {type: 'success', position: 'bottom-right'})
     }, 900)
 
 export const Classrooms = () => {

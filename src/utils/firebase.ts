@@ -20,6 +20,8 @@ const firebaseConfig = {
 
 export const docName = 'classStructure'
 export const docId = 'bSgeILnVvFlPcf1moVp6-sean1-Nov-2023'
+export const classroomsDocId = 'jDF2e5crOXnGhjmmPiL9'
+export const classroomCollectionName = 'classrooms'
 // Initialize Firebase
 export const firebaseApp = initializeApp(firebaseConfig);
 export const firebaseStoreDB = getFirestore(firebaseApp);

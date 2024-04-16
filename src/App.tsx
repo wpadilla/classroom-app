@@ -21,6 +21,7 @@ import * as io from "socket.io-client";
 import {onSocketOnce, PROD_SOCKET_URL} from "./utils/socket.io";
 import {ToastContainer, toast} from 'react-toastify';
 import {IWhatsappMessage, sendWhatsappMessage, startWhatsappServices} from "./services/whatsapp";
+import {useSearchParams} from "react-router-dom";
 
 export interface IEvaluation {
     test: number;
@@ -65,7 +66,6 @@ function App() {
     const [newStudent, setNewStudent] = React.useState<IStudent>();
     const [removeStudentId, setRemoveStudentId] = React.useState<number>();
     const [enableAdminView, setEnableAdminView] = React.useState<boolean>(false);
-    const [logged, setLogged] = React.useState<boolean>(false);
     const [classStructure, setClassStructure] = React.useState<IClassStructure>(initialClassStructure);
     const [oldClassStructure, setOldClassStructure] = React.useState<IClassStructure>({
         students: [],
@@ -122,35 +122,10 @@ function App() {
 
     useEffect(() => {
         getClassStructure();
-        login('wpadilla');
         return () => {
             unsubscribe();
         }
     }, [])
-
-    const login = async (sessionId: string) => {
-        const response: any = await (await startWhatsappServices(true, sessionId)).json();
-        console.log('response', response);
-        const {status} = response;
-        toast(`Whatsapp is ${status}`);
-        setLogged(status === 'logged')
-    }
-
-    const [socket, setSocket] = React.useState<io.Socket>();
-
-    React.useEffect(() => {
-        if (!socket) {
-            setSocket(io.connect(PROD_SOCKET_URL));
-        }
-    }, [])
-
-
-    const handleWhatsappMessaging = (sent: (contact: IStudent) => any, end: (contacts: IStudent[]) => any) => {
-        if (socket) {
-            onSocketOnce(socket, 'ws-message-sent', sent);
-            onSocketOnce(socket, 'ws-messages-end', end);
-        }
-    }
 
     const onMessageSent = (contact: IStudent) => {
         console.log('contact', contact)
@@ -160,11 +135,6 @@ function App() {
     const onMessageEnd = (contacts: IStudent[]) => {
         toast('¡Mensajes Enviados con Exito!', {type: 'success'});
     }
-
-    React.useEffect(() => {
-        handleWhatsappMessaging(onMessageSent, onMessageEnd);
-    }, [logged]);
-
 
     const handleStudentEvaluation = (student: IStudent, type: 'participation' | 'test' | 'exposition', isSubstraction?: boolean) => () => {
         const points = type === 'test' ? 3 : type === 'exposition' ? 5 : 1;
@@ -309,12 +279,17 @@ ${lastMessage}`;
     const onChangeAdminCode =  ({target: {value}}: ChangeEvent<HTMLInputElement>) => setAdminCode(value);
 
     const handleAdminView = () => {
-        if(adminCode === '15282118') {
+        if(adminCode === '123456') {
             setEnableAdminView(!enableAdminView);
         } else if(enableAdminView) {
             setEnableAdminView(false);
         }
     }
+
+    const [searchParams, setSearchParams] = useSearchParams();
+    useEffect(() => {
+         setEnableAdminView(searchParams.get('admin') === '123456');
+    }, [searchParams]);
 
     return (
         <div className="App">
@@ -407,6 +382,7 @@ ${lastMessage}`;
 
                                     </div>
                                 </ListGroupItem>)
+
                         }
                     )
                 }
@@ -443,7 +419,6 @@ ${lastMessage}`;
                     </Button>
                 </ModalFooter>
             </Modal>
-            <ToastContainer/>
         </div>
     );
 }

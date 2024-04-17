@@ -1,22 +1,21 @@
 import ClassroomsList from "../components/ClassroomList";
-import {addDoc, collection, doc, getDoc, onSnapshot, getDocs, updateDoc} from "firebase/firestore";
-import {classroomCollectionName, classroomsDocId, firebaseStoreDB} from "../utils/firebase";
-import _ from "lodash";
+import {addDoc, collection, doc, onSnapshot, getDocs, updateDoc} from "firebase/firestore";
+import {classroomCollectionName, firebaseStoreDB} from "../utils/firebase";
 import {IClassroom} from "../models/clasroomModel";
 import React, {useEffect, useMemo, useState} from "react";
-import {mockClassrooms} from "../data/mock";
 import {toast} from "react-toastify";
+import {debounce} from "lodash";
 
 
 // const docRef = doc(firebaseStoreDB, classroomCollectionName, classroomsDocId);
-
-const updateClassrooms =
-    _.debounce(async (data: IClassroom) => {
-        const docRef = doc(firebaseStoreDB, classroomCollectionName, data.id);
-        await updateDoc(docRef, data as any);
-        toast('Actualizacion Exitosa!', {type: 'success', position: 'bottom-right'})
-    }, 900)
-
+const showSuccessUpdate = debounce(() => {
+    toast('Actualizacion Exitosa!', {type: 'success', position: 'bottom-right'})
+}, 300)
+const updateClassrooms = async (data: IClassroom) => {
+    const docRef = doc(firebaseStoreDB, classroomCollectionName, data.id);
+    await updateDoc(docRef, data as any);
+    showSuccessUpdate();
+}
 export const Classrooms = () => {
     const [classroomsData, setClassrooms] = useState<IClassroom[]>([]);
     const [loading, setLoading] = useState(false);

@@ -6,7 +6,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
     data: [
         {
             id: generateCustomID(),
-            name: "Sanidad interior",
+            subject: "Sanidad interior",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Elizabeth",
@@ -206,7 +206,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
         },
         {
             id: generateCustomID(),
-            name: "Sean 1",
+            subject: "Sean 1",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Williams",
@@ -487,7 +487,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
         },
         {
             id: generateCustomID(),
-            name: "Sean 2",
+            subject: "Sean 2",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Ronny",
@@ -660,7 +660,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
         },
         {
             id: generateCustomID(),
-            name: "Sean 3",
+            subject: "Sean 3",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Luz",
@@ -860,7 +860,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
         },
         {
             id: generateCustomID(),
-            name: "Sean 4",
+            subject: "Sean 4",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Magalys",
@@ -997,7 +997,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
         },
         {
             id: generateCustomID(),
-            name: "Sean 6",
+            subject: "Sean 6",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Moisés",
@@ -1242,7 +1242,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
         },
         {
             id: generateCustomID(),
-            name: "Taller de Predicación",
+            subject: "Taller de Predicación",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Rudiver",
@@ -1397,7 +1397,7 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
         },
         {
             id: generateCustomID(),
-            name: "Libro Especial",
+            subject: "Libro Especial",
             teacher: {
                 id: generateCustomID(),
                 firstName: "Loida",

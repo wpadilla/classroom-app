@@ -31,10 +31,11 @@ export interface IClassroom {
     id: string;
     teacher: IUser;
     students: IStudent[];
-    name: string;
+    subject: string;
     classes: IClasses[];
     currentClass?: IClasses;
     materialPrice: number;
+    name?: string;
 }
 
 

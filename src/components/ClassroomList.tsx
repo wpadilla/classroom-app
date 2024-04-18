@@ -327,6 +327,10 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             value = Number(value);
         }
 
+        if(type === 'tel') {
+            value = value.replace(/[- ()+_]/g, '')
+        }
+
         setClassroomData(prev => prev.map(c => {
             if (c.id === classroom.id) {
                 _.set(c, name, value);
@@ -381,6 +385,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                             {/*    onChange={() => toggleStudentSelection(classroom.id, student.id)}*/}
                             {/*/>*/}
                         </h3>
+                        <span className="text-secondary">{classroom.students.length + 1} Estudiantes</span>
                         <div
                             className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100" style={{ top: isAdmin ? "50px": "0px" }}>
                             <div className="d-flex w-100 gap-3 align-items-center">

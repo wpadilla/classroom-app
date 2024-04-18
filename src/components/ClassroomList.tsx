@@ -356,7 +356,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                 Cerrar Sesión
             </Button>}
             <div className="mb-4 mt-2 w-100 d-flex align-items-center justify-content-center gap-3 position-sticky top-0 bg-white py-2"
-            style={{zIndex: '9'}}>
+            style={{zIndex: '99'}}>
                 {isAdmin &&
                     <Button
                         disabled={!availableSendMessage}

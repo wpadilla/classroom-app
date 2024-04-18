@@ -387,7 +387,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                         </h3>
                         <span className="text-secondary">{classroom.students.length + 1} Estudiantes</span>
                         <div
-                            className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100" style={{ top: isAdmin ? "50px": "0px" }}>
+                            className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100" style={{ top: isAdmin ? "50px": "0px", zIndex: "9" }}>
                             <div className="d-flex w-100 gap-3 align-items-center">
                                 <Button color="primary" className="w-100 text-nowrap"
                                         onClick={() => toggleEditMode(classroom.id)}>

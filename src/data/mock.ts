@@ -6,6 +6,207 @@ export const mockClassrooms: () => { data: IClassroom[] } = () => ({
     data: [
         {
             id: generateCustomID(),
+            subject: "Discipulado",
+            teacher: {
+                id: generateCustomID(),
+                firstName: "Pastora Dania",
+                lastName: "Muñoz",
+                phone: "18098565661", // Assuming no phone number provided for the teacher
+                role: "teacher"
+            },
+            students: [
+
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Jenny",
+                    lastName: "Sierra",
+                    phone: "18297057555"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Karina",
+                    lastName: "Reyes",
+                    phone: "18293278016"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Mercedes",
+                    lastName: "Monero",
+                    phone: "18299108115"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Orison",
+                    lastName: "Marte",
+                    phone: "18292134023"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Madelin",
+                    lastName: "Peralta",
+                    phone: "18099155527"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Shearlina",
+                    lastName: "De los Santos",
+                    phone: "18297850121"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Charlotte",
+                    lastName: "Lebron",
+                    phone: "18094091766"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Maria",
+                    lastName: "Cabral",
+                    phone: "18298682299"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Alexander",
+                    lastName: "",
+                    phone: "18494947288"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Raquel",
+                    lastName: "",
+                    phone: "18294102399"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Brenda",
+                    lastName: "",
+                    phone: "18295489334"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Eisher",
+                    lastName: "Guzmán",
+                    phone: "18493932843"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Cristal",
+                    lastName: "Nivar",
+                    phone: "18097210319"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Eridania",
+                    lastName: "Jacinto",
+                    phone: "18093083528"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Ana",
+                    lastName: "Morales",
+                    phone: "18493714810"
+                },
+                {
+                    id: generateCustomID(),
+                    role: "student",
+                    evaluation: {} as any,
+                    assistance: [],
+                    firstName: "Nuris",
+                    lastName: "Quiñones",
+                    phone: "18299507344"
+                },
+            ],
+            classes: [
+                {
+                    id: generateCustomID(),
+                    name: "Semana 1",
+                    date: new Date()
+                },
+                {
+                    id: generateCustomID(),
+                    name: "Semana 2",
+                    date: new Date()
+                },
+                {
+                    id: generateCustomID(),
+                    name: "Semana 3",
+                    date: new Date()
+                },
+                {
+                    id: generateCustomID(),
+                    name: "Semana 4",
+                    date: new Date()
+                },
+                {
+                    id: generateCustomID(),
+                    name: "Semana 5",
+                    date: new Date()
+                },
+                {
+                    id: generateCustomID(),
+                    name: "Semana 6",
+                    date: new Date()
+                },
+                {
+                    id: generateCustomID(),
+                    name: "Semana 7",
+                    date: new Date()
+                },
+                {
+                    id: generateCustomID(),
+                    name: "Semana 8",
+                    date: new Date()
+                }
+            ],
+            materialPrice: 200 // Assuming no material price is specified
+        },
+        {
+            id: generateCustomID(),
             subject: "Sanidad interior",
             teacher: {
                 id: generateCustomID(),

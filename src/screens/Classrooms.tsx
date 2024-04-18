@@ -5,6 +5,7 @@ import {IClassroom} from "../models/clasroomModel";
 import React, {useEffect, useMemo, useState} from "react";
 import {toast} from "react-toastify";
 import {debounce} from "lodash";
+import {mockClassrooms} from "../data/mock";
 
 
 // const docRef = doc(firebaseStoreDB, classroomCollectionName, classroomsDocId);
@@ -70,13 +71,13 @@ export const Classrooms = () => {
             , [classroomsData]);
 
     const addAllDocs = async () => {
-        // const collectionRef = collection(firebaseStoreDB, classroomCollectionName);
-        // setLoading(true);
-        // await Promise.all(mockClassrooms().data.map(async item => {
-        //     delete (item as any).id;
-        //     const res = await addDoc(collectionRef, item);
-        // }))
-        // setLoading(false);
+        const collectionRef = collection(firebaseStoreDB, classroomCollectionName);
+        setLoading(true);
+        await Promise.all([mockClassrooms().data[0]].map(async item => {
+            delete (item as any).id;
+            // const res = await addDoc(collectionRef, item);
+        }))
+        setLoading(false);
     }
 
 
@@ -91,6 +92,7 @@ export const Classrooms = () => {
                     </div>
                 </div>
             }
+            {/*<button onClick={addAllDocs}>add new</button>*/}
             <ClassroomsList updateClassrooms={updateClassrooms} classrooms={classroomsData}/>
         </div>
     )

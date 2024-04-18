@@ -251,7 +251,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
         setLoading(true);
         await Promise.all(selectedClassrooms.map(async classroom => {
             const message: IWhatsappMessage = {
-                text: `Hola @firstName, Dios te bendiga 🙌 ¡hoy comenzamos nuestra formación bíblica! 🥳 tu aula sera *${classroom.name}* entra en ella desde que llegues ⚡️✅ no te quedes en la abajo 🚫 recuerda que perteneces en la clase de *${classroom.subject}* 📖 con *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estara disponible en tu aula, el precio es RD$${classroom.materialPrice} pesos. Bendiciones!`,
+                text: `Hola @firstName, Dios te bendiga 🙌 ¡hoy comenzamos nuestra formación bíblica! 🥳 tu aula sera *${classroom.name}* entra en ella desde que llegues ⚡️✅ no te quedes en la abajo 🚫 recuerda que perteneces en la clase de *${classroom.subject}* 📖 con *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estará disponible en tu aula, el precio es *_RD$${classroom.materialPrice}_* pesos. Bendiciones!`,
             }
 
             await sendWhatsappMessage('wpadilla', classroom.students.filter(item => !!item.phone), message)

@@ -52,7 +52,7 @@ const updateClassStructure =
         const res = await updateDoc(docRef, data as any);
     }, 900)
 
-const initialClassStructure ={
+const initialClassStructure = {
     students: [],
     classes: 10,
     givenClasses: 6,
@@ -62,6 +62,7 @@ const initialClassStructure ={
         participation: 20,
     }
 } as IClassStructure;
+
 function App() {
     const [newStudent, setNewStudent] = React.useState<IStudent>();
     const [removeStudentId, setRemoveStudentId] = React.useState<number>();
@@ -156,6 +157,25 @@ function App() {
         setClassStructure(newClassStructure);
     };
 
+    const resetStudentEvaluation = (student: IStudent) => () => {
+        const newClassStructure = {
+            ...classStructure,
+            students: classStructure?.students?.map(s => {
+                if (s.id === student.id) {
+                    return {
+                        ...s,
+                        evaluation: {
+                            participation: 0,
+                            exposition: 0,
+                            test: 0,
+                        }
+                    }
+                }
+                return s;
+            }),
+        };
+        setClassStructure(newClassStructure);
+    };
     const getStudentPoints = (student: IStudent) => {
         return student.evaluation.test + student.evaluation.exposition + student.evaluation.participation;
     }
@@ -235,23 +255,28 @@ function App() {
 
     const getEvaluationMsg = (student: IStudent) => {
 
-        const {incompleteParticipation, incompleteTests, mustHaveParticipation, mustHaveTest} = studentEvaluationEnable(student);
+        const {
+            incompleteParticipation,
+            incompleteTests,
+            mustHaveParticipation,
+            mustHaveTest
+        } = studentEvaluationEnable(student);
         const points = getStudentPoints(student);
         const participationUpdated = incompleteParticipation ? `_(Deberias tener ${mustHaveParticipation} para estar en 100 💯🔥)_.` : ''
         const testsUpdated = incompleteTests ? `_(Deberias tener ${mustHaveTest} puntos para estar en 100 💯🔥)_.` : '';
 
         let lastMessage = !incompleteParticipation && !incompleteTests ? '*_¡Felicidades estas al dia!_* 💯🔥' : '_Recuerda participar y llenar siempre las pruebas para que estes al dia_';
         let initialMsg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 este es el resumen de tu evaluacion de las clases de SEAN.`
-        if(hasEnded) {
+        if (hasEnded) {
             initialMsg = `Hola ${student.firstName}, Dios te bendiga 🙌🏻 ¡Ya terminamos SEAN 1! 🥳 este es el resumen de tu puntuación.`
             const perfectPuntuation = !incompleteParticipation && !incompleteTests;
             const byeMessage = `Ha sido un honor ser tu Maestro durante este tiempo y espero seguir viendote crecer en Dios 🙏🏻❤️
 
 _Y ahora, que toda la gloria sea para Dios, quien puede lograr mucho más de lo que pudiéramos pedir o incluso imaginar mediante su gran poder, que actúa en nosotros._
 Efesios 3:20`
-            if(perfectPuntuation) {
+            if (perfectPuntuation) {
                 lastMessage = `Te felicito ${student.firstName}, pasaste a SEAN 2 🥳, eres de los pocos estudiantes que obtuvo la *Puntuación Perfecta* 💯 le pido a Dios que siga colocando sabiduria y disposición en ti 🙏🏻, seguro que Dios esta muy orgulloso de lo que has logrado 🙌🏻 te reto a que sigas con mas fuerza y entusiasmo estudiando la vida de Jesús, no retrocedas sino que entregate aun más ❤️‍🔥, espero que disfutes la lectura de tu nuevo libro y que sigas imitando los pasos de nuestro *Salvador* ✝️❤️‍🔥`
-            } else if(points < 100 && points >= 90) {
+            } else if (points < 100 && points >= 90) {
                 lastMessage = `Te felicito ${student.firstName}, pasaste a SEAN 2 🥳 has hecho un excelente trabajo, tu esfuerzo y disposicion para completar esta etapa de aprendizaje han dado sus frutos, tuviste una nota muy buena pero no te conformes, entregate mas en el proximo nivel hasta alcanzar los 100 puntos (*La Puntuación Perfecta* 💯) y lo mas importante procura seguir imitando y conociendo a Jesús, Dios esta haciendo grandes cosas en tu vida 🙌🙌🙌🙌`
             } else if (points < 90 && points >= 80) {
                 lastMessage = `Te felicito ${student.firstName}, pasaste a SEAN 2 🥳 hiciste un buen trabajo pero sé que puedes dar más 🔥, no te conformes con una calificación de _${points} puntos_ en tu proxima clase de sean, Dios tiene cosas más grandes para tí ❤️ sigue aprendiendo más de Jesús 🙌🙌🙌🙌`
@@ -276,19 +301,19 @@ ${lastMessage}`;
     }
 
     const [adminCode, setAdminCode] = useState<string>('');
-    const onChangeAdminCode =  ({target: {value}}: ChangeEvent<HTMLInputElement>) => setAdminCode(value);
+    const onChangeAdminCode = ({target: {value}}: ChangeEvent<HTMLInputElement>) => setAdminCode(value);
 
     const handleAdminView = () => {
-        if(adminCode === '123456') {
+        if (adminCode === '123456') {
             setEnableAdminView(!enableAdminView);
-        } else if(enableAdminView) {
+        } else if (enableAdminView) {
             setEnableAdminView(false);
         }
     }
 
     const [searchParams, setSearchParams] = useSearchParams();
     useEffect(() => {
-         setEnableAdminView(searchParams.get('admin') === '123456');
+        setEnableAdminView(searchParams.get('admin') === '123456');
     }, [searchParams]);
 
     return (
@@ -296,13 +321,14 @@ ${lastMessage}`;
             <div className="app-header">
                 <FormGroup className="d-flex align-items-center gap-2">
                     {!enableAdminView && <Input type="number" onChange={onChangeAdminCode}/>}
-                    <Button color={enableAdminView ? 'danger' : "info"} className="text-nowrap" onClick={handleAdminView}>{enableAdminView ? 'Desactivar' : 'Activar'} Admin</Button>
+                    <Button color={enableAdminView ? 'danger' : "info"} className="text-nowrap"
+                            onClick={handleAdminView}>{enableAdminView ? 'Desactivar' : 'Activar'} Admin</Button>
                 </FormGroup>
                 {enableAdminView && <Button color="info">Enviar Evaluacion a
                     todos</Button>}
                 {/*<Button color="info" onClick={addClassStructure}>Add collection</Button>*/}
 
-                { enableAdminView && <FormGroup>
+                {enableAdminView && <FormGroup>
                     <Label>Clase actual</Label>
                     <Input type="number" name="givenClasses" value={classStructure.givenClasses}
                            onChange={onChangeClassStructure}/>
@@ -311,7 +337,11 @@ ${lastMessage}`;
             <ListGroup className="students-list">
                 {
                     classStructure?.students?.map(student => {
-                            const {incompleteParticipation, incompleteTests, incompleteExposition} = studentEvaluationEnable(student);
+                            const {
+                                incompleteParticipation,
+                                incompleteTests,
+                                incompleteExposition
+                            } = studentEvaluationEnable(student);
                             const points = getStudentPoints(student);
                             return (
                                 <ListGroupItem className="student-item" key={student.id}>
@@ -332,6 +362,7 @@ ${lastMessage}`;
                                                     +1
                                                 </Button>
                                                 <Button
+                                                    disabled={student.evaluation.participation <= 0}
                                                     onClick={handleStudentEvaluation(student, 'participation', true)}>
                                                     -1
                                                 </Button>
@@ -346,6 +377,7 @@ ${lastMessage}`;
                                                     +3
                                                 </Button>
                                                 <Button
+                                                    disabled={student.evaluation.test <= 0}
                                                     onClick={handleStudentEvaluation(student, 'test', true)}>
                                                     -3
                                                 </Button>
@@ -360,7 +392,7 @@ ${lastMessage}`;
                                                     +5
                                                 </Button>
                                                 <Button disabled={incompleteExposition}
-                                                    onClick={handleStudentEvaluation(student, 'exposition', true)}>
+                                                        onClick={handleStudentEvaluation(student, 'exposition', true)}>
                                                     -5
                                                 </Button>
                                             </div>
@@ -368,6 +400,10 @@ ${lastMessage}`;
 
                                         {enableAdminView &&
                                             <>
+                                                <div className="student-action-item">
+                                                    <Button
+                                                        onClick={resetStudentEvaluation(student)}>Reset</Button>
+                                                </div>
                                                 <div className="student-action-item">
                                                     <Button color="danger"
                                                             onClick={() => setRemoveStudentId(student.id)}>Eliminar</Button>

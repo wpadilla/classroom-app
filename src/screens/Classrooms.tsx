@@ -2,9 +2,9 @@ import ClassroomsList from "../components/ClassroomList";
 import {addDoc, collection, doc, onSnapshot, getDocs, updateDoc} from "firebase/firestore";
 import {classroomCollectionName, firebaseStoreDB} from "../utils/firebase";
 import {IClassroom} from "../models/clasroomModel";
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {toast} from "react-toastify";
-import {debounce} from "lodash";
+import _, {debounce} from "lodash";
 import {mockClassrooms} from "../data/mock";
 
 
@@ -13,6 +13,11 @@ const showSuccessUpdate = debounce(() => {
     toast('Actualizacion Exitosa!', {type: 'success', position: 'bottom-right'})
 }, 900);
 
+
+
+export const debounceUpdate = _.debounce((changedClassroom: IClassroom) => {
+    updateClassrooms(changedClassroom);
+}, 900);
 
 const updateClassrooms = async (data: IClassroom) => {
     const docRef = doc(firebaseStoreDB, classroomCollectionName, data.id);
@@ -65,7 +70,7 @@ export const Classrooms = () => {
         useMemo(() => {
                 const collectionRef = collection(firebaseStoreDB, classroomCollectionName);
                 return onSnapshot(collectionRef, (docSnapshot) => {
-                    updateClassroom(docSnapshot as any);
+                    // updateClassroom(docSnapshot as any);
                 }, (error) => {
                     console.error('Error listening to document:', error);
                 })

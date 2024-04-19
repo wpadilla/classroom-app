@@ -209,10 +209,29 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
         }
     }, [teacherPhone, classrooms])
 
+    const debounceUpdate = _.debounce((changedClassroom: IClassroom) => {
+        updateClassrooms(changedClassroom);
+    }, 900);
+
     const updateChangedClassrooms = async (changedClassrooms: IClassroom[]) => {
         // setLoading(true);
         await Promise.all(changedClassrooms.map(async changedClassroom => {
-            await updateClassrooms(changedClassroom);
+            const originalClassroom = classrooms.find(c => c.id === changedClassroom.id);
+            const originalStudents = originalClassroom?.students.map(it => ({
+                firstName: it.firstName,
+                lastName: it.lastName,
+                phone: it.phone
+            }))
+            const updatedStudents = changedClassroom?.students.map(it => ({
+                firstName: it.firstName,
+                lastName: it.lastName,
+                phone: it.phone
+            }))
+            if(JSON.stringify(updatedStudents) !== JSON.stringify(originalStudents)) {
+                debounceUpdate(changedClassroom);
+            } else {
+                await updateClassrooms(changedClassroom);
+            }
         }));
         // setLoading(false);
     }

@@ -11,7 +11,9 @@ import {mockClassrooms} from "../data/mock";
 // const docRef = doc(firebaseStoreDB, classroomCollectionName, classroomsDocId);
 const showSuccessUpdate = debounce(() => {
     toast('Actualizacion Exitosa!', {type: 'success', position: 'bottom-right'})
-}, 300)
+}, 900);
+
+
 const updateClassrooms = async (data: IClassroom) => {
     const docRef = doc(firebaseStoreDB, classroomCollectionName, data.id);
     await updateDoc(docRef, data as any);

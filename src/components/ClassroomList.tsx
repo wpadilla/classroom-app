@@ -38,6 +38,10 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
         return searchParams.get('admin') === '123456';
     }, [searchParams]);
 
+    const isSupervisor = useMemo(() => {
+        return searchParams.get('supervisor') === '123456';
+    }, [searchParams]);
+
     useEffect(() => {
         setClassroomData(structuredClone(classrooms));
         setOriginalClassroomData(structuredClone(classrooms));
@@ -384,7 +388,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                         Enviar Mensaje
                     </Button>}
             </div>
-            {!isAdmin && !selectedClassroom ? <FormGroup>
+            {(!isAdmin && !selectedClassroom) && !isSupervisor ? <FormGroup>
                 <Label><h2>Teléfono del Profesor</h2></Label> <br/>
                 <InputMask className="form-control mb-3" placeholder="Numero de whatsapp"
                            type="tel"

@@ -481,7 +481,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                 {/*<th>#</th>*/}
                                 <th>Nombre</th>
                                 <th>Apellido</th>
-                                {isAdmin && <th>Telefono</th>}
+                                <th>Telefono</th>
                                 <th>Asistencia</th>
                                 {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
                                     <th>Estado</th>}
@@ -510,14 +510,14 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                             student.lastName
                                         )}
                                     </td>
-                                    {isAdmin && <td>
+                                    <td>
                                         {editMode[classroom.id] ? (
                                             <Input type="text" value={student.phone}
                                                    onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
                                         ) : (
                                             student.phone
                                         )}
-                                    </td>}
+                                    </td>
                                     <td>
                                         <Button
                                             disabled={!selectedClass[classroom.id]}

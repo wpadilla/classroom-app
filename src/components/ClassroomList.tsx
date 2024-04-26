@@ -281,7 +281,7 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
             }
 
             const students = classroom.students.filter(item => !!item.phone);
-            if(students.length) {
+            if (students.length) {
                 await sendWhatsappMessage('wpadilla', students, message)
             }
 
@@ -357,7 +357,7 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
             value = Number(value);
         }
 
-        if(type === 'tel') {
+        if (type === 'tel') {
             value = value.replace(/[- ()+_]/g, '')
         }
 
@@ -385,8 +385,9 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
             {selectedClassroom && <Button color="danger" onClick={logOut}>
                 Cerrar Sesión
             </Button>}
-            <div className="mb-4 mt-2 w-100 d-flex align-items-center justify-content-center gap-3 position-sticky top-0 bg-white py-2"
-            style={{zIndex: '99'}}>
+            <div
+                className="mb-4 mt-2 w-100 d-flex align-items-center justify-content-center gap-3 position-sticky top-0 bg-white py-2"
+                style={{zIndex: '99'}}>
                 {isAdmin &&
                     <Button
                         disabled={!availableSendMessage}
@@ -417,7 +418,8 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                         </h3>
                         <span className="text-secondary">{classroom.students.length + 1} Estudiantes</span>
                         <div
-                            className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100" style={{ top: isAdmin ? "50px": "0px", zIndex: "9" }}>
+                            className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100"
+                            style={{top: isAdmin ? "50px" : "0px", zIndex: "9"}}>
                             <div className="d-flex w-100 gap-3 align-items-center">
                                 <Button color="primary" className="w-100 text-nowrap"
                                         onClick={() => toggleEditMode(classroom.id)}>
@@ -483,14 +485,14 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                     </div>}
                             </div>
                         </FormGroup>
-                        <Table striped>
+                        <Table striped responsive>
                             <thead>
                             <tr>
                                 {/*<th>#</th>*/}
                                 <th>Nombre</th>
                                 <th>Apellido</th>
-                                <th>Telefono</th>
                                 <th>Asistencia</th>
+                                <th>Telefono</th>
                                 {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
                                     <th>Estado</th>}
 
@@ -519,20 +521,20 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                         )}
                                     </td>
                                     <td>
-                                        {editMode[classroom.id] ? (
-                                            <Input type="text" value={student.phone}
-                                                   onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
-                                        ) : (
-                                            student.phone
-                                        )}
-                                    </td>
-                                    <td>
                                         <Button
                                             disabled={!selectedClass[classroom.id]}
                                             color={student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'danger' : 'info'}
                                             onClick={() => toggleAttendance(classroom.id, student.id)}>
                                             {student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'Marcar Ausente' : 'Marcar Presente'}
                                         </Button>
+                                    </td>
+                                    <td>
+                                        {editMode[classroom.id] ? (
+                                            <Input type="text" value={student.phone}
+                                                   onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
+                                        ) : (
+                                            student.phone
+                                        )}
                                     </td>
                                     {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
                                         <td>
@@ -544,9 +546,13 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                                             value={status}>{studentStatusNames[status]}</option>)}
                                             </Input>
                                         </td>}
-                                    {isAdmin &&
-                                        <td>
-                                            <div className="d-flex gap-4 align-items-center">
+
+                                    <td>
+                                        <div className="d-flex gap-4 align-items-center">
+                                            <Button color="success">
+                                                <a target="_blank" className="text-white text-decoration-none" href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`} rel="noreferrer">Contactar por whatsapp</a>
+                                            </Button>
+                                            {isAdmin && <>
                                                 <Input type="select" value={student.status || ''}
                                                        onChange={passStudentToClassroom}>
                                                     <option value="">Pasar a</option>
@@ -566,8 +572,10 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                                         } : c))}>
                                                     Eliminar
                                                 </Button>
-                                            </div>
-                                        </td>}
+                                            </>
+                                            }
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                             </tbody>

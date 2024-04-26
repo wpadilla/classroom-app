@@ -9,7 +9,7 @@ import {
     Modal,
     ModalBody,
     ModalFooter,
-    ModalHeader
+    ModalHeader, Badge
 } from 'reactstrap';
 import {IClasses, IClassroom, IStudent, studentStatusList, studentStatusNames} from "../models/clasroomModel";
 import {useSearchParams} from "react-router-dom";
@@ -500,91 +500,100 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                             </tr>
                             </thead>
                             <tbody>
-                            {classroom.students.map((student, index) => (
-                                <tr key={student.id}
-                                    className={student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'table-success' : ''}>
-                                    {/*<td>{index + 1}</td>*/}
-                                    <td>
-                                        {editMode[classroom.id] ? (
-                                            <Input type="text" value={student.firstName}
-                                                   onChange={(e) => handleInputChange(classroom.id, student.id, 'firstName', e.target.value)}/>
-                                        ) : (
-                                            <span>{student.firstName} {student.lastName}</span>
-                                        )}
-                                    </td>
-                                    {editMode[classroom.id] && <td>
-                                        {editMode[classroom.id] ? (
-                                            <Input type="text" value={student.lastName}
-                                                   onChange={(e) => handleInputChange(classroom.id, student.id, 'lastName', e.target.value)}/>
-                                        ) : (
-                                            student.lastName
-                                        )}
-                                    </td>}
-                                    <td>
-                                        <Button
-                                            disabled={!selectedClass[classroom.id]}
-                                            color={student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'danger' : 'info'}
-                                            onClick={() => toggleAttendance(classroom.id, student.id)}>
-                                            {student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'Marcar Ausente' : 'Marcar Presente'}
-                                        </Button>
-                                    </td>
-                                    <td>
-                                        <div className="d-flex flex-column gap-3">
-                                            {editMode[classroom.id] ? (
-                                                <Input type="text" value={student.phone}
-                                                       onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
-                                            ) : (
-                                                student.phone
-                                            )}
-                                            {!editMode[classroom.id] && student.phone.length >= 10 && <Button color="success">
-                                                <a target="_blank"
-                                                   className="text-nowrap text-white text-decoration-none"
-                                                   href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`}
-                                                   rel="noreferrer">
-                                                    Ir a Whatsapp
-                                                </a>
-                                            </Button>}
-                                        </div>
-                                    </td>
-                                    {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
-                                        <td>
-                                            <Input type="select" value={student.status || ''}
-                                                   onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
-                                                <option value="">Estado</option>
-                                                {studentStatusList.map(status =>
-                                                    <option key={status}
-                                                            value={status}>{studentStatusNames[status]}</option>)}
-                                            </Input>
-                                        </td>}
+                            {classroom.students.map((student, index) => {
+                                    const isPresent = !!student.assistance.some(c => c.id === selectedClass[classroom.id]);
+                                    return (
+                                        <tr key={student.id}
+                                            className={isPresent ? 'table-success' : ''}>
+                                            {/*<td>{index + 1}</td>*/}
+                                            <td>
+                                                {editMode[classroom.id] ? (
+                                                    <Input type="text" value={student.firstName}
+                                                           onChange={(e) => handleInputChange(classroom.id, student.id, 'firstName', e.target.value)}/>
+                                                ) : (
+                                                    <span>{student.firstName} {student.lastName}</span>
 
-                                    <td>
-                                        <div className="d-flex gap-4 align-items-center">
-                                            {isAdmin && <>
-                                                <Input type="select" value={student.status || ''}
-                                                       onChange={passStudentToClassroom}>
-                                                    <option value="">Pasar a</option>
-                                                    {classrooms.map(c =>
-                                                        <option key={`selector-classroom-${c.id}`}
-                                                                value={`${classroom.id}-${c.id}-${student.id}`}>{c.subject}</option>)}
-                                                </Input>
-                                                <Input
-                                                    type="checkbox"
-                                                    checked={isStudentSelected(classroom.id, student.id)}
-                                                    onChange={() => toggleStudentSelection(classroom.id, student.id)}
-                                                />
-                                                <Button color="danger"
-                                                        onClick={() => setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
-                                                            ...c,
-                                                            students: c.students.filter(s => s.id !== student.id)
-                                                        } : c))}>
-                                                    Eliminar
-                                                </Button>
-                                            </>
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                                )}
+                                            </td>
+                                            {editMode[classroom.id] && <td>
+                                                {editMode[classroom.id] ? (
+                                                    <Input type="text" value={student.lastName}
+                                                           onChange={(e) => handleInputChange(classroom.id, student.id, 'lastName', e.target.value)}/>
+                                                ) : (
+                                                    student.lastName
+                                                )}
+                                            </td>}
+                                            <td>
+                                                <div
+                                                    className="d-flex flex-column align-items-center justify-content-center gap-2">
+                                                    {isPresent && <Badge color="success"><b>¡Presente!</b></Badge>}
+                                                    <Button
+                                                        disabled={!selectedClass[classroom.id]}
+                                                        color={student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'danger' : 'info'}
+                                                        onClick={() => toggleAttendance(classroom.id, student.id)}>
+                                                        {student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'Marcar Ausente' : 'Marcar Presente'}
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex flex-column gap-3">
+                                                    {editMode[classroom.id] ? (
+                                                        <Input type="text" value={student.phone}
+                                                               onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
+                                                    ) : (
+                                                        student.phone
+                                                    )}
+                                                    {!editMode[classroom.id] && student.phone.length >= 10 &&
+                                                        <Button color="success">
+                                                            <a target="_blank"
+                                                               className="text-nowrap text-white text-decoration-none"
+                                                               href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`}
+                                                               rel="noreferrer">
+                                                                Ir a Whatsapp
+                                                            </a>
+                                                        </Button>}
+                                                </div>
+                                            </td>
+                                            {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
+                                                <td>
+                                                    <Input type="select" value={student.status || ''}
+                                                           onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
+                                                        <option value="">Estado</option>
+                                                        {studentStatusList.map(status =>
+                                                            <option key={status}
+                                                                    value={status}>{studentStatusNames[status]}</option>)}
+                                                    </Input>
+                                                </td>}
+
+                                            <td>
+                                                <div className="d-flex gap-4 align-items-center">
+                                                    {isAdmin && <>
+                                                        <Input type="select" value={student.status || ''}
+                                                               onChange={passStudentToClassroom}>
+                                                            <option value="">Pasar a</option>
+                                                            {classrooms.map(c =>
+                                                                <option key={`selector-classroom-${c.id}`}
+                                                                        value={`${classroom.id}-${c.id}-${student.id}`}>{c.subject}</option>)}
+                                                        </Input>
+                                                        <Input
+                                                            type="checkbox"
+                                                            checked={isStudentSelected(classroom.id, student.id)}
+                                                            onChange={() => toggleStudentSelection(classroom.id, student.id)}
+                                                        />
+                                                        <Button color="danger"
+                                                                onClick={() => setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
+                                                                    ...c,
+                                                                    students: c.students.filter(s => s.id !== student.id)
+                                                                } : c))}>
+                                                            Eliminar
+                                                        </Button>
+                                                    </>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>)
+                                }
+                            )}
                             </tbody>
                         </Table>
                     </div>

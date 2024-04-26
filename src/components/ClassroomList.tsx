@@ -529,12 +529,19 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                         </Button>
                                     </td>
                                     <td>
+                                        <div className="d-flex flex-column gap-3">
                                         {editMode[classroom.id] ? (
                                             <Input type="text" value={student.phone}
                                                    onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
                                         ) : (
                                             student.phone
                                         )}
+                                            <Button color="success">
+                                                <a target="_blank" className="text-nowrap text-white text-decoration-none" href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`} rel="noreferrer">
+                                                    Ir a Whatsapp
+                                                </a>
+                                            </Button>
+                                        </div>
                                     </td>
                                     {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
                                         <td>
@@ -549,9 +556,6 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
 
                                     <td>
                                         <div className="d-flex gap-4 align-items-center">
-                                            <Button color="success">
-                                                <a target="_blank" className="text-white text-decoration-none" href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`} rel="noreferrer">Contactar por whatsapp</a>
-                                            </Button>
                                             {isAdmin && <>
                                                 <Input type="select" value={student.status || ''}
                                                        onChange={passStudentToClassroom}>

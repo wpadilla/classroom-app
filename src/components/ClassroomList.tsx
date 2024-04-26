@@ -490,9 +490,9 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                             <tr>
                                 {/*<th>#</th>*/}
                                 <th>Nombre</th>
-                                <th>Apellido</th>
+                                {editMode[classroom.id] && <th>Apellido</th>}
                                 <th>Asistencia</th>
-                                <th>Telefono</th>
+                                <th>Teléfono</th>
                                 {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
                                     <th>Estado</th>}
 
@@ -509,17 +509,17 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                             <Input type="text" value={student.firstName}
                                                    onChange={(e) => handleInputChange(classroom.id, student.id, 'firstName', e.target.value)}/>
                                         ) : (
-                                            student.firstName
+                                            <span>{student.firstName} {student.lastName}</span>
                                         )}
                                     </td>
-                                    <td>
+                                    {editMode[classroom.id] && <td>
                                         {editMode[classroom.id] ? (
                                             <Input type="text" value={student.lastName}
                                                    onChange={(e) => handleInputChange(classroom.id, student.id, 'lastName', e.target.value)}/>
                                         ) : (
                                             student.lastName
                                         )}
-                                    </td>
+                                    </td>}
                                     <td>
                                         <Button
                                             disabled={!selectedClass[classroom.id]}
@@ -530,17 +530,20 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                     </td>
                                     <td>
                                         <div className="d-flex flex-column gap-3">
-                                        {editMode[classroom.id] ? (
-                                            <Input type="text" value={student.phone}
-                                                   onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
-                                        ) : (
-                                            student.phone
-                                        )}
-                                            <Button color="success">
-                                                <a target="_blank" className="text-nowrap text-white text-decoration-none" href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`} rel="noreferrer">
+                                            {editMode[classroom.id] ? (
+                                                <Input type="text" value={student.phone}
+                                                       onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
+                                            ) : (
+                                                student.phone
+                                            )}
+                                            {!editMode[classroom.id] && student.phone.length >= 10 && <Button color="success">
+                                                <a target="_blank"
+                                                   className="text-nowrap text-white text-decoration-none"
+                                                   href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`}
+                                                   rel="noreferrer">
                                                     Ir a Whatsapp
                                                 </a>
-                                            </Button>
+                                            </Button>}
                                         </div>
                                     </td>
                                     {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
@@ -597,7 +600,7 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                value={newStudent.firstName}/>
                         <Input type="text" placeholder="Apellido" name="lastName" onChange={onChangeNewStudent}
                                value={newStudent.lastName}/>
-                        <InputMask className="form-control" type="tel" placeholder="Telefono" name="phone"
+                        <InputMask className="form-control" type="tel" placeholder="Teléfono" name="phone"
                                    onChange={onChangeNewStudent} value={newStudent.phone} mask="+1 (999) 999-9999"/>
                     </FormGroup>
                     <ModalFooter>

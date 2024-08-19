@@ -1,11 +1,14 @@
 import ClassroomsList from "../components/ClassroomList";
 import {addDoc, collection, doc, onSnapshot, getDocs, updateDoc} from "firebase/firestore";
 import {classroomCollectionName, firebaseStoreDB} from "../utils/firebase";
-import {IClassroom} from "../models/clasroomModel";
+import {IClassroom, StudentStatusTypes} from "../models/clasroomModel";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {toast} from "react-toastify";
 import _, {debounce} from "lodash";
 import {mockClassrooms} from "../data/mock";
+import * as XLSX from 'xlsx';
+import {saveAs} from 'file-saver';
+import {Dropdown, DropdownToggle, DropdownMenu, DropdownItem} from "reactstrap";
 
 
 // const docRef = doc(firebaseStoreDB, classroomCollectionName, classroomsDocId);
@@ -27,6 +30,8 @@ const updateClassrooms = async (data: IClassroom) => {
 export const Classrooms = () => {
     const [classroomsData, setClassrooms] = useState<IClassroom[]>([]);
     const [loading, setLoading] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
     const getClassrooms = async () => {
         setLoading(true);
@@ -87,6 +92,44 @@ export const Classrooms = () => {
         setLoading(false);
     }
 
+    const exportToExcel = (status: StudentStatusTypes) => {
+        const filteredStudents = classroomsData.flatMap(classroom =>
+            classroom.students.filter(student => student.status === status).map(student => ({
+                Materia: classroom.subject,
+                Nombre: `${student.firstName} ${student.lastName || ''}`,
+                Telefono: student.phone,
+                Estado: student.status
+            }))
+        );
+
+        const worksheet = XLSX.utils.json_to_sheet(filteredStudents);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+
+        XLSX.writeFile(workbook, `students_${status}.xlsx`);
+    };
+
+    const exportToText = (status: StudentStatusTypes) => {
+        const filteredStudents = classroomsData.flatMap(classroom =>
+            classroom.students.filter(student => student.status === status).map(student => (
+                `Materia: ${classroom.subject}, Nombre: ${student.firstName} ${student.lastName || ''}, ` +
+                `Telefono: ${student.phone}, Estado: ${student.status}`
+            ))
+        ).join('\n');
+
+        const blob = new Blob([filteredStudents], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, `students_${status}.txt`);
+    };
+
+
+    const handleExport = (format: 'excel' | 'text', status: StudentStatusTypes) => {
+        if (format === 'excel') {
+            exportToExcel(status);
+        } else {
+            exportToText(status);
+        }
+    };
+
 
     return (
         <div>
@@ -99,6 +142,24 @@ export const Classrooms = () => {
                     </div>
                 </div>
             }
+
+
+            <Dropdown isOpen={dropdownOpen} toggle={toggleDropdown}>
+                <DropdownToggle caret>
+                    Export Classrooms
+                </DropdownToggle>
+                <DropdownMenu>
+                    <DropdownItem header>Excel</DropdownItem>
+                    <DropdownItem onClick={() => handleExport('excel', 'approved')}>Approved</DropdownItem>
+                    <DropdownItem onClick={() => handleExport('excel', 'outstanding')}>Outstanding</DropdownItem>
+                    <DropdownItem onClick={() => handleExport('excel', 'failed')}>Failed</DropdownItem>
+                    <DropdownItem divider />
+                    <DropdownItem header>Text</DropdownItem>
+                    <DropdownItem onClick={() => handleExport('text', 'approved')}>Approved</DropdownItem>
+                    <DropdownItem onClick={() => handleExport('text', 'outstanding')}>Outstanding</DropdownItem>
+                    <DropdownItem onClick={() => handleExport('text', 'failed')}>Failed</DropdownItem>
+                </DropdownMenu>
+            </Dropdown>
             {/*<button onClick={addAllDocs}>add new</button>*/}
             <ClassroomsList updateClassrooms={updateClassrooms} classrooms={classroomsData}/>
         </div>

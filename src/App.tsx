@@ -12,7 +12,7 @@ import {
     ListGroupItem,
     ModalBody, ModalFooter,
     ModalHeader,
-    Modal
+    Modal, DropdownToggle, DropdownMenu, DropdownItem, Dropdown
 } from "reactstrap";
 import {docId, docName, firebaseStoreDB} from "./utils/firebase";
 import {collection, getDoc, updateDoc, doc, addDoc, onSnapshot} from 'firebase/firestore';
@@ -22,6 +22,8 @@ import {onSocketOnce, PROD_SOCKET_URL} from "./utils/socket.io";
 import {ToastContainer, toast} from 'react-toastify';
 import {IWhatsappMessage, sendWhatsappMessage, startWhatsappServices} from "./services/whatsapp";
 import {useSearchParams} from "react-router-dom";
+import * as XLSX from 'xlsx';
+import {saveAs} from 'file-saver';
 
 export interface IEvaluation {
     test: number;
@@ -78,6 +80,10 @@ function App() {
             participation: 20,
         }
     } as IClassStructure);
+    const [dropdownOpen, setDropdownOpen] = React.useState(false);
+    const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+
+
     const hasEnded = useMemo(() => classStructure.givenClasses >= classStructure.classes, [classStructure.givenClasses, classStructure.classes]);
 
     // const [classStructureDoc, setClassStructureDoc] = React.useState<any>();
@@ -316,6 +322,54 @@ ${lastMessage}`;
         setEnableAdminView(searchParams.get('admin') === '123456');
     }, [searchParams]);
 
+    const exportToText = (status: 'approved' | 'failed' | 'outstanding') => {
+        const filteredStudents = classStructure.students.filter(student => {
+            const points = getStudentPoints(student);
+            if (status === 'approved') return points >= 70 && points < 80;
+            if (status === 'outstanding') return points >= 80;
+            if (status === 'failed') return points < 70;
+        });
+
+        const textData = filteredStudents.map(student => (
+            `Name: ${student.firstName} ${student.lastName || ''}, ` +
+            `Phone: ${student.phone}, Points: ${getStudentPoints(student)}, Status: ${status}`
+        )).join('\n');
+
+        const blob = new Blob([textData], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, `students_${status}.txt`);
+    };
+
+    const exportToExcel = (status: 'approved' | 'failed' | 'outstanding') => {
+        const filteredStudents = classStructure.students.filter(student => {
+            const points = getStudentPoints(student);
+            if (status === 'approved') return points >= 70 && points < 80;
+            if (status === 'outstanding') return points >= 80;
+            if (status === 'failed') return points < 70;
+        });
+
+        const data = filteredStudents.map(student => ({
+            Name: `${student.firstName} ${student.lastName || ''}`,
+            Phone: student.phone,
+            Points: getStudentPoints(student),
+            Status: status
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+
+        XLSX.writeFile(workbook, `students_${status}.xlsx`);
+    };
+
+    const handleExport = (format: 'excel' | 'text', status: 'approved' | 'failed' | 'outstanding') => {
+        if (format === 'excel') {
+            exportToExcel(status);
+        } else {
+            exportToText(status);
+        }
+    };
+
+
     return (
         <div className="App">
             <div className="app-header">
@@ -423,6 +477,7 @@ ${lastMessage}`;
                     )
                 }
             </ListGroup>
+
             {enableAdminView && <Form className="p-5" onSubmit={addStudent}>
                 <FormGroup>
                     <Label for="firstName">Nombre</Label>

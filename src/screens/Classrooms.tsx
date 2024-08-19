@@ -98,7 +98,8 @@ export const Classrooms = () => {
                 Materia: classroom.subject,
                 Nombre: `${student.firstName} ${student.lastName || ''}`,
                 Telefono: student.phone,
-                Estado: student.status
+                Estado: student.status,
+                Maestro: `${classroom.teacher.firstName || ''} ${classroom.teacher.lastName || ''}`
             }))
         );
 

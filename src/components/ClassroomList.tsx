@@ -186,7 +186,12 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             // Add selected students to the target classroom
             if (classroom.id === targetClassroomId) {
                 const selectedStudents = selectedClassrooms.find(c => c.id === classroomId)?.students || [];
-                classroom.students = [...classroom.students, ...selectedStudents];
+                const newStudents = structuredClone(selectedStudents).map((item: IStudent) => ({
+                    ...item,
+                    status: ''
+                }))
+
+                classroom.students = [...classroom.students, ...newStudents];
             }
             return classroom;
         });
@@ -207,7 +212,8 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                 classroom.students = classroom.students.filter(s => s.id !== studentId);
             }
             if (classroom.id === classroomId) {
-                classroom.students = [...classroom.students, student];
+                const newStudent = {...structuredClone(student), status: '' } as IStudent
+                classroom.students = [...classroom.students, newStudent];
             }
             return classroom;
         });

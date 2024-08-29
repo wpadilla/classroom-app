@@ -9,9 +9,16 @@ import {
     Modal,
     ModalBody,
     ModalFooter,
-    ModalHeader, Badge
+    ModalHeader, Badge, Dropdown, DropdownToggle, DropdownMenu, DropdownItem
 } from 'reactstrap';
-import {IClasses, IClassroom, IStudent, studentStatusList, studentStatusNames} from "../models/clasroomModel";
+import {
+    IClasses,
+    IClassroom,
+    IStudent,
+    studentStatusList,
+    studentStatusNames,
+    StudentStatusTypes
+} from "../models/clasroomModel";
 import {useSearchParams} from "react-router-dom";
 import {toast} from "react-toastify";
 import InputMask from "react-input-mask";
@@ -25,10 +32,11 @@ import {debounceUpdate} from "../screens/Classrooms";
 interface ClassroomsListProps {
     classrooms: IClassroom[];
     updateClassrooms: (classrooms: IClassroom) => void;
+    exportClassroom: (format: 'excel' | 'text', status: StudentStatusTypes, classroomId: string) => void;
 }
 
 
-const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassrooms}) => {
+const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassrooms, exportClassroom}) => {
     const [classroomData, setClassroomData] = useState<IClassroom[]>(structuredClone(classrooms));
     const [originalClassroomData, setOriginalClassroomData] = useState<IClassroom[]>(classrooms);
     const [selectedClass, setSelectedClass] = useState<{ [key: string]: string }>({});
@@ -167,6 +175,27 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
         return selectedClassrooms.find(c => c.id === classroomId)?.students.some(s => s.id === studentId) ?? false;
     };
 
+    const passMultipleStudentToClassroom = (classroomId: string, targetClassroomId: string) => {
+        const updatedClassrooms = classroomData.map(classroom => {
+            // Remove selected students from the current classroom
+            if (classroom.id === classroomId) {
+                classroom.students = classroom.students.filter(student =>
+                    !selectedClassrooms.find(c => c.id === classroomId)?.students.some(s => s.id === student.id)
+                );
+            }
+            // Add selected students to the target classroom
+            if (classroom.id === targetClassroomId) {
+                const selectedStudents = selectedClassrooms.find(c => c.id === classroomId)?.students || [];
+                classroom.students = [...classroom.students, ...selectedStudents];
+            }
+            return classroom;
+        });
+
+        setClassroomData(updatedClassrooms);
+        // Clear the selection after moving students
+        setSelectedClassrooms(selectedClassrooms.map(c => c.id === classroomId ? {...c, students: []} : c));
+    };
+
     const passStudentToClassroom = ({target: {value}}: any) => {
         const [currentClassroom, classroomId, studentId] = value.split('-');
         const student = classroomData.find(c => c.id === currentClassroom)?.students.find(s => s.id === studentId);
@@ -262,7 +291,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
         localStorage.removeItem('teacherPhone');
     }
 
-    const availableSendMessage = useMemo(() => {
+    const availableStudentSelected = useMemo(() => {
         return selectedClassrooms.filter(c => c.students.length > 0).length > 0;
     }, [selectedClassrooms])
 
@@ -369,6 +398,10 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
             return c
         }))
     }
+    const [exportDropdownOpen, setExportDropdownOpen] = useState<{ [N in string]: boolean}>({});
+    const toggleExportDropdown = (classroomId: string) => () => {
+        setExportDropdownOpen(prev => ({...prev, [classroomId]: !prev[classroomId]}))
+    }
 
     return (
         <Container style={{width: '100%', minHeight: '100dvh'}}
@@ -390,7 +423,7 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                 style={{zIndex: '99'}}>
                 {isAdmin &&
                     <Button
-                        disabled={!availableSendMessage}
+                        disabled={!availableStudentSelected}
                         color="primary"
                         onClick={handleSendMessage}
                     >
@@ -431,13 +464,39 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
                                 </Button>
                             </div>
                             {isAdmin &&
-                                <>
-                                    <Button color="primary" onClick={() => toggleSelectAll(classroom.id, true)}>Select
-                                        All</Button>
-                                    <Button color="secondary" onClick={() => toggleSelectAll(classroom.id, false)}>Deselect
-                                        All
-                                    </Button>
-                                </>
+                                <div className="d-flex w-100 gap-3 justify-content-between">
+                                    <div className="d-flex gap-3 w-100">
+                                        <Button color="primary" onClick={() => toggleSelectAll(classroom.id, true)}>Select
+                                            All</Button>
+                                        <Button color="secondary" onClick={() => toggleSelectAll(classroom.id, false)}>Deselect
+                                            All
+                                        </Button>
+                                        <Dropdown isOpen={exportDropdownOpen[classroom.id]} toggle={toggleExportDropdown(classroom.id)}>
+                                            <DropdownToggle color="success" caret>
+                                                Export Classroom
+                                            </DropdownToggle>
+                                            <DropdownMenu>
+                                                <DropdownItem header>Excel</DropdownItem>
+                                                <DropdownItem onClick={() => exportClassroom('excel', 'approved', classroom.id)}>Approved</DropdownItem>
+                                                <DropdownItem onClick={() => exportClassroom('excel', 'outstanding', classroom.id)}>Outstanding</DropdownItem>
+                                                <DropdownItem onClick={() => exportClassroom('excel', 'failed', classroom.id)}>Failed</DropdownItem>
+                                            </DropdownMenu>
+                                        </Dropdown>
+                                    </div>
+                                    {availableStudentSelected &&
+                                        <Input
+                                            type="select"
+                                            onChange={(e) => passMultipleStudentToClassroom(classroom.id, e.target.value)}
+                                            value=""
+                                        >
+                                            <option value="" disabled>Pasar seleccionados a</option>
+                                            {classrooms.filter(c => c.id !== classroom.id).map(c =>
+                                                <option key={`selector-classroom-${c.id}`} value={c.id}>
+                                                    {c.subject}
+                                                </option>
+                                            )}
+                                        </Input>}
+                                </div>
                             }
                         </div>
                         {isAdmin && editMode[classroom.id] && <div className="w-100 d-flex flex-column gap-3 mb-3">

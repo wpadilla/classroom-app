@@ -247,7 +247,7 @@ function App() {
     }
 
     const sendMessage = async (contacts: IStudent[], message: IWhatsappMessage) =>
-        await sendWhatsappMessage('wpadilla', contacts, message)
+        await sendWhatsappMessage('bibleAssistant', contacts, message)
 
     const sendEvaluationMessage = (selectedStudents: IStudent[]) => {
         Promise.all(selectedStudents?.map(async s => {

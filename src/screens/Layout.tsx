@@ -56,7 +56,7 @@ export const Layout = ({children}: any) => {
                     className="bg-white p-3 d-flex justify-content-around align-items-center shadow-lg position-sticky bottom-0 w-100">
                     <Button
                         color="info"
-                        onClick={() => login('wpadilla')}>Run Whatsapp
+                        onClick={() => login('bibleAssistant')}>Run Whatsapp
                     </Button>
 
                     <Link to="wpadilla?admin=123456">

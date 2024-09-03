@@ -317,7 +317,7 @@ _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. As�
 
             const students = classroom.students.filter(item => !!item.phone);
             if (students.length) {
-                await sendWhatsappMessage('wpadilla', students, message)
+                await sendWhatsappMessage('bibleAssistant', students, message)
             }
 
             if (classroom.students.length > 0) {

@@ -313,7 +313,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
 //
 // _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. Así, por medio de ella, crecerán en su salvación._
 // 1 Pedro 2:2`
-                text: `Hola @firstName, Dios te bendiga 🙌 ¡Este jueves comenzamos nuestra formación bíblica! 🥳 tu aula sera *${classroom.name}* entra en ella desde que llegues ⚡️✅ no te quedes en la abajo 🚫 recuerda que perteneces en la clase de *${classroom.subject}* 📖 con *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estará disponible en tu aula, el precio es *_RD$${classroom.materialPrice}_* pesos. Bendiciones!`,
+                text: `Hola @firstName, Dios te bendiga 🙌 ¡Este jueves comenzamos nuestra formación bíblica! 🥳 tu aula sera *${classroom.name}* entra en ella desde que llegues ⚡️✅ no te quedes abajo 🚫 recuerda que perteneces en la clase de *${classroom.subject}* 📖 con *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estará disponible en tu aula, el precio es *_RD$${classroom.materialPrice}_* pesos. Bendiciones!`,
                 // text: `Hola @firstName, Dios te bendiga 🙌 recuerda que hoy comienzas el discipulado en la iglesia 🥳 tu maestra sera *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estará disponible cuando llegues, el precio es de *_RD$${classroom.materialPrice}_* pesos. Bendiciones!`,
             }
 

@@ -39,7 +39,7 @@ export interface IClassStructure {
 }
 
 export interface IStudent {
-    id: number;
+    id: any;
     firstName: string;
     lastName?: string;
     phone: string;
@@ -246,8 +246,22 @@ function App() {
         } as IClassStructure);
     }
 
-    const sendMessage = async (contacts: IStudent[], message: IWhatsappMessage) =>
-        await sendWhatsappMessage('bibleAssistant', contacts, message)
+    const sendMessage = async (contacts: IStudent[], message: IWhatsappMessage) => {
+        contacts = contacts.map(item => ({
+            ...item,
+            id: `${item.phone}@s.whatsapp.net`
+        })) as IStudent[];
+
+        const formData = new FormData();
+        const messages = Array.isArray(message) ? message : [message];
+
+        formData.append('messages', JSON.stringify(messages));
+        formData.append('contacts', JSON.stringify(contacts));
+        formData.append('sessionId', 'bibleAssistant');
+
+        await sendWhatsappMessage('bibleAssistant', formData);
+        // await sendWhatsappMessage('bibleAssistant', contacts, message)
+    }
 
     const sendEvaluationMessage = (selectedStudents: IStudent[]) => {
         Promise.all(selectedStudents?.map(async s => {

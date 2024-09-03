@@ -303,6 +303,8 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
 
 
     const [loading, setLoading] = useState(false);
+
+
     const handleSendMessage = async () => {
         setLoading(true);
         await Promise.all(selectedClassrooms.map(async classroom => {
@@ -315,9 +317,20 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                 // text: `Hola @firstName, Dios te bendiga 🙌 recuerda que hoy comienzas el discipulado en la iglesia 🥳 tu maestra sera *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estará disponible cuando llegues, el precio es de *_RD$${classroom.materialPrice}_* pesos. Bendiciones!`,
             }
 
-            const students = classroom.students.filter(item => !!item.phone);
+            const students = classroom.students.filter(item => !!item.phone).map(item => ({
+                ...item,
+                id: `${item.phone}@s.whatsapp.net`
+            }));
             if (students.length) {
-                await sendWhatsappMessage('bibleAssistant', students, message)
+                const formData = new FormData();
+                const messages = Array.isArray(message) ? message : [message];
+
+                formData.append('messages', JSON.stringify(messages));
+                formData.append('contacts', JSON.stringify(students));
+                formData.append('sessionId', 'bibleAssistant');
+
+                await sendWhatsappMessage('bibleAssistant', formData);
+                // await sendWhatsappMessage('bibleAssistant', students, message)
             }
 
             if (classroom.students.length > 0) {

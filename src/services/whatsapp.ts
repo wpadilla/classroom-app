@@ -1,3 +1,5 @@
+import axios from "axios";
+
 export const localPromotionsApi = "http://10.0.0.13:5000/api/";
 export const whatsappPhone = "+18298937075";
 export type PublicationTypes = "photo" | "story";
@@ -50,33 +52,25 @@ export const startWhatsappServices = async (
     }
 };
 
-
 export const sendWhatsappMessage = async (
     sessionId: string,
-    contacts: any[],
-    message: IWhatsappMessage
+    form: FormData,
 ) => {
     try {
-        return await fetch(
+        return (await axios.post(
             `${wsApi}message`,
+            form,
             {
-                method: "POST",
                 headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    sessionId,
-                    message,
-                    contacts: contacts.filter((item) => !!item),
-                    delay: 10,
-                }),
+                    'Content-Type': 'multipart/form-data',
+                }
             }
-        );
+        )).data;
     } catch (e) {
         throw e;
     }
 };
+
 
 export const getWhatsappSeedData = async (
     sessionId: string,

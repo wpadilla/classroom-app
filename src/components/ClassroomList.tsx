@@ -9,7 +9,7 @@ import {
     Modal,
     ModalBody,
     ModalFooter,
-    ModalHeader, Badge, Dropdown, DropdownToggle, DropdownMenu, DropdownItem
+    ModalHeader, Badge, Dropdown, DropdownToggle, DropdownMenu, DropdownItem, Nav, NavItem, NavLink, TabPane, TabContent
 } from 'reactstrap';
 import {
     IClasses,
@@ -23,16 +23,13 @@ import {useSearchParams} from "react-router-dom";
 import {toast} from "react-toastify";
 import InputMask from "react-input-mask";
 import {IWhatsappMessage, sendWhatsappMessage} from "../services/whatsapp";
-import {addDoc, collection} from "firebase/firestore";
-import {classroomCollectionName, docName, firebaseStoreDB} from "../utils/firebase";
 import {generateCustomID} from "../utils/generators";
 import _ from "lodash";
-import {debounceUpdate} from "../screens/Classrooms";
 
 interface ClassroomsListProps {
     classrooms: IClassroom[];
     updateClassrooms: (classrooms: IClassroom) => void;
-    exportClassroom: (format: 'excel' | 'text', status: StudentStatusTypes, classroomId: string) => void;
+    exportClassroom: (format: 'excel' | 'text', status: StudentStatusTypes | 'all', classroomId: string) => void;
 }
 
 
@@ -49,10 +46,17 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
     const isSupervisor = useMemo(() => {
         return searchParams.get('supervisor') === '123456';
     }, [searchParams]);
+    const [selectedClassroomId, setSelectedClassroomId] = useState<string>(classrooms.length ? classrooms[0].id : '');
+    const [activeTab, setActiveTab] = useState<string>('');
+    const [showAll, setShowAll] = useState<boolean>(false);
 
     useEffect(() => {
         setClassroomData(structuredClone(classrooms));
         setOriginalClassroomData(structuredClone(classrooms));
+        // if (classrooms.length) {
+        //     setSelectedClassroomId(classrooms[0].id);
+        //     setActiveTab(classrooms[0].id);
+        // }
     }, [classrooms]);
     // const isAdmin = true
     const toggleEditMode = (classroomId: string) => {
@@ -212,7 +216,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                 classroom.students = classroom.students.filter(s => s.id !== studentId);
             }
             if (classroom.id === classroomId) {
-                const newStudent = {...structuredClone(student), status: '' } as IStudent
+                const newStudent = {...structuredClone(student), status: ''} as IStudent
                 classroom.students = [...classroom.students, newStudent];
             }
             return classroom;
@@ -246,8 +250,11 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                     toast('Sesion Iniciada', {type: 'success'})
                 }
             }
+        } else {
+            const found = classrooms.find(c => c.id === selectedClassroomId);
+            found && setSelectedClassroom(found)
         }
-    }, [teacherPhone, classrooms])
+    }, [teacherPhone, classrooms, selectedClassroomId])
 
     const updateChangedClassrooms = async (changedClassrooms: IClassroom[]) => {
         // setLoading(true);
@@ -417,14 +424,23 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             return c
         }))
     }
-    const [exportDropdownOpen, setExportDropdownOpen] = useState<{ [N in string]: boolean}>({});
+    const [exportDropdownOpen, setExportDropdownOpen] = useState<{ [N in string]: boolean }>({});
     const toggleExportDropdown = (classroomId: string) => () => {
         setExportDropdownOpen(prev => ({...prev, [classroomId]: !prev[classroomId]}))
     }
 
+    const toggleTab = (tabId: string) => {
+        if (activeTab !== tabId) {
+            setActiveTab(tabId);
+            setSelectedClassroomId(tabId);
+        }
+    };
+
+
     return (
         <Container style={{width: '100%', minHeight: '100dvh'}}
                    className="p-0 py-4 d-flex flex-column justify-content-center align-items-center">
+
             {
                 loading &&
                 <div
@@ -434,9 +450,12 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                     </div>
                 </div>
             }
-            {selectedClassroom && <Button color="danger" onClick={logOut}>
+
+            {selectedClassroom && teacherPhone && <Button color="danger" onClick={logOut}>
                 Cerrar Sesión
             </Button>}
+
+
             <div
                 className="mb-4 mt-2 w-100 d-flex align-items-center justify-content-center gap-3 position-sticky top-0 bg-white py-2"
                 style={{zIndex: '99'}}>
@@ -448,7 +467,39 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                     >
                         Enviar Mensaje
                     </Button>}
+                {isAdmin &&
+                    <FormGroup >
+                        <Input
+                            type="switch"
+                            checked={showAll}
+                            onChange={() => setShowAll(!showAll)}
+                        />
+                        <Label>Mostrar todas las clases</Label>
+                    </FormGroup>
+                }
             </div>
+
+            {isAdmin && <Nav tabs className="d-flex overflow-x-scroll flex-nowrap w-100 p-3">
+                {classrooms.map(classroom => (
+                    <NavItem key={classroom.id} className="white-space-nowrap text-nowrap" style={{
+                        width: '100%',
+                        minWidth: '200px',
+                        maxWidth: '200px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: 'inline-block',
+                        cursor: 'pointer'
+                    }}>
+                        <NavLink
+                            className={activeTab === classroom.id ? 'active' : ''}
+                            onClick={() => toggleTab(classroom.id)}
+                        >
+                            {classroom.subject}
+                        </NavLink>
+                    </NavItem>
+                ))}
+            </Nav>}
+
             {(!isAdmin && !selectedClassroom) && !isSupervisor ? <FormGroup>
                 <Label><h2>Teléfono del Profesor</h2></Label> <br/>
                 <InputMask className="form-control mb-3" placeholder="Numero de whatsapp"
@@ -458,7 +509,14 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                            onChange={onTeacherPhoneChange}
                            mask="+1 (999) 999-9999"/>
             </FormGroup> : <>
-                {(selectedClassroom ? [selectedClassroom] : classroomData).map(classroom => (
+                {/*<TabContent activeTab={activeTab}>*/}
+                {/*    {classrooms.map(classroom => (*/}
+                {/*        <TabPane tabId={classroom.id} key={classroom.id}>*/}
+                {/*            {classroom.id}*/}
+                {/*        </TabPane>*/}
+                {/*    ))}*/}
+                {/*</TabContent>*/}
+                {(selectedClassroom && !showAll ? [selectedClassroom] : classroomData).map(classroom => (
                     <div key={classroom.id} className="classroom-block mb-4 p-3 border w-100">
                         <h3>{classroom.subject} -
                             Profesor/a: {`${classroom.teacher.firstName} ${classroom.teacher.lastName}`}
@@ -468,7 +526,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                             {/*    onChange={() => toggleStudentSelection(classroom.id, student.id)}*/}
                             {/*/>*/}
                         </h3>
-                        <span className="text-secondary">{classroom.students.length + 1} Estudiantes</span>
+                        <span className="text-secondary">{classroom.students.length} Estudiantes</span>
                         <div
                             className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100"
                             style={{top: isAdmin ? "50px" : "0px", zIndex: "9"}}>
@@ -490,15 +548,21 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                         <Button color="secondary" onClick={() => toggleSelectAll(classroom.id, false)}>Deselect
                                             All
                                         </Button>
-                                        <Dropdown isOpen={exportDropdownOpen[classroom.id]} toggle={toggleExportDropdown(classroom.id)}>
+                                        <Dropdown isOpen={exportDropdownOpen[classroom.id]}
+                                                  toggle={toggleExportDropdown(classroom.id)}>
                                             <DropdownToggle color="success" caret>
                                                 Export Classroom
                                             </DropdownToggle>
                                             <DropdownMenu>
                                                 <DropdownItem header>Excel</DropdownItem>
-                                                <DropdownItem onClick={() => exportClassroom('excel', 'approved', classroom.id)}>Approved</DropdownItem>
-                                                <DropdownItem onClick={() => exportClassroom('excel', 'outstanding', classroom.id)}>Outstanding</DropdownItem>
-                                                <DropdownItem onClick={() => exportClassroom('excel', 'failed', classroom.id)}>Failed</DropdownItem>
+                                                <DropdownItem
+                                                    onClick={() => exportClassroom('excel', 'all', classroom.id)}>Todos</DropdownItem>
+                                                <DropdownItem
+                                                    onClick={() => exportClassroom('excel', 'approved', classroom.id)}>Approved</DropdownItem>
+                                                <DropdownItem
+                                                    onClick={() => exportClassroom('excel', 'outstanding', classroom.id)}>Outstanding</DropdownItem>
+                                                <DropdownItem
+                                                    onClick={() => exportClassroom('excel', 'failed', classroom.id)}>Failed</DropdownItem>
                                             </DropdownMenu>
                                         </Dropdown>
                                     </div>
@@ -571,7 +635,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                 {editMode[classroom.id] && <th>Apellido</th>}
                                 <th>Asistencia</th>
                                 <th>Teléfono</th>
-                                {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
+                                {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1]?.id &&
                                     <th>Estado</th>}
 
                                 {isAdmin && <th>Actions</th>}

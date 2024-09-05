@@ -8,11 +8,14 @@ import _, {debounce} from "lodash";
 import {mockClassrooms} from "../data/mock";
 import * as XLSX from 'xlsx';
 import {saveAs} from 'file-saver';
-import {Dropdown, DropdownToggle, DropdownMenu, DropdownItem} from "reactstrap";
+import {Dropdown, DropdownToggle, DropdownMenu, DropdownItem, Button} from "reactstrap";
+import {useSearchParams} from "react-router-dom";
 
+// Helper function to generate custom IDs
+const generateCustomID = () => Math.random().toString(36).substr(2, 9);
 
 const showSuccessUpdate = debounce(() => {
-    toast('Actualizacion Exitosa!', {type: 'success', position: 'bottom-right'})
+    toast('Actualización exitosa!', {type: 'success', position: 'bottom-right'})
 }, 900);
 
 export const debounceUpdate = _.debounce((changedClassroom: IClassroom) => {
@@ -25,11 +28,39 @@ const updateClassrooms = async (data: IClassroom) => {
     showSuccessUpdate();
 }
 
+const createNewClassroom = async () => {
+    const newClassroom = {
+        subject: "Nueva Materia",
+        teacher: {
+            id: generateCustomID(),
+            firstName: "Nombre del Maestro",
+            lastName: "Apellido del Maestro",
+            phone: "", // No phone number initially
+            role: "teacher"
+        },
+        students: [], // No students initially
+        classes: [], // No class schedule initially
+        materialPrice: 0 // No material price initially
+    };
+
+    try {
+        await addDoc(collection(firebaseStoreDB, classroomCollectionName), newClassroom);
+        toast('Nueva clase creada con éxito!', {type: 'success', position: 'bottom-right'});
+    } catch (error) {
+        console.error("Error al crear la nueva clase:", error);
+        toast('Error al crear la clase', {type: 'error', position: 'bottom-right'});
+    }
+};
+
 export const Classrooms = () => {
     const [classroomsData, setClassrooms] = useState<IClassroom[]>([]);
     const [loading, setLoading] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+    const [searchParams] = useSearchParams();
+    const isAdmin = useMemo(() => {
+        return searchParams.get('admin') === '123456';
+    }, [searchParams]);
 
     const getClassrooms = async () => {
         setLoading(true);
@@ -38,7 +69,7 @@ export const Classrooms = () => {
 
         updateClassroom(querySnapshot as any);
         setLoading(false);
-    }
+    };
 
     const updateClassroom = (querySnapshot: any) => {
         const documents: IClassroom[] = [];
@@ -48,31 +79,29 @@ export const Classrooms = () => {
         if (JSON.stringify(documents) !== JSON.stringify(classroomsData)) {
             setClassrooms(documents);
         }
-    }
+    };
 
     useEffect(() => {
         getClassrooms();
         return () => {
             unsubscribe();
         }
-    }, [])
+    }, []);
 
-    const unsubscribe =
-        useMemo(() => {
-                const collectionRef = collection(firebaseStoreDB, classroomCollectionName);
-                return onSnapshot(collectionRef, (docSnapshot) => {
-                    // updateClassroom(docSnapshot as any);
-                }, (error) => {
-                    console.error('Error listening to document:', error);
-                })
-            }
-            , [classroomsData]);
+    const unsubscribe = useMemo(() => {
+        const collectionRef = collection(firebaseStoreDB, classroomCollectionName);
+        return onSnapshot(collectionRef, (docSnapshot) => {
+            // updateClassroom(docSnapshot as any);
+        }, (error) => {
+            console.error('Error listening to document:', error);
+        });
+    }, [classroomsData]);
 
-    const exportToExcel = (status: StudentStatusTypes, classroomId?: string) => {
+    const exportToExcel = (status: StudentStatusTypes | 'all' = 'all', classroomId?: string) => {
         const filteredStudents = classroomsData
             .filter(classroom => !classroomId || classroom.id === classroomId)
             .flatMap(classroom =>
-                classroom.students.filter(student => student.status === status).map(student => ({
+                classroom.students.filter(student => status === 'all' || student.status === status).map(student => ({
                     Materia: classroom.subject,
                     Nombre: `${student.firstName} ${student.lastName || ''}`,
                     Telefono: student.phone,
@@ -90,11 +119,11 @@ export const Classrooms = () => {
         XLSX.writeFile(workbook, `${sheetName}.xlsx`);
     };
 
-    const exportToText = (status: StudentStatusTypes, classroomId?: string) => {
+    const exportToText = (status: StudentStatusTypes | 'all' = 'all', classroomId?: string) => {
         const filteredStudents = classroomsData
             .filter(classroom => !classroomId || classroom.id === classroomId)
             .flatMap(classroom =>
-                classroom.students.filter(student => student.status === status).map(student => (
+                classroom.students.filter(student => status === 'all' || student.status === status).map(student => (
                     `Materia: ${classroom.subject}, Nombre: ${student.firstName} ${student.lastName || ''}, ` +
                     `Telefono: ${student.phone}, Estado: ${student.status}`
                 ))
@@ -105,7 +134,7 @@ export const Classrooms = () => {
         saveAs(blob, `${fileName}.txt`);
     };
 
-    const handleExport = (format: 'excel' | 'text', status: StudentStatusTypes, classroomId?: string) => {
+    const handleExport = (format: 'excel' | 'text', status: StudentStatusTypes | 'all' = 'all', classroomId?: string) => {
         if (format === 'excel') {
             exportToExcel(status, classroomId);
         } else {
@@ -125,22 +154,27 @@ export const Classrooms = () => {
                 </div>
             }
 
-            <div className="p-3">
+            {isAdmin && <div className="p-3">
                 <Dropdown isOpen={dropdownOpen} toggle={toggleDropdown}>
                     <DropdownToggle color="primary" caret>
                         Export All Classrooms
                     </DropdownToggle>
                     <DropdownMenu>
                         <DropdownItem header>Excel</DropdownItem>
+                        <DropdownItem onClick={() => handleExport('excel')}>Todos</DropdownItem>
                         <DropdownItem onClick={() => handleExport('excel', 'approved')}>Approved</DropdownItem>
                         <DropdownItem onClick={() => handleExport('excel', 'outstanding')}>Outstanding</DropdownItem>
                         <DropdownItem onClick={() => handleExport('excel', 'failed')}>Failed</DropdownItem>
                     </DropdownMenu>
                 </Dropdown>
-            </div>
+
+                <Button color="success" className="mt-3" onClick={createNewClassroom}>
+                    Crear Nueva Clase
+                </Button>
+            </div>}
 
 
             <ClassroomsList exportClassroom={handleExport} updateClassrooms={updateClassrooms} classrooms={classroomsData}/>
         </div>
     );
-}
+};

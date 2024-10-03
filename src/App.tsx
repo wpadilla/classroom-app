@@ -112,7 +112,7 @@ function App() {
                         if (JSON.stringify(data) !== JSON.stringify(classStructure)) {
                             const differentStudentBetweenClasses = _.differenceWith(
                                 data.students,
-                                oldClassStructure.students,
+                                classStructure.students,
                                 (student1: any, student2) => student1.id === student2.id && _.isEqual(student1, student2)
                             );
                             setOldClassStructure(data as any);
@@ -120,7 +120,7 @@ function App() {
                             const studentData = differentStudentBetweenClasses[0];
                             if(studentData) {
                                 const { incompleteParticipation, incompleteTests } = studentEvaluationEnable(studentData);
-                                console.log('incompleteParticipation', incompleteParticipation, incompleteTests, studentData);
+                                console.log('incompleteParticipation', !incompleteParticipation && !incompleteTests, studentData);
                                 if (!incompleteParticipation && !incompleteTests) {
                                     setShowCelebration(true);
                                     // Ocultar el GIF después de unos segundos

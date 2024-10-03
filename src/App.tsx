@@ -14,8 +14,8 @@ import {
     ModalHeader,
     Modal, DropdownToggle, DropdownMenu, DropdownItem, Dropdown
 } from "reactstrap";
-import {docId, docName, firebaseStoreDB} from "./utils/firebase";
-import {collection, getDoc, updateDoc, doc, addDoc, onSnapshot} from 'firebase/firestore';
+import {classroomCollectionName, docId, docName, firebaseStoreDB} from "./utils/firebase";
+import {collection, getDoc, updateDoc, doc, addDoc, onSnapshot, getDocs} from 'firebase/firestore';
 import _ from 'lodash';
 import * as io from "socket.io-client";
 import {onSocketOnce, PROD_SOCKET_URL} from "./utils/socket.io";
@@ -24,6 +24,7 @@ import {IWhatsappMessage, sendWhatsappMessage, startWhatsappServices} from "./se
 import {useSearchParams} from "react-router-dom";
 import * as XLSX from 'xlsx';
 import {saveAs} from 'file-saver';
+import {IClassroom} from "./models/clasroomModel";
 
 export interface IEvaluation {
     test: number;
@@ -65,10 +66,24 @@ const initialClassStructure = {
     }
 } as IClassStructure;
 
+const celebrationGif = [
+    "https://i.gifer.com/ePO.gif",
+    "https://i.gifer.com/3Y0.gif",
+    "https://i.gifer.com/2EL.gif",
+    "https://i.gifer.com/7Ft.gif",
+]
+
+const getRandomGif = () => {
+    return celebrationGif[Math.floor(Math.random() * celebrationGif.length)];
+}
+const CelebrationGif = "https://i.gifer.com/4M57.gif"
+
 function App() {
     const [newStudent, setNewStudent] = React.useState<IStudent>();
     const [removeStudentId, setRemoveStudentId] = React.useState<number>();
     const [enableAdminView, setEnableAdminView] = React.useState<boolean>(false);
+    const [showCelebration, setShowCelebration] = useState(false);
+
     const [classStructure, setClassStructure] = React.useState<IClassStructure>(initialClassStructure);
     const [oldClassStructure, setOldClassStructure] = React.useState<IClassStructure>({
         students: [],
@@ -95,8 +110,26 @@ function App() {
                         // Document data exists
                         const data = docSnapshot.data();
                         if (JSON.stringify(data) !== JSON.stringify(classStructure)) {
+                            const differentStudentBetweenClasses = _.differenceWith(
+                                data.students,
+                                oldClassStructure.students,
+                                (student1: any, student2) => student1.id === student2.id && _.isEqual(student1, student2)
+                            );
                             setOldClassStructure(data as any);
                             setClassStructure(data as any);
+                            const studentData = differentStudentBetweenClasses[0];
+                            if(studentData) {
+                                const { incompleteParticipation, incompleteTests } = studentEvaluationEnable(studentData);
+                                console.log('incompleteParticipation', incompleteParticipation, incompleteTests, studentData);
+                                if (!incompleteParticipation && !incompleteTests) {
+                                    setShowCelebration(true);
+                                    // Ocultar el GIF después de unos segundos
+                                    setTimeout(() => {
+                                        setShowCelebration(false);
+                                    }, 3000);  // El GIF se mostrará por 5 segundos
+                                }
+                            }
+
                         }
                     } else {
                     }
@@ -135,7 +168,6 @@ function App() {
     }, [])
 
     const onMessageSent = (contact: IStudent) => {
-        console.log('contact', contact)
         toast(`Mensaje enviado a ${contact.firstName}`);
     }
 
@@ -145,23 +177,29 @@ function App() {
 
     const handleStudentEvaluation = (student: IStudent, type: 'participation' | 'test' | 'exposition', isSubstraction?: boolean) => () => {
         const points = type === 'test' ? 3 : type === 'exposition' ? 5 : 1;
+
+        const newStudentData = {
+            ...student,
+            evaluation: {
+                ...student.evaluation,
+                [type]: isSubstraction ? student.evaluation[type] - points : student.evaluation[type] + points,
+            }
+        }
         const newClassStructure = {
             ...classStructure,
             students: classStructure?.students?.map(s => {
                 if (s.id === student.id) {
-                    return {
-                        ...s,
-                        evaluation: {
-                            ...s.evaluation,
-                            [type]: isSubstraction ? s.evaluation[type] - points : s.evaluation[type] + points,
-                        }
-                    }
+                    return newStudentData
                 }
                 return s;
             }),
         };
+
         setClassStructure(newClassStructure);
+        // Verificar si el estudiante está al día
+
     };
+
 
     const resetStudentEvaluation = (student: IStudent) => () => {
         const newClassStructure = {
@@ -205,8 +243,11 @@ function App() {
         return res;
     };
 
-    const addStudent = (e: any) => {
-        e.preventDefault();
+    const addStudent = (e: any, studentData?: IStudent) => {
+
+        e?.preventDefault && e?.preventDefault();
+        const studentToAdd = studentData || newStudent;
+
         const newStudentData = {
             id: Date.now(),
             evaluation: {
@@ -214,7 +255,7 @@ function App() {
                 exposition: 0,
                 participation: 0,
             },
-            ...newStudent,
+            ...studentToAdd,
         } as IStudent;
 
         setClassStructure({
@@ -222,6 +263,43 @@ function App() {
             students: [...(classStructure?.students || []), newStudentData]
         })
     }
+
+
+    const updateClassroom = (querySnapshot: any) => {
+        const documents: IClassroom[] = [];
+        querySnapshot.forEach((doc: any) => {
+            documents.push({id: doc.id, ...doc.data()} as IClassroom);
+        });
+        return documents;
+    };
+
+    const addMultipleStudent = async () => {
+        const collectionRef = collection(firebaseStoreDB, classroomCollectionName);
+        const querySnapshot = await getDocs(collectionRef);
+        const classroomss: IClassroom[] = updateClassroom(querySnapshot as any);
+        const myClassroom = classroomss.find(c => c.teacher.firstName === 'Lic. Williams');
+
+        if(myClassroom) {
+            setClassStructure({
+                ...classStructure,
+                students: myClassroom.students.map(s => ({
+                    ...s,
+                    evaluation: {
+                        test: 0,
+                        exposition: 0,
+                        participation: 0,
+                    },
+                }))
+            })
+            // await Promise.all(myClassroom.students.map(async studentItem => {
+            //     return new Promise( resolve => setTimeout( async () => {
+            //         await addStudent({}, studentItem)
+            //         resolve(true);
+            //     }, 1000))
+            // }));
+        }
+    };
+
 
     const removeStudent = (id: number) => () => {
         setClassStructure({
@@ -394,6 +472,8 @@ ${lastMessage}`;
                 </FormGroup>
                 {enableAdminView && <Button color="info">Enviar Evaluacion a
                     todos</Button>}
+
+                {enableAdminView && <Button color="info" onClick={addMultipleStudent}>Rastrear nuevos</Button>}
                 {/*<Button color="info" onClick={addClassStructure}>Add collection</Button>*/}
 
                 {enableAdminView && <FormGroup>
@@ -524,6 +604,11 @@ ${lastMessage}`;
                     </Button>
                 </ModalFooter>
             </Modal>
+            {showCelebration && (
+                <div className="celebration-container">
+                    <img src={getRandomGif()} alt="Celebration" />
+                </div>
+            )}
         </div>
     );
 }

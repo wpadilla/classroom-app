@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Table,
     Button,
@@ -19,11 +19,11 @@ import {
     studentStatusNames,
     StudentStatusTypes
 } from "../models/clasroomModel";
-import {useSearchParams} from "react-router-dom";
-import {toast} from "react-toastify";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import InputMask from "react-input-mask";
-import {IWhatsappMessage, sendWhatsappMessage} from "../services/whatsapp";
-import {generateCustomID} from "../utils/generators";
+import { IWhatsappMessage, sendWhatsappMessage } from "../services/whatsapp";
+import { generateCustomID } from "../utils/generators";
 import _ from "lodash";
 
 interface ClassroomsListProps {
@@ -32,8 +32,11 @@ interface ClassroomsListProps {
     exportClassroom: (format: 'excel' | 'text', status: StudentStatusTypes | 'all', classroomId: string) => void;
 }
 
+const DEFAULT_MESSAGE = `Hola @firstName, Dios te bendiga 🙌 ¡Este jueves comenzamos nuestra formación bíblica! 🥳 tu aula sera *{classroomName}* entra en ella desde que llegues ⚡️✅ no te quedes abajo 🚫 recuerda que perteneces en la clase de *{subject}* 📖 con *{teacherFirstName} {teacherLastName}* 🔥 el material estará disponible en tu aula, el precio es *_RD\${materialPrice}_* pesos. Bendiciones!`;
 
-const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassrooms, exportClassroom}) => {
+const STORAGE_KEY = 'whatsapp-message-template';
+
+const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClassrooms, exportClassroom }) => {
     const [classroomData, setClassroomData] = useState<IClassroom[]>(structuredClone(classrooms));
     const [originalClassroomData, setOriginalClassroomData] = useState<IClassroom[]>(classrooms);
     const [selectedClass, setSelectedClass] = useState<{ [key: string]: string }>({});
@@ -72,7 +75,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                 classroom.id === classroomId ? {
                     ...classroom,
                     students: classroom.students.map(student =>
-                        student.id === studentId ? {...student, [field]: value} : student
+                        student.id === studentId ? { ...student, [field]: value } : student
                     )
                 } : classroom
             )
@@ -82,7 +85,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
     const handleClassChange = (classId: string, classroomId: string): void => {
         const selectedClassroom = classrooms.find(c => c.id === classroomId);
         const selectedClassData = selectedClassroom?.classes.find(cl => cl.id === classId);
-        setSelectedClass({...selectedClass, [classroomId]: classId});
+        setSelectedClass({ ...selectedClass, [classroomId]: classId });
 
         setClassroomData(prev => {
             return prev.map(classroom => {
@@ -114,7 +117,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                     }
                     return student;
                 });
-                return {...classroom, students: updatedStudents};
+                return { ...classroom, students: updatedStudents };
             }
             return classroom;
         });
@@ -202,10 +205,10 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
 
         setClassroomData(updatedClassrooms);
         // Clear the selection after moving students
-        setSelectedClassrooms(selectedClassrooms.map(c => c.id === classroomId ? {...c, students: []} : c));
+        setSelectedClassrooms(selectedClassrooms.map(c => c.id === classroomId ? { ...c, students: [] } : c));
     };
 
-    const passStudentToClassroom = ({target: {value}}: any) => {
+    const passStudentToClassroom = ({ target: { value } }: any) => {
         const [currentClassroom, classroomId, studentId] = value.split('-');
         const student = classroomData.find(c => c.id === currentClassroom)?.students.find(s => s.id === studentId);
         if (!student) {
@@ -216,7 +219,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                 classroom.students = classroom.students.filter(s => s.id !== studentId);
             }
             if (classroom.id === classroomId) {
-                const newStudent = {...structuredClone(student), status: ''} as IStudent
+                const newStudent = { ...structuredClone(student), status: '' } as IStudent
                 classroom.students = [...classroom.students, newStudent];
             }
             return classroom;
@@ -247,7 +250,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                 setSelectedClassroom(classrooms[index]);
                 localStorage.setItem('teacherPhone', teacherPhone);
                 if (!selectedClassroom) {
-                    toast('Sesion Iniciada', {type: 'success'})
+                    toast('Sesion Iniciada', { type: 'success' })
                 }
             }
         } else {
@@ -255,6 +258,14 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             found && setSelectedClassroom(found)
         }
     }, [teacherPhone, classrooms, selectedClassroomId])
+
+    // Load message text from localStorage on component mount
+    React.useEffect(() => {
+        const savedMessage = localStorage.getItem(STORAGE_KEY);
+        if (savedMessage) {
+            setMessageText(savedMessage);
+        }
+    }, []);
 
     const updateChangedClassrooms = async (changedClassrooms: IClassroom[]) => {
         // setLoading(true);
@@ -310,16 +321,18 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
 
 
     const [loading, setLoading] = useState(false);
+    const [showMessageModal, setShowMessageModal] = useState(false);
+    const [messageText, setMessageText] = useState(DEFAULT_MESSAGE);
 
 
     const handleSendMessage = async () => {
         setLoading(true);
         await Promise.all(selectedClassrooms.map(async classroom => {
             const message: IWhatsappMessage = {
-//                 text: `Dios te bendiga @firstName la formación ya comenzó 🙌 *aún estas a tiempo de integrarte* a la clase de *${classroom.subject}* en el aula *${classroom.name}* este jueves a las 7PM en el Profeta Moisés 🔥.
-//
-// _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. Así, por medio de ella, crecerán en su salvación._
-// 1 Pedro 2:2`
+                //                 text: `Dios te bendiga @firstName la formación ya comenzó 🙌 *aún estas a tiempo de integrarte* a la clase de *${classroom.subject}* en el aula *${classroom.name}* este jueves a las 7PM en el Profeta Moisés 🔥.
+                //
+                // _Deseen con ansias la leche pura de la palabra, como niños recién nacidos. Así, por medio de ella, crecerán en su salvación._
+                // 1 Pedro 2:2`
                 text: `Hola @firstName, Dios te bendiga 🙌 ¡Este jueves comenzamos nuestra formación bíblica! 🥳 tu aula sera *${classroom.name}* entra en ella desde que llegues ⚡️✅ no te quedes abajo 🚫 recuerda que perteneces en la clase de *${classroom.subject}* 📖 con *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estará disponible en tu aula, el precio es *_RD$${classroom.materialPrice}_* pesos. Bendiciones!`,
                 // text: `Hola @firstName, Dios te bendiga 🙌 recuerda que hoy comienzas el discipulado en la iglesia 🥳 tu maestra sera *${classroom.teacher.firstName} ${classroom.teacher.lastName}* 🔥 el material estará disponible cuando llegues, el precio es de *_RD$${classroom.materialPrice}_* pesos. Bendiciones!`,
             }
@@ -341,10 +354,69 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             }
 
             if (classroom.students.length > 0) {
-                toast(`Mensaje enviado a estudiantes de ${classroom.subject}`, {type: 'success'})
+                toast(`Mensaje enviado a estudiantes de ${classroom.subject}`, { type: 'success' })
             }
         }))
-        setSelectedClassrooms(selectedClassrooms.map(c => ({...c, students: []})))
+        setSelectedClassrooms(selectedClassrooms.map(c => ({ ...c, students: [] })))
+        setLoading(false);
+    };
+
+    const openMessageModal = () => {
+        setShowMessageModal(true);
+    };
+
+    const closeMessageModal = () => {
+        setShowMessageModal(false);
+    };
+
+    const handleMessageTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        setMessageText(newValue);
+        localStorage.setItem(STORAGE_KEY, newValue);
+    };
+
+    const resetMessageToDefault = () => {
+        setMessageText(DEFAULT_MESSAGE);
+        localStorage.setItem(STORAGE_KEY, DEFAULT_MESSAGE);
+    };
+
+    const sendMessageFromModal = async () => {
+        setLoading(true);
+        setShowMessageModal(false);
+
+        await Promise.all(selectedClassrooms.map(async classroom => {
+            // Replace template variables with actual values
+            const processedText = messageText
+                .replace(/{classroomName}/g, classroom.name || '')
+                .replace(/{subject}/g, classroom.subject || '')
+                .replace(/{teacherFirstName}/g, classroom.teacher?.firstName || '')
+                .replace(/{teacherLastName}/g, classroom.teacher?.lastName || '')
+                .replace(/{materialPrice}/g, (classroom.materialPrice || 0).toString());
+
+            const message: IWhatsappMessage = {
+                text: processedText,
+            }
+
+            const students = classroom.students.filter(item => !!item.phone).map(item => ({
+                ...item,
+                id: `${item.phone}@s.whatsapp.net`
+            }));
+            if (students.length) {
+                const formData = new FormData();
+                const messages = Array.isArray(message) ? message : [message];
+
+                formData.append('messages', JSON.stringify(messages));
+                formData.append('contacts', JSON.stringify(students));
+                formData.append('sessionId', 'bibleAssistant');
+
+                await sendWhatsappMessage('bibleAssistant', formData);
+            }
+
+            if (classroom.students.length > 0) {
+                toast(`Mensaje enviado a estudiantes de ${classroom.subject}`, { type: 'success' })
+            }
+        }))
+        setSelectedClassrooms(selectedClassrooms.map(c => ({ ...c, students: [] })))
         setLoading(false);
     };
 
@@ -372,14 +444,14 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
     const [addNewStudentClassroomId, setAddNewStudentClassroomId] = useState<string | null>(null);
 
     const resetAddNewStudentClassroom = () => setAddNewStudentClassroomId(null);
-    const [newStudent, setNewStudent] = useState({firstName: '', lastName: '', phone: ''});
+    const [newStudent, setNewStudent] = useState({ firstName: '', lastName: '', phone: '' });
     const onChangeNewStudent = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.type === 'tel') {
             e.target.value = e.target.value.replace(/[- ()+_]/g, '')
         }
         console.log('type', e.target.value);
 
-        setNewStudent(prev => ({...prev, [e.target.name]: e.target.value}))
+        setNewStudent(prev => ({ ...prev, [e.target.name]: e.target.value }))
     }
 
     const addNewStudent = async () => {
@@ -402,12 +474,12 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             students: [...c.students, newStudentData]
         } : c));
 
-        setNewStudent({firstName: '', lastName: '', phone: ''})
+        setNewStudent({ firstName: '', lastName: '', phone: '' })
         setAddNewStudentClassroomId(null);
     }
 
 
-    const onChangeClassroomDetails = (classroom: IClassroom) => ({target: {value, name, type}}: any) => {
+    const onChangeClassroomDetails = (classroom: IClassroom) => ({ target: { value, name, type } }: any) => {
         if (type === 'number') {
             value = Number(value);
         }
@@ -426,7 +498,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
     }
     const [exportDropdownOpen, setExportDropdownOpen] = useState<{ [N in string]: boolean }>({});
     const toggleExportDropdown = (classroomId: string) => () => {
-        setExportDropdownOpen(prev => ({...prev, [classroomId]: !prev[classroomId]}))
+        setExportDropdownOpen(prev => ({ ...prev, [classroomId]: !prev[classroomId] }))
     }
 
     const toggleTab = (tabId: string) => {
@@ -438,8 +510,8 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
 
 
     return (
-        <Container style={{width: '100%', minHeight: '100dvh'}}
-                   className="p-0 py-4 d-flex flex-column justify-content-center align-items-center">
+        <Container style={{ width: '100%', minHeight: '100dvh' }}
+            className="p-0 py-4 d-flex flex-column justify-content-center align-items-center">
 
             {
                 loading &&
@@ -458,12 +530,12 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
 
             <div
                 className="mb-4 mt-2 w-100 d-flex align-items-center justify-content-center gap-3 position-sticky top-0 bg-white py-2"
-                style={{zIndex: '99'}}>
+                style={{ zIndex: '99' }}>
                 {isAdmin &&
                     <Button
                         disabled={!availableStudentSelected}
                         color="primary"
-                        onClick={handleSendMessage}
+                        onClick={openMessageModal}
                     >
                         Enviar Mensaje
                     </Button>}
@@ -501,13 +573,13 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
             </Nav>}
 
             {(!isAdmin && !selectedClassroom) && !isSupervisor ? <FormGroup>
-                <Label><h2>Teléfono del Profesor</h2></Label> <br/>
+                <Label><h2>Teléfono del Profesor</h2></Label> <br />
                 <InputMask className="form-control mb-3" placeholder="Numero de whatsapp"
-                           type="tel"
-                           name="phone"
-                           value={teacherPhone}
-                           onChange={onTeacherPhoneChange}
-                           mask="+1 (999) 999-9999"/>
+                    type="tel"
+                    name="phone"
+                    value={teacherPhone}
+                    onChange={onTeacherPhoneChange}
+                    mask="+1 (999) 999-9999" />
             </FormGroup> : <>
                 {/*<TabContent activeTab={activeTab}>*/}
                 {/*    {classrooms.map(classroom => (*/}
@@ -529,14 +601,14 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                         <span className="text-secondary">{classroom.students.length} Estudiantes</span>
                         <div
                             className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100"
-                            style={{top: isAdmin ? "50px" : "0px", zIndex: "9"}}>
+                            style={{ top: isAdmin ? "50px" : "0px", zIndex: "9" }}>
                             <div className="d-flex w-100 gap-3 align-items-center">
                                 <Button color="primary" className="w-100 text-nowrap"
-                                        onClick={() => toggleEditMode(classroom.id)}>
+                                    onClick={() => toggleEditMode(classroom.id)}>
                                     {editMode[classroom.id] ? 'Guardar' : 'Editar'}
                                 </Button>
                                 <Button color="primary" className="w-100 text-nowrap"
-                                        onClick={() => setAddNewStudentClassroomId(classroom.id)}>
+                                    onClick={() => setAddNewStudentClassroomId(classroom.id)}>
                                     Agregar Estudiante
                                 </Button>
                             </div>
@@ -549,7 +621,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                             All
                                         </Button>
                                         <Dropdown isOpen={exportDropdownOpen[classroom.id]}
-                                                  toggle={toggleExportDropdown(classroom.id)}>
+                                            toggle={toggleExportDropdown(classroom.id)}>
                                             <DropdownToggle color="success" caret>
                                                 Export Classroom
                                             </DropdownToggle>
@@ -584,33 +656,33 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                         </div>
                         {isAdmin && editMode[classroom.id] && <div className="w-100 d-flex flex-column gap-3 mb-3">
                             <Input type="text" value={classroom.subject} name="subject"
-                                   onChange={onChangeClassroomDetails(classroom)}
-                                   placeholder="Materia"/>
+                                onChange={onChangeClassroomDetails(classroom)}
+                                placeholder="Materia" />
                             <Input type="text" value={classroom.name} name="name"
-                                   onChange={onChangeClassroomDetails(classroom)}
-                                   placeholder="Nombre del Aula"/>
+                                onChange={onChangeClassroomDetails(classroom)}
+                                placeholder="Nombre del Aula" />
                             <Input type="number" value={classroom.materialPrice} name="materialPrice"
-                                   onChange={onChangeClassroomDetails(classroom)}
-                                   placeholder="Precio del material"/>
+                                onChange={onChangeClassroomDetails(classroom)}
+                                placeholder="Precio del material" />
                             <Input type="text" value={classroom.teacher.firstName} name="teacher.firstName"
-                                   onChange={onChangeClassroomDetails(classroom)}
-                                   placeholder="Teacher name"/>
+                                onChange={onChangeClassroomDetails(classroom)}
+                                placeholder="Teacher name" />
                             <Input type="text" value={classroom.teacher.lastName} name="teacher.lastName"
-                                   onChange={onChangeClassroomDetails(classroom)}
-                                   placeholder="Teacher lastName"/>
+                                onChange={onChangeClassroomDetails(classroom)}
+                                placeholder="Teacher lastName" />
                             <InputMask
                                 className="form-control" type="tel" mask="+1 (999) 999-9999"
                                 value={classroom.teacher.phone} name="teacher.phone"
                                 onChange={onChangeClassroomDetails(classroom)}
-                                placeholder="Teacher lastName"/>
+                                placeholder="Teacher lastName" />
 
                         </div>}
                         <FormGroup>
                             <Label className="w-100" for={`selectClass${classroom.id}`}>Seleccionar Clase</Label>
                             <div className="d-flex align-items-center gap-2 flex-lg-row flex-column">
                                 <Input type="select" id={`selectClass${classroom.id}`}
-                                       value={selectedClass[classroom.id] || ''}
-                                       onChange={e => handleClassChange(e.target.value, classroom.id)}>
+                                    value={selectedClass[classroom.id] || ''}
+                                    onChange={e => handleClassChange(e.target.value, classroom.id)}>
                                     <option value="">Seleccionar</option>
                                     {classroom.classes.map(cl => (
                                         <option key={cl.id} value={cl.id}>{cl.name}</option>
@@ -619,30 +691,30 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                 {isAdmin &&
                                     <div className="d-flex align-items-center gap-3">
                                         <Button color="primary" className="text-nowrap"
-                                                onClick={addNewClass(classroom)}>Agregar
+                                            onClick={addNewClass(classroom)}>Agregar
                                             Clase</Button>
                                         <Button color="danger" className="text-nowrap"
-                                                onClick={() => deleteClass(classroom.id)}>Eliminar
+                                            onClick={() => deleteClass(classroom.id)}>Eliminar
                                             Clase</Button>
                                     </div>}
                             </div>
                         </FormGroup>
                         <Table striped responsive>
                             <thead>
-                            <tr>
-                                {/*<th>#</th>*/}
-                                <th>Nombre</th>
-                                {editMode[classroom.id] && <th>Apellido</th>}
-                                <th>Asistencia</th>
-                                <th>Teléfono</th>
-                                {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1]?.id &&
-                                    <th>Estado</th>}
+                                <tr>
+                                    {/*<th>#</th>*/}
+                                    <th>Nombre</th>
+                                    {editMode[classroom.id] && <th>Apellido</th>}
+                                    <th>Asistencia</th>
+                                    <th>Teléfono</th>
+                                    {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1]?.id &&
+                                        <th>Estado</th>}
 
-                                {isAdmin && <th>Actions</th>}
-                            </tr>
+                                    {isAdmin && <th>Actions</th>}
+                                </tr>
                             </thead>
                             <tbody>
-                            {classroom.students.map((student, index) => {
+                                {classroom.students.map((student, index) => {
                                     const isPresent = !!student.assistance.some(c => c.id === selectedClass[classroom.id]);
                                     return (
                                         <tr key={student.id}
@@ -651,7 +723,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                             <td>
                                                 {editMode[classroom.id] ? (
                                                     <Input type="text" value={student.firstName}
-                                                           onChange={(e) => handleInputChange(classroom.id, student.id, 'firstName', e.target.value)}/>
+                                                        onChange={(e) => handleInputChange(classroom.id, student.id, 'firstName', e.target.value)} />
                                                 ) : (
                                                     <span>{student.firstName} {student.lastName}</span>
 
@@ -660,7 +732,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                             {editMode[classroom.id] && <td>
                                                 {editMode[classroom.id] ? (
                                                     <Input type="text" value={student.lastName}
-                                                           onChange={(e) => handleInputChange(classroom.id, student.id, 'lastName', e.target.value)}/>
+                                                        onChange={(e) => handleInputChange(classroom.id, student.id, 'lastName', e.target.value)} />
                                                 ) : (
                                                     student.lastName
                                                 )}
@@ -681,16 +753,16 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                                 <div className="d-flex flex-column gap-3">
                                                     {editMode[classroom.id] ? (
                                                         <Input type="text" value={student.phone}
-                                                               onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)}/>
+                                                            onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)} />
                                                     ) : (
                                                         student.phone
                                                     )}
                                                     {!editMode[classroom.id] && student.phone.length >= 10 &&
                                                         <Button color="success">
                                                             <a target="_blank"
-                                                               className="text-nowrap text-white text-decoration-none"
-                                                               href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`}
-                                                               rel="noreferrer">
+                                                                className="text-nowrap text-white text-decoration-none"
+                                                                href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`}
+                                                                rel="noreferrer">
                                                                 Ir a Whatsapp
                                                             </a>
                                                         </Button>}
@@ -699,11 +771,11 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                             {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
                                                 <td>
                                                     <Input type="select" value={student.status || ''}
-                                                           onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
+                                                        onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
                                                         <option value="">Estado</option>
                                                         {studentStatusList.map(status =>
                                                             <option key={status}
-                                                                    value={status}>{studentStatusNames[status]}</option>)}
+                                                                value={status}>{studentStatusNames[status]}</option>)}
                                                     </Input>
                                                 </td>}
 
@@ -711,11 +783,11 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                                 <div className="d-flex gap-4 align-items-center">
                                                     {isAdmin && <>
                                                         <Input type="select" value={student.status || ''}
-                                                               onChange={passStudentToClassroom}>
+                                                            onChange={passStudentToClassroom}>
                                                             <option value="">Pasar a</option>
                                                             {classrooms.map(c =>
                                                                 <option key={`selector-classroom-${c.id}`}
-                                                                        value={`${classroom.id}-${c.id}-${student.id}`}>{c.subject}</option>)}
+                                                                    value={`${classroom.id}-${c.id}-${student.id}`}>{c.subject}</option>)}
                                                         </Input>
                                                         <Input
                                                             type="checkbox"
@@ -723,10 +795,10 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                                             onChange={() => toggleStudentSelection(classroom.id, student.id)}
                                                         />
                                                         <Button color="danger"
-                                                                onClick={() => setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
-                                                                    ...c,
-                                                                    students: c.students.filter(s => s.id !== student.id)
-                                                                } : c))}>
+                                                            onClick={() => setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
+                                                                ...c,
+                                                                students: c.students.filter(s => s.id !== student.id)
+                                                            } : c))}>
                                                             Eliminar
                                                         </Button>
                                                     </>
@@ -735,7 +807,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                                             </td>
                                         </tr>)
                                 }
-                            )}
+                                )}
                             </tbody>
                         </Table>
                     </div>
@@ -748,15 +820,43 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({classrooms, updateClassr
                     </ModalHeader>
                     <FormGroup className="d-flex gap-3 flex-column mt-4 mb-4">
                         <Input type="text" placeholder="Nombre" name="firstName" onChange={onChangeNewStudent}
-                               value={newStudent.firstName}/>
+                            value={newStudent.firstName} />
                         <Input type="text" placeholder="Apellido" name="lastName" onChange={onChangeNewStudent}
-                               value={newStudent.lastName}/>
+                            value={newStudent.lastName} />
                         <InputMask className="form-control" type="tel" placeholder="Teléfono" name="phone"
-                                   onChange={onChangeNewStudent} value={newStudent.phone} mask="+1 (999) 999-9999"/>
+                            onChange={onChangeNewStudent} value={newStudent.phone} mask="+1 (999) 999-9999" />
                     </FormGroup>
                     <ModalFooter>
                         <Button color="danger" onClick={resetAddNewStudentClassroom} outline>Cancelar</Button>
                         <Button color="primary" onClick={addNewStudent} outline>Agregar</Button>
+                    </ModalFooter>
+                </ModalBody>
+            </Modal>
+            <Modal isOpen={showMessageModal} toggle={closeMessageModal} size="lg">
+                <ModalBody>
+                    <ModalHeader>
+                        Enviar Mensaje
+                    </ModalHeader>
+                    <FormGroup className="d-flex gap-3 flex-column mt-4 mb-4">
+                        <Label for="messageTextarea">Mensaje a enviar:</Label>
+                        <Input
+                            type="textarea"
+                            id="messageTextarea"
+                            placeholder="Mensaje"
+                            name="messageText"
+                            onChange={handleMessageTextChange}
+                            value={messageText}
+                            rows={6}
+                            style={{ minHeight: '150px' }}
+                        />
+                        <small className="text-muted">
+                            Variables disponibles: @firstName, {'{classroomName}'}, {'{subject}'}, {'{teacherFirstName}'}, {'{teacherLastName}'}, {'{materialPrice}'}
+                        </small>
+                    </FormGroup>
+                    <ModalFooter>
+                        <Button color="danger" onClick={closeMessageModal} outline>Cancelar</Button>
+                        <Button color="secondary" onClick={resetMessageToDefault} outline>Restaurar Mensaje Original</Button>
+                        <Button color="primary" onClick={sendMessageFromModal} outline>Enviar</Button>
                     </ModalFooter>
                 </ModalBody>
             </Modal>

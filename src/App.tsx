@@ -25,6 +25,7 @@ import {useSearchParams} from "react-router-dom";
 import * as XLSX from 'xlsx';
 import {saveAs} from 'file-saver';
 import {IClassroom} from "./models/clasroomModel";
+import {filterBySearch} from "./utils/searchUtils";
 
 export interface IEvaluation {
     test: number;
@@ -83,6 +84,7 @@ function App() {
     const [removeStudentId, setRemoveStudentId] = React.useState<number>();
     const [enableAdminView, setEnableAdminView] = React.useState<boolean>(false);
     const [showCelebration, setShowCelebration] = useState(false);
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     const [classStructure, setClassStructure] = React.useState<IClassStructure>(initialClassStructure);
     const [oldClassStructure, setOldClassStructure] = React.useState<IClassStructure>({
@@ -461,6 +463,11 @@ ${lastMessage}`;
         }
     };
 
+    const getFilteredStudents = () => {
+        if (!searchQuery) return classStructure.students;
+        return filterBySearch(classStructure.students, searchQuery);
+    };
+
 
     return (
         <div className="App">
@@ -482,9 +489,25 @@ ${lastMessage}`;
                            onChange={onChangeClassStructure}/>
                 </FormGroup>}
             </div>
+            
+            <div className="search-section p-3">
+                <FormGroup>
+                    <Label for="studentSearch">Buscar Estudiantes</Label>
+                    <Input
+                        id="studentSearch"
+                        type="text"
+                        placeholder="Buscar por nombre, apellido, teléfono o evaluación..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <small className="text-muted">
+                        Busca estudiantes por cualquier propiedad. La búsqueda es insensible a acentos, mayúsculas y caracteres especiales.
+                    </small>
+                </FormGroup>
+            </div>
             <ListGroup className="students-list">
                 {
-                    classStructure?.students?.map(student => {
+                    getFilteredStudents()?.map(student => {
                             const {
                                 incompleteParticipation,
                                 incompleteTests,

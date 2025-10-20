@@ -2,6 +2,7 @@ export interface IUser {
     id: string;
     firstName: string;
     lastName: string;
+    fullName?: string; // Computed property: firstName + lastName
     phone: string;
     role:'teacher'|'student'|'admin'|'coordinator';
 }

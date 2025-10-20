@@ -8,8 +8,9 @@ import _, {debounce} from "lodash";
 import {mockClassrooms} from "../data/mock";
 import * as XLSX from 'xlsx';
 import {saveAs} from 'file-saver';
-import {Dropdown, DropdownToggle, DropdownMenu, DropdownItem, Button} from "reactstrap";
+import {Dropdown, DropdownToggle, DropdownMenu, DropdownItem, Button, Input, FormGroup, Label} from "reactstrap";
 import {useSearchParams} from "react-router-dom";
+import {filterBySearch} from "../utils/searchUtils";
 
 // Helper function to generate custom IDs
 const generateCustomID = () => Math.random().toString(36).substr(2, 9);
@@ -54,8 +55,10 @@ const createNewClassroom = async () => {
 
 export const Classrooms = () => {
     const [classroomsData, setClassrooms] = useState<IClassroom[]>([]);
+    const [currentClassroomsData, setCurrentClassroomsData] = useState<IClassroom[]>([]); // Updated data from ClassroomList
     const [loading, setLoading] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
     const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
     const [searchParams] = useSearchParams();
     const isAdmin = useMemo(() => {
@@ -142,6 +145,23 @@ export const Classrooms = () => {
         }
     };
 
+    const getFilteredClassrooms = () => {
+        // Use currentClassroomsData if available (updated data), otherwise use classroomsData (original data)
+        const dataToFilter = currentClassroomsData.length > 0 ? currentClassroomsData : classroomsData;
+        
+        if (!globalSearchQuery) return dataToFilter;
+        
+        return dataToFilter.filter(classroom => {
+            // Check if classroom itself matches the search
+            const classroomMatches = filterBySearch([classroom], globalSearchQuery).length > 0;
+            
+            // Check if any student in the classroom matches the search
+            const studentsMatch = filterBySearch(classroom.students, globalSearchQuery).length > 0;
+            
+            return classroomMatches || studentsMatch;
+        });
+    };
+
     return (
         <div>
             {
@@ -155,26 +175,49 @@ export const Classrooms = () => {
             }
 
             {isAdmin && <div className="p-3">
-                <Dropdown isOpen={dropdownOpen} toggle={toggleDropdown}>
-                    <DropdownToggle color="primary" caret>
-                        Export All Classrooms
-                    </DropdownToggle>
-                    <DropdownMenu>
-                        <DropdownItem header>Excel</DropdownItem>
-                        <DropdownItem onClick={() => handleExport('excel')}>Todos</DropdownItem>
-                        <DropdownItem onClick={() => handleExport('excel', 'approved')}>Approved</DropdownItem>
-                        <DropdownItem onClick={() => handleExport('excel', 'outstanding')}>Outstanding</DropdownItem>
-                        <DropdownItem onClick={() => handleExport('excel', 'failed')}>Failed</DropdownItem>
-                    </DropdownMenu>
-                </Dropdown>
+                <div className="d-flex flex-wrap gap-3 mb-3 align-items-center">
+                    <Dropdown isOpen={dropdownOpen} toggle={toggleDropdown}>
+                        <DropdownToggle color="primary" caret>
+                            Export All Classrooms
+                        </DropdownToggle>
+                        <DropdownMenu>
+                            <DropdownItem header>Excel</DropdownItem>
+                            <DropdownItem onClick={() => handleExport('excel')}>Todos</DropdownItem>
+                            <DropdownItem onClick={() => handleExport('excel', 'approved')}>Approved</DropdownItem>
+                            <DropdownItem onClick={() => handleExport('excel', 'outstanding')}>Outstanding</DropdownItem>
+                            <DropdownItem onClick={() => handleExport('excel', 'failed')}>Failed</DropdownItem>
+                        </DropdownMenu>
+                    </Dropdown>
 
-                <Button color="success" className="mt-3" onClick={createNewClassroom}>
-                    Crear Nueva Clase
-                </Button>
+                    <Button color="success" onClick={createNewClassroom}>
+                        Crear Nueva Clase
+                    </Button>
+                </div>
+                
+                <FormGroup className="mb-3">
+                    <Label for="globalSearch">Búsqueda Global</Label>
+                    <Input
+                        id="globalSearch"
+                        type="text"
+                        placeholder="Buscar en todas las aulas (estudiantes, profesores, materias...)"
+                        value={globalSearchQuery}
+                        onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                    />
+                    <small className="text-muted">
+                        Busca en todas las aulas y estudiantes. La búsqueda es insensible a acentos, mayúsculas y caracteres especiales.
+                    </small>
+                </FormGroup>
             </div>}
 
 
-            <ClassroomsList exportClassroom={handleExport} updateClassrooms={updateClassrooms} classrooms={classroomsData}/>
+            <ClassroomsList 
+                exportClassroom={handleExport} 
+                updateClassrooms={updateClassrooms} 
+                classrooms={getFilteredClassrooms()} 
+                originalClassrooms={classroomsData} 
+                globalSearchQuery={globalSearchQuery}
+                onClassroomDataChange={setCurrentClassroomsData}
+            />
         </div>
     );
 };

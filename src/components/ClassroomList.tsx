@@ -24,21 +24,25 @@ import { toast } from "react-toastify";
 import InputMask from "react-input-mask";
 import { IWhatsappMessage, sendWhatsappMessage } from "../services/whatsapp";
 import { generateCustomID } from "../utils/generators";
+import { filterBySearch } from "../utils/searchUtils";
 import _ from "lodash";
 
 interface ClassroomsListProps {
     classrooms: IClassroom[];
+    originalClassrooms?: IClassroom[]; // For selectors that shouldn't be affected by filters
     updateClassrooms: (classrooms: IClassroom) => void;
     exportClassroom: (format: 'excel' | 'text', status: StudentStatusTypes | 'all', classroomId: string) => void;
+    globalSearchQuery?: string; // For global search filtering
+    onClassroomDataChange?: (classrooms: IClassroom[]) => void; // Callback to notify parent of data changes
 }
 
 const DEFAULT_MESSAGE = `Hola @firstName, Dios te bendiga 🙌 ¡Este jueves comenzamos nuestra formación bíblica! 🥳 tu aula sera *{classroomName}* entra en ella desde que llegues ⚡️✅ no te quedes abajo 🚫 recuerda que perteneces en la clase de *{subject}* 📖 con *{teacherFirstName} {teacherLastName}* 🔥 el material estará disponible en tu aula, el precio es *_RD\${materialPrice}_* pesos. Bendiciones!`;
 
 const STORAGE_KEY = 'whatsapp-message-template';
 
-const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClassrooms, exportClassroom }) => {
-    const [classroomData, setClassroomData] = useState<IClassroom[]>(structuredClone(classrooms));
-    const [originalClassroomData, setOriginalClassroomData] = useState<IClassroom[]>(classrooms);
+const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalClassrooms, updateClassrooms, exportClassroom, globalSearchQuery, onClassroomDataChange }) => {
+    const [classroomData, setClassroomData] = useState<IClassroom[]>(structuredClone(originalClassrooms || classrooms));
+    const [originalClassroomData, setOriginalClassroomData] = useState<IClassroom[]>(originalClassrooms || classrooms);
     const [selectedClass, setSelectedClass] = useState<{ [key: string]: string }>({});
     const [editMode, setEditMode] = useState<{ [classroomId: string]: boolean }>({});
     const [searchParams, setSearchParams] = useSearchParams();
@@ -52,15 +56,33 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
     const [selectedClassroomId, setSelectedClassroomId] = useState<string>(classrooms.length ? classrooms[0].id : '');
     const [activeTab, setActiveTab] = useState<string>('');
     const [showAll, setShowAll] = useState<boolean>(false);
+    const [searchQueries, setSearchQueries] = useState<{ [classroomId: string]: string }>({});
 
     useEffect(() => {
-        setClassroomData(structuredClone(classrooms));
-        setOriginalClassroomData(structuredClone(classrooms));
+        
+        const incoming = structuredClone(classrooms);
+        const incoming2 = structuredClone(originalClassrooms || classrooms);
+        // Avoid resetting local state if content didn't change
+        if (!_.isEqual(incoming, classroomData) && !classroomData?.length) {
+            setClassroomData(incoming);
+        }
+        if (!_.isEqual(incoming2, originalClassroomData) && !originalClassroomData?.length) {
+            setOriginalClassroomData(incoming2);
+        }
         // if (classrooms.length) {
         //     setSelectedClassroomId(classrooms[0].id);
         //     setActiveTab(classrooms[0].id);
         // }
-    }, [classrooms]);
+    }, [originalClassrooms, classrooms]);
+
+    // Notify parent component when classroomData changes
+    useEffect(() => {
+        const base = originalClassrooms || classrooms;
+        if (onClassroomDataChange && !_.isEqual(classroomData, base)) {
+            onClassroomDataChange(classroomData);
+        }
+    }, [classroomData, originalClassrooms, classrooms]);
+
     // const isAdmin = true
     const toggleEditMode = (classroomId: string) => {
         setEditMode(prev => ({
@@ -245,19 +267,19 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
 
     React.useEffect(() => {
         if (teacherPhone.length >= 10) {
-            const index = classrooms.findIndex(c => c.teacher.phone === teacherPhone);
+            const index = classroomData.findIndex(c => c.teacher.phone === teacherPhone);
             if (index !== -1) {
-                setSelectedClassroom(classrooms[index]);
+                setSelectedClassroom(classroomData[index]);
                 localStorage.setItem('teacherPhone', teacherPhone);
                 if (!selectedClassroom) {
                     toast('Sesion Iniciada', { type: 'success' })
                 }
             }
         } else {
-            const found = classrooms.find(c => c.id === selectedClassroomId);
+            const found = classroomData.find(c => c.id === selectedClassroomId);
             found && setSelectedClassroom(found)
         }
-    }, [teacherPhone, classrooms, selectedClassroomId])
+    }, [teacherPhone, classroomData, selectedClassroomId])
 
     // Load message text from localStorage on component mount
     React.useEffect(() => {
@@ -297,14 +319,15 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
             setSelectedClassroom(classroomData.find(c => c.id === selectedClassroom.id))
         }
 
+        const base = originalClassrooms || [];
+        const baseMap = new Map(base.map(c => [c.id, c]));
         const changedClassrooms = classroomData.filter(item => {
-            if (classrooms.find(c => JSON.stringify(c) === JSON.stringify(item))) {
-                return false;
-            }
-            return true;
+            return baseMap.get(item.id);
         });
 
-        updateChangedClassrooms(changedClassrooms);
+        if (changedClassrooms.length) {
+            updateChangedClassrooms(changedClassrooms);
+        }
 
     }, [classroomData]);
 
@@ -442,6 +465,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
     }
 
     const [addNewStudentClassroomId, setAddNewStudentClassroomId] = useState<string | null>(null);
+    const [addingStudent, setAddingStudent] = useState(false);
 
     const resetAddNewStudentClassroom = () => setAddNewStudentClassroomId(null);
     const [newStudent, setNewStudent] = useState({ firstName: '', lastName: '', phone: '' });
@@ -455,7 +479,10 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
     }
 
     const addNewStudent = async () => {
-        if (!addNewStudentClassroomId) return;
+        if (!addNewStudentClassroomId || addingStudent) return;
+        
+        setAddingStudent(true);
+        
         const newStudentData: IStudent = {
             ...newStudent,
             id: generateCustomID(),
@@ -469,13 +496,33 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
             assistance: []
         }
 
-        setClassroomData(prev => prev.map(c => c.id === addNewStudentClassroomId ? {
-            ...c,
-            students: [...c.students, newStudentData]
-        } : c));
+        // Find the classroom to update
+        const classroomToUpdate = classroomData.find(c => c.id === addNewStudentClassroomId);
+        if (!classroomToUpdate) {
+            setAddingStudent(false);
+            return;
+        }
 
-        setNewStudent({ firstName: '', lastName: '', phone: '' })
-        setAddNewStudentClassroomId(null);
+        // Create updated classroom with new student
+        const updatedClassroom: IClassroom = {
+            ...classroomToUpdate,
+            students: [...classroomToUpdate.students, newStudentData]
+        };
+
+        try {
+            // Optimistic UI: update local state immediately
+            setClassroomData(prev => prev.map(c => c.id === addNewStudentClassroomId ? updatedClassroom : c));
+            
+            setNewStudent({ firstName: '', lastName: '', phone: '' });
+            setAddNewStudentClassroomId(null);
+            
+            toast.success('Estudiante agregado exitosamente');
+        } catch (error) {
+            console.error('Error adding student:', error);
+            toast.error('Error al agregar estudiante');
+        } finally {
+            setAddingStudent(false);
+        }
     }
 
 
@@ -506,6 +553,24 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
             setActiveTab(tabId);
             setSelectedClassroomId(tabId);
         }
+    };
+
+    const handleSearchChange = (classroomId: string, query: string) => {
+        setSearchQueries(prev => ({
+            ...prev,
+            [classroomId]: query
+        }));
+    };
+
+    const getFilteredStudents = (classroom: IClassroom) => {
+        const localQuery = searchQueries[classroom.id] || '';
+        const globalQuery = globalSearchQuery || '';
+        
+        // If there's a local search query, use it; otherwise use global search
+        const query = localQuery || globalQuery;
+        
+        const latest = classroomData.find(c => c.id === classroom.id) || classroom;
+        return filterBySearch(latest.students, query);
     };
 
 
@@ -588,230 +653,217 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
                 {/*        </TabPane>*/}
                 {/*    ))}*/}
                 {/*</TabContent>*/}
-                {(selectedClassroom && !showAll ? [selectedClassroom] : classroomData).map(classroom => (
-                    <div key={classroom.id} className="classroom-block mb-4 p-3 border w-100">
-                        <h3>{classroom.subject} -
-                            Profesor/a: {`${classroom.teacher.firstName} ${classroom.teacher.lastName}`}
-                            {/*<Input*/}
-                            {/*    type="checkbox"*/}
-                            {/*    checked={isStudentSelected(classroom.id, student.id)}*/}
-                            {/*    onChange={() => toggleStudentSelection(classroom.id, student.id)}*/}
-                            {/*/>*/}
-                        </h3>
-                        <span className="text-secondary">{classroom.students.length} Estudiantes</span>
-                        <div
-                            className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100"
-                            style={{ top: isAdmin ? "50px" : "0px", zIndex: "9" }}>
-                            <div className="d-flex w-100 gap-3 align-items-center">
-                                <Button color="primary" className="w-100 text-nowrap"
-                                    onClick={() => toggleEditMode(classroom.id)}>
-                                    {editMode[classroom.id] ? 'Guardar' : 'Editar'}
-                                </Button>
-                                <Button color="primary" className="w-100 text-nowrap"
-                                    onClick={() => setAddNewStudentClassroomId(classroom.id)}>
-                                    Agregar Estudiante
-                                </Button>
+                {(selectedClassroom && !showAll ? [selectedClassroom] : classrooms).map(classroom => {
+                    const latestClassroom = classroomData.find(c => c.id === classroom.id) || classroom;
+                    return (
+                        <div key={classroom.id} className="classroom-block mb-4 p-3 border w-100">
+                            <h3>{latestClassroom.subject} -
+                                Profesor/a: {`${latestClassroom.teacher.firstName} ${latestClassroom.teacher.lastName}`}
+                            </h3>
+                            <span className="text-secondary">{getFilteredStudents(latestClassroom).length} de {latestClassroom.students.length} Estudiantes</span>
+                            
+                            {/* Search input for this classroom */}
+                            <div className="my-3">
+                                <Input
+                                    type="text"
+                                    placeholder="Buscar estudiantes en esta aula..."
+                                    value={searchQueries[classroom.id] || ''}
+                                    onChange={(e) => handleSearchChange(classroom.id, e.target.value)}
+                                    className="mb-2"
+                                />
                             </div>
-                            {isAdmin &&
-                                <div className="d-flex w-100 gap-3 justify-content-between">
-                                    <div className="d-flex gap-3 w-100">
-                                        <Button color="primary" onClick={() => toggleSelectAll(classroom.id, true)}>Select
-                                            All</Button>
-                                        <Button color="secondary" onClick={() => toggleSelectAll(classroom.id, false)}>Deselect
-                                            All
-                                        </Button>
-                                        <Dropdown isOpen={exportDropdownOpen[classroom.id]}
-                                            toggle={toggleExportDropdown(classroom.id)}>
-                                            <DropdownToggle color="success" caret>
-                                                Export Classroom
-                                            </DropdownToggle>
-                                            <DropdownMenu>
-                                                <DropdownItem header>Excel</DropdownItem>
-                                                <DropdownItem
-                                                    onClick={() => exportClassroom('excel', 'all', classroom.id)}>Todos</DropdownItem>
-                                                <DropdownItem
-                                                    onClick={() => exportClassroom('excel', 'approved', classroom.id)}>Approved</DropdownItem>
-                                                <DropdownItem
-                                                    onClick={() => exportClassroom('excel', 'outstanding', classroom.id)}>Outstanding</DropdownItem>
-                                                <DropdownItem
-                                                    onClick={() => exportClassroom('excel', 'failed', classroom.id)}>Failed</DropdownItem>
-                                            </DropdownMenu>
-                                        </Dropdown>
-                                    </div>
-                                    {availableStudentSelected &&
-                                        <Input
-                                            type="select"
-                                            onChange={(e) => passMultipleStudentToClassroom(classroom.id, e.target.value)}
-                                            value=""
-                                        >
-                                            <option value="" disabled>Pasar seleccionados a</option>
-                                            {classrooms.filter(c => c.id !== classroom.id).map(c =>
-                                                <option key={`selector-classroom-${c.id}`} value={c.id}>
-                                                    {c.subject}
-                                                </option>
-                                            )}
-                                        </Input>}
+                            <div
+                                className="d-flex gap-2 align-items-center my-3 flex-wrap position-sticky bg-white p-3 w-100"
+                                style={{ top: isAdmin ? "50px" : "0px", zIndex: "9" }}>
+                                <div className="d-flex w-100 gap-3 align-items-center">
+                                    <Button color="primary" className="w-100 text-nowrap"
+                                        onClick={() => toggleEditMode(classroom.id)}>
+                                        {editMode[classroom.id] ? 'Guardar' : 'Editar'}
+                                    </Button>
+                                    <Button color="primary" className="w-100 text-nowrap"
+                                        onClick={() => setAddNewStudentClassroomId(classroom.id)}>
+                                        Agregar Estudiante
+                                    </Button>
                                 </div>
-                            }
-                        </div>
-                        {isAdmin && editMode[classroom.id] && <div className="w-100 d-flex flex-column gap-3 mb-3">
-                            <Input type="text" value={classroom.subject} name="subject"
-                                onChange={onChangeClassroomDetails(classroom)}
-                                placeholder="Materia" />
-                            <Input type="text" value={classroom.name} name="name"
-                                onChange={onChangeClassroomDetails(classroom)}
-                                placeholder="Nombre del Aula" />
-                            <Input type="number" value={classroom.materialPrice} name="materialPrice"
-                                onChange={onChangeClassroomDetails(classroom)}
-                                placeholder="Precio del material" />
-                            <Input type="text" value={classroom.teacher.firstName} name="teacher.firstName"
-                                onChange={onChangeClassroomDetails(classroom)}
-                                placeholder="Teacher name" />
-                            <Input type="text" value={classroom.teacher.lastName} name="teacher.lastName"
-                                onChange={onChangeClassroomDetails(classroom)}
-                                placeholder="Teacher lastName" />
-                            <InputMask
-                                className="form-control" type="tel" mask="+1 (999) 999-9999"
-                                value={classroom.teacher.phone} name="teacher.phone"
-                                onChange={onChangeClassroomDetails(classroom)}
-                                placeholder="Teacher lastName" />
-
-                        </div>}
-                        <FormGroup>
-                            <Label className="w-100" for={`selectClass${classroom.id}`}>Seleccionar Clase</Label>
-                            <div className="d-flex align-items-center gap-2 flex-lg-row flex-column">
-                                <Input type="select" id={`selectClass${classroom.id}`}
-                                    value={selectedClass[classroom.id] || ''}
-                                    onChange={e => handleClassChange(e.target.value, classroom.id)}>
-                                    <option value="">Seleccionar</option>
-                                    {classroom.classes.map(cl => (
-                                        <option key={cl.id} value={cl.id}>{cl.name}</option>
-                                    ))}
-                                </Input>
                                 {isAdmin &&
-                                    <div className="d-flex align-items-center gap-3">
-                                        <Button color="primary" className="text-nowrap"
-                                            onClick={addNewClass(classroom)}>Agregar
-                                            Clase</Button>
-                                        <Button color="danger" className="text-nowrap"
-                                            onClick={() => deleteClass(classroom.id)}>Eliminar
-                                            Clase</Button>
-                                    </div>}
-                            </div>
-                        </FormGroup>
-                        <Table striped responsive>
-                            <thead>
-                                <tr>
-                                    {/*<th>#</th>*/}
-                                    <th>Nombre</th>
-                                    {editMode[classroom.id] && <th>Apellido</th>}
-                                    <th>Asistencia</th>
-                                    <th>Teléfono</th>
-                                    {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1]?.id &&
-                                        <th>Estado</th>}
-
-                                    {isAdmin && <th>Actions</th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {classroom.students.map((student, index) => {
-                                    const isPresent = !!student.assistance.some(c => c.id === selectedClass[classroom.id]);
-                                    return (
-                                        <tr key={student.id}
-                                            className={isPresent ? 'table-success' : ''}>
-                                            {/*<td>{index + 1}</td>*/}
-                                            <td>
-                                                {editMode[classroom.id] ? (
-                                                    <Input type="text" value={student.firstName}
-                                                        onChange={(e) => handleInputChange(classroom.id, student.id, 'firstName', e.target.value)} />
-                                                ) : (
-                                                    <span>{student.firstName} {student.lastName}</span>
-
+                                    <div className="d-flex w-100 gap-3 justify-content-between">
+                                        <div className="d-flex gap-3 w-100">
+                                            <Button color="primary" onClick={() => toggleSelectAll(classroom.id, true)}>Select
+                                                All</Button>
+                                            <Button color="secondary" onClick={() => toggleSelectAll(classroom.id, false)}>Deselect
+                                                All
+                                            </Button>
+                                            <Dropdown isOpen={exportDropdownOpen[classroom.id]}
+                                                toggle={toggleExportDropdown(classroom.id)}>
+                                                <DropdownToggle color="success" caret>
+                                                    Export Classroom
+                                                </DropdownToggle>
+                                                <DropdownMenu>
+                                                    <DropdownItem header>Excel</DropdownItem>
+                                                    <DropdownItem
+                                                        onClick={() => exportClassroom('excel', 'all', classroom.id)}>Todos</DropdownItem>
+                                                    <DropdownItem
+                                                        onClick={() => exportClassroom('excel', 'approved', classroom.id)}>Approved</DropdownItem>
+                                                    <DropdownItem
+                                                        onClick={() => exportClassroom('excel', 'outstanding', classroom.id)}>Outstanding</DropdownItem>
+                                                    <DropdownItem
+                                                        onClick={() => exportClassroom('excel', 'failed', classroom.id)}>Failed</DropdownItem>
+                                                </DropdownMenu>
+                                            </Dropdown>
+                                        </div>
+                                        {availableStudentSelected &&
+                                            <Input
+                                                type="select"
+                                                onChange={(e) => passMultipleStudentToClassroom(classroom.id, e.target.value)}
+                                                value=""
+                                            >
+                                                <option value="" disabled>Pasar seleccionados a</option>
+                                                {classrooms.filter(c => c.id !== classroom.id).map(c =>
+                                                    <option key={`selector-classroom-${c.id}`} value={c.id}>
+                                                        {c.subject}
+                                                    </option>
                                                 )}
-                                            </td>
-                                            {editMode[classroom.id] && <td>
-                                                {editMode[classroom.id] ? (
-                                                    <Input type="text" value={student.lastName}
-                                                        onChange={(e) => handleInputChange(classroom.id, student.id, 'lastName', e.target.value)} />
-                                                ) : (
-                                                    student.lastName
-                                                )}
-                                            </td>}
-                                            <td>
-                                                <div
-                                                    className="d-flex flex-column align-items-center justify-content-center gap-2">
-                                                    {isPresent && <Badge color="success"><b>¡Presente!</b></Badge>}
-                                                    <Button
-                                                        disabled={!selectedClass[classroom.id]}
-                                                        color={student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'danger' : 'info'}
-                                                        onClick={() => toggleAttendance(classroom.id, student.id)}>
-                                                        {student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'Marcar Ausente' : 'Marcar Presente'}
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="d-flex flex-column gap-3">
-                                                    {editMode[classroom.id] ? (
-                                                        <Input type="text" value={student.phone}
-                                                            onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)} />
-                                                    ) : (
-                                                        student.phone
-                                                    )}
-                                                    {!editMode[classroom.id] && student.phone.length >= 10 &&
-                                                        <Button color="success">
-                                                            <a target="_blank"
-                                                                className="text-nowrap text-white text-decoration-none"
-                                                                href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`}
-                                                                rel="noreferrer">
-                                                                Ir a Whatsapp
-                                                            </a>
-                                                        </Button>}
-                                                </div>
-                                            </td>
-                                            {selectedClass[classroom.id] === classroom.classes[classroom.classes.length - 1].id &&
-                                                <td>
-                                                    <Input type="select" value={student.status || ''}
-                                                        onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
-                                                        <option value="">Estado</option>
-                                                        {studentStatusList.map(status =>
-                                                            <option key={status}
-                                                                value={status}>{studentStatusNames[status]}</option>)}
-                                                    </Input>
-                                                </td>}
-
-                                            <td>
-                                                <div className="d-flex gap-4 align-items-center">
-                                                    {isAdmin && <>
-                                                        <Input type="select" value={student.status || ''}
-                                                            onChange={passStudentToClassroom}>
-                                                            <option value="">Pasar a</option>
-                                                            {classrooms.map(c =>
-                                                                <option key={`selector-classroom-${c.id}`}
-                                                                    value={`${classroom.id}-${c.id}-${student.id}`}>{c.subject}</option>)}
-                                                        </Input>
-                                                        <Input
-                                                            type="checkbox"
-                                                            checked={isStudentSelected(classroom.id, student.id)}
-                                                            onChange={() => toggleStudentSelection(classroom.id, student.id)}
-                                                        />
-                                                        <Button color="danger"
-                                                            onClick={() => setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
-                                                                ...c,
-                                                                students: c.students.filter(s => s.id !== student.id)
-                                                            } : c))}>
-                                                            Eliminar
-                                                        </Button>
-                                                    </>
-                                                    }
-                                                </div>
-                                            </td>
-                                        </tr>)
+                                            </Input>}
+                                    </div>
                                 }
-                                )}
-                            </tbody>
-                        </Table>
-                    </div>
-                ))}
+                            </div>
+
+                            <FormGroup>
+                                <Label className="w-100" for={`selectClass${classroom.id}`}>Seleccionar Clase</Label>
+                                <div className="d-flex align-items-center gap-2 flex-lg-row flex-column">
+                                    <Input type="select" id={`selectClass${classroom.id}`}
+                                        value={selectedClass[classroom.id] || ''}
+                                        onChange={e => handleClassChange(e.target.value, classroom.id)}>
+                                        <option value="">Seleccionar</option>
+                                        {latestClassroom.classes.map(cl => (
+                                            <option key={cl.id} value={cl.id}>{cl.name}</option>
+                                        ))}
+                                    </Input>
+                                    {isAdmin &&
+                                        <div className="d-flex align-items-center gap-3">
+                                            <Button color="primary" className="text-nowrap"
+                                                onClick={addNewClass(latestClassroom)}>Agregar
+                                                Clase</Button>
+                                            <Button color="danger" className="text-nowrap"
+                                                onClick={() => deleteClass(latestClassroom.id)}>Eliminar
+                                                Clase</Button>
+                                        </div>}
+                                </div>
+                            </FormGroup>
+                            <Table striped responsive>
+                                <thead>
+                                    <tr>
+                                        {/*<th>#</th>*/}
+                                        <th>Nombre</th>
+                                        {editMode[classroom.id] && <th>Apellido</th>}
+                                        <th>Asistencia</th>
+                                        <th>Teléfono</th>
+                                        {selectedClass[classroom.id] === latestClassroom.classes[latestClassroom.classes.length - 1]?.id &&
+                                            <th>Estado</th>}
+
+                                        {isAdmin && <th>Actions</th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {getFilteredStudents(latestClassroom).map((student, index) => {
+                                        const isPresent = !!student.assistance.some(c => c.id === selectedClass[classroom.id]);
+                                        return (
+                                            <tr key={student.id}
+                                                className={isPresent ? 'table-success' : ''}>
+                                                {/*<td>{index + 1}</td>*/}
+                                                <td>
+                                                    {editMode[classroom.id] ? (
+                                                        <Input type="text" value={student.firstName}
+                                                            onChange={(e) => handleInputChange(classroom.id, student.id, 'firstName', e.target.value)} />
+                                                    ) : (
+                                                        <span>{student.firstName} {student.lastName}</span>
+
+                                                    )}
+                                                </td>
+                                                {editMode[classroom.id] && <td>
+                                                    {editMode[classroom.id] ? (
+                                                        <Input type="text" value={student.lastName}
+                                                            onChange={(e) => handleInputChange(classroom.id, student.id, 'lastName', e.target.value)} />
+                                                    ) : (
+                                                        student.lastName
+                                                    )}
+                                                </td>}
+                                                <td>
+                                                    <div
+                                                        className="d-flex flex-column align-items-center justify-content-center gap-2">
+                                                        {isPresent && <Badge color="success"><b>¡Presente!</b></Badge>}
+                                                        <Button
+                                                            disabled={!selectedClass[classroom.id]}
+                                                            color={student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'danger' : 'info'}
+                                                            onClick={() => toggleAttendance(classroom.id, student.id)}>
+                                                            {student.assistance.some(c => c.id === selectedClass[classroom.id]) ? 'Marcar Ausente' : 'Marcar Presente'}
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div className="d-flex flex-column gap-3">
+                                                        {editMode[classroom.id] ? (
+                                                            <Input type="text" value={student.phone}
+                                                                onChange={(e) => handleInputChange(classroom.id, student.id, 'phone', e.target.value)} />
+                                                        ) : (
+                                                            student.phone
+                                                        )}
+                                                        {!editMode[classroom.id] && student.phone.length >= 10 &&
+                                                            <Button color="success">
+                                                                <a target="_blank"
+                                                                    className="text-nowrap text-white text-decoration-none"
+                                                                    href={`https://wa.me/${student.phone}?text=Hola ${student.firstName}, Dios te bendiga.`}
+                                                                    rel="noreferrer">
+                                                                    Ir a Whatsapp
+                                                                </a>
+                                                            </Button>}
+                                                    </div>
+                                                </td>
+                                                {selectedClass[classroom.id] === latestClassroom.classes[latestClassroom.classes.length - 1].id &&
+                                                    <td>
+                                                        <Input type="select" value={student.status || ''}
+                                                            onChange={(e) => handleInputChange(classroom.id, student.id, 'status', e.target.value)}>
+                                                            <option value="">Estado</option>
+                                                            {studentStatusList.map(status =>
+                                                                <option key={status}
+                                                                    value={status}>{studentStatusNames[status]}</option>)}
+                                                        </Input>
+                                                    </td>}
+
+                                                <td>
+                                                    <div className="d-flex gap-4 align-items-center">
+                                                        {isAdmin && <>
+                                                            <Input type="select" value={student.status || ''}
+                                                                onChange={passStudentToClassroom}>
+                                                                <option value="">Pasar a</option>
+                                                                {(originalClassrooms || classrooms).map(c =>
+                                                                    <option key={`selector-classroom-${c.id}`}
+                                                                        value={`${classroom.id}-${c.id}-${student.id}`}>{c.subject}</option>)}
+                                                            </Input>
+                                                            <Input
+                                                                type="checkbox"
+                                                                checked={isStudentSelected(classroom.id, student.id)}
+                                                                onChange={() => toggleStudentSelection(classroom.id, student.id)}
+                                                            />
+                                                            <Button color="danger"
+                                                                onClick={() => setClassroomData(prev => prev.map(c => c.id === classroom.id ? {
+                                                                    ...c,
+                                                                    students: c.students.filter(s => s.id !== student.id)
+                                                                } : c))}>
+                                                                Eliminar
+                                                            </Button>
+                                                        </>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>)
+                                    }
+                                    )}
+                                </tbody>
+                            </Table>
+                        </div>
+                    );
+                })}
             </>}
             <Modal isOpen={!!addNewStudentClassroomId} toggle={resetAddNewStudentClassroom}>
                 <ModalBody>
@@ -827,8 +879,10 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, updateClass
                             onChange={onChangeNewStudent} value={newStudent.phone} mask="+1 (999) 999-9999" />
                     </FormGroup>
                     <ModalFooter>
-                        <Button color="danger" onClick={resetAddNewStudentClassroom} outline>Cancelar</Button>
-                        <Button color="primary" onClick={addNewStudent} outline>Agregar</Button>
+                        <Button color="danger" onClick={resetAddNewStudentClassroom} outline disabled={addingStudent}>Cancelar</Button>
+                                <Button color="primary" onClick={addNewStudent} outline disabled={addingStudent}>
+                                    {addingStudent ? 'Agregando...' : 'Agregar'}
+                                </Button>
                     </ModalFooter>
                 </ModalBody>
             </Modal>

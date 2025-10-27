@@ -31,7 +31,7 @@ export interface IWhatsappMessage {
     photo?: Blob;
 }
 
-export const wsApi = "https://www.betuel-promotions.xyz/api/whatsapp/"
+export const wsApi = "https://betuel-promotions.xyz/api/whatsapp/"
 
 export const startWhatsappServices = async (
     start = true,

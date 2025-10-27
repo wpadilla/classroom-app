@@ -1,0 +1,3933 @@
+[
+  {
+    "id": "4tTs43oXYIrujo8On78y",
+    "materialPrice": 300,
+    "students": [
+      {
+        "lastName": "sssd",
+        "evaluation": {
+          "assistance": [],
+          "test": 0,
+          "participation": 0,
+          "exposition": 0
+        },
+        "status": "",
+        "assistance": [
+          {
+            "name": "Semana 10",
+            "id": "eff8",
+            "date": {
+              "seconds": 1713282396,
+              "nanoseconds": 802000000
+            }
+          }
+        ],
+        "phone": "",
+        "firstName": "another test estuidens",
+        "role": "student",
+        "id": "c0d97"
+      },
+      {
+        "role": "student",
+        "evaluation": {
+          "assistance": [],
+          "test": 0,
+          "participation": 0,
+          "exposition": 0
+        },
+        "assistance": [
+          {
+            "id": "8437c",
+            "name": "Semana 10",
+            "date": {
+              "nanoseconds": 377000000,
+              "seconds": 1713282374
+            }
+          }
+        ],
+        "phone": "",
+        "lastName": "",
+        "id": "2bab1",
+        "firstName": "mey new student"
+      },
+      {
+        "role": "student",
+        "id": "65d00",
+        "firstName": "klk",
+        "assistance": [],
+        "evaluation": {
+          "exposition": 0,
+          "test": 0,
+          "participation": 0,
+          "assistance": []
+        },
+        "lastName": "con klk",
+        "status": "",
+        "phone": ""
+      }
+    ],
+    "name": "Cuarto de Primaria (Segunda Planta)",
+    "classes": [
+      {
+        "name": "Semana 1",
+        "id": "225a",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        }
+      },
+      {
+        "name": "Semana 2",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "91a9f"
+      },
+      {
+        "id": "8011d",
+        "name": "Semana 3",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "id": "4a158",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 4"
+      },
+      {
+        "name": "Semana 5",
+        "id": "d6e78",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        }
+      },
+      {
+        "id": "de57f",
+        "name": "Semana 6",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        }
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 7",
+        "id": "440e1"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "e2968",
+        "name": "Semana 8"
+      },
+      {
+        "date": {
+          "nanoseconds": 663000000,
+          "seconds": 1713282371
+        },
+        "name": "Semana 9",
+        "id": "34aeb"
+      },
+      {
+        "date": {
+          "nanoseconds": 377000000,
+          "seconds": 1713282374
+        },
+        "id": "8437c",
+        "name": "Semana 10"
+      }
+    ],
+    "subject": "Educacion Financiera",
+    "teacher": {
+      "role": "teacher",
+      "firstName": "Pastor Wilson",
+      "phone": "18093053905",
+      "id": "a37a9",
+      "lastName": "Ramos"
+    },
+    "currentClass": {
+      "id": "8437c",
+      "date": {
+        "nanoseconds": 377000000,
+        "seconds": 1713282374
+      },
+      "name": "Semana 10"
+    }
+  },
+  {
+    "id": "QRxaLXEoDcM3Lz53fFMk",
+    "currentClass": {
+      "date": {
+        "nanoseconds": 240000000,
+        "seconds": 1726176785
+      },
+      "id": "9056c",
+      "name": "Semana 1"
+    },
+    "materialPrice": 300,
+    "students": [],
+    "subject": "Sendas de un Guerrero",
+    "classes": [
+      {
+        "id": "9056c",
+        "name": "Semana 1",
+        "date": {
+          "nanoseconds": 240000000,
+          "seconds": 1726176785
+        }
+      },
+      {
+        "date": {
+          "seconds": 1726176785,
+          "nanoseconds": 656000000
+        },
+        "id": "97674",
+        "name": "Semana 2"
+      },
+      {
+        "id": "9eaf9",
+        "name": "Semana 3",
+        "date": {
+          "nanoseconds": 816000000,
+          "seconds": 1726176785
+        }
+      },
+      {
+        "name": "Semana 4",
+        "id": "3ae2c",
+        "date": {
+          "nanoseconds": 960000000,
+          "seconds": 1726176785
+        }
+      },
+      {
+        "name": "Semana 5",
+        "id": "314b8",
+        "date": {
+          "nanoseconds": 87000000,
+          "seconds": 1726176786
+        }
+      },
+      {
+        "date": {
+          "nanoseconds": 882000000,
+          "seconds": 1726176787
+        },
+        "id": "8989e",
+        "name": "Semana 6"
+      },
+      {
+        "date": {
+          "seconds": 1726176787,
+          "nanoseconds": 996000000
+        },
+        "id": "d2196",
+        "name": "Semana 7"
+      },
+      {
+        "name": "Semana 8",
+        "id": "21bac",
+        "date": {
+          "nanoseconds": 213000000,
+          "seconds": 1726176790
+        }
+      },
+      {
+        "date": {
+          "seconds": 1726176790,
+          "nanoseconds": 420000000
+        },
+        "name": "Semana 9",
+        "id": "e1800"
+      },
+      {
+        "name": "Semana 10",
+        "id": "296b7",
+        "date": {
+          "seconds": 1726176790,
+          "nanoseconds": 917000000
+        }
+      }
+    ],
+    "teacher": {
+      "role": "teacher",
+      "lastName": "Berliza",
+      "id": "8jmalnkoa",
+      "phone": "18298771864",
+      "firstName": "Lic. Enrique"
+    }
+  },
+  {
+    "id": "R0xezSlZHyClEApwKFpt",
+    "subject": "El Compendio de Teología Pastoral SEAN Nivel 2",
+    "materialPrice": 350,
+    "currentClass": {
+      "id": "b7e9e",
+      "name": "Semana 1",
+      "date": {
+        "seconds": 1713278579,
+        "nanoseconds": 345000000
+      }
+    },
+    "students": [],
+    "name": "Sexto de Primaria (Tercera Planta)",
+    "teacher": {
+      "lastName": "Heredia",
+      "role": "teacher",
+      "id": "643a6",
+      "firstName": "Dra. Dorcas",
+      "phone": "18295242275"
+    },
+    "classes": [
+      {
+        "id": "b7e9e",
+        "name": "Semana 1",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        }
+      },
+      {
+        "name": "Semana 2",
+        "id": "a7eb1",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "id": "9c306",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 3"
+      },
+      {
+        "id": "f3b2c",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 4"
+      },
+      {
+        "name": "Semana 5",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "3001b"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "b33e5",
+        "name": "Semana 6"
+      },
+      {
+        "id": "8a029",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 7"
+      },
+      {
+        "name": "Semana 8",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "8595e"
+      },
+      {
+        "date": {
+          "nanoseconds": 369000000,
+          "seconds": 1713282382
+        },
+        "name": "Semana 9",
+        "id": "f23c1"
+      },
+      {
+        "name": "Semana 10",
+        "id": "ebe68",
+        "date": {
+          "seconds": 1713282385,
+          "nanoseconds": 58000000
+        }
+      }
+    ]
+  },
+  {
+    "id": "ZUKzZocmIhTrvCyV2PwX",
+    "students": [],
+    "currentClass": {
+      "id": "eff8",
+      "date": {
+        "seconds": 1713282396,
+        "nanoseconds": 802000000
+      },
+      "name": "Semana 10"
+    },
+    "classes": [
+      {
+        "name": "Semana 1",
+        "id": "43959",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "name": "Semana 2",
+        "id": "730fe",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "name": "Semana 3",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "e117b"
+      },
+      {
+        "id": "2d130",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 4"
+      },
+      {
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "7eed2",
+        "name": "Semana 5"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 6",
+        "id": "59d04"
+      },
+      {
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "2fd7e",
+        "name": "Semana 7"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "88280",
+        "name": "Semana 8"
+      },
+      {
+        "name": "Semana 9",
+        "id": "26fac",
+        "date": {
+          "seconds": 1713282391,
+          "nanoseconds": 331000000
+        }
+      },
+      {
+        "name": "Semana 10",
+        "id": "eff8",
+        "date": {
+          "nanoseconds": 802000000,
+          "seconds": 1713282396
+        }
+      },
+      {
+        "id": "10fc",
+        "name": "Semana 11",
+        "date": {
+          "seconds": 1760982939,
+          "nanoseconds": 931000000
+        }
+      }
+    ],
+    "teacher": {
+      "lastName": "Ramos",
+      "phone": "18295623591",
+      "id": "cac29",
+      "firstName": "Lic. Elizabeth",
+      "role": "teacher"
+    },
+    "subject": "El Taller de Sanidad interior",
+    "name": "Segundo de Primaria (Primera Planta)",
+    "materialPrice": 250
+  },
+  {
+    "id": "cFouTRlIvzj79V8da77i",
+    "currentClass": {
+      "date": {
+        "nanoseconds": 630000000,
+        "seconds": 1725497284
+      },
+      "id": "ddaf1",
+      "name": "Semana 10"
+    },
+    "materialPrice": 0,
+    "classes": [
+      {
+        "name": "Semana 1",
+        "date": {
+          "nanoseconds": 54000000,
+          "seconds": 1725497278
+        },
+        "id": "b802e"
+      },
+      {
+        "id": "edf6d",
+        "date": {
+          "nanoseconds": 71000000,
+          "seconds": 1725497281
+        },
+        "name": "Semana 2"
+      },
+      {
+        "date": {
+          "seconds": 1725497281,
+          "nanoseconds": 470000000
+        },
+        "id": "a8aeb",
+        "name": "Semana 3"
+      },
+      {
+        "name": "Semana 4",
+        "id": "ee45e",
+        "date": {
+          "nanoseconds": 836000000,
+          "seconds": 1725497281
+        }
+      },
+      {
+        "date": {
+          "seconds": 1725497282,
+          "nanoseconds": 261000000
+        },
+        "id": "5c776",
+        "name": "Semana 5"
+      },
+      {
+        "id": "5597d",
+        "date": {
+          "seconds": 1725497282,
+          "nanoseconds": 724000000
+        },
+        "name": "Semana 6"
+      },
+      {
+        "date": {
+          "seconds": 1725497283,
+          "nanoseconds": 163000000
+        },
+        "id": "da662",
+        "name": "Semana 7"
+      },
+      {
+        "id": "b9ffd",
+        "date": {
+          "seconds": 1725497283,
+          "nanoseconds": 715000000
+        },
+        "name": "Semana 8"
+      },
+      {
+        "id": "145d4",
+        "date": {
+          "nanoseconds": 225000000,
+          "seconds": 1725497284
+        },
+        "name": "Semana 9"
+      },
+      {
+        "name": "Semana 10",
+        "date": {
+          "nanoseconds": 630000000,
+          "seconds": 1725497284
+        },
+        "id": "ddaf1"
+      }
+    ],
+    "teacher": {
+      "phone": "18099402441",
+      "firstName": "Lic. Moisés",
+      "role": "teacher",
+      "lastName": "Ferrer",
+      "id": "4e3jaizr2"
+    },
+    "subject": "El Taller de Liderazgo",
+    "students": [
+      {
+        "assistance": [
+          {
+            "name": "Semana 1",
+            "id": "d2ae4",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "6e1a0",
+            "name": "Semana 2"
+          }
+        ],
+        "phone": "18298779181",
+        "firstName": "Maribel",
+        "role": "student",
+        "id": "58952",
+        "status": "",
+        "evaluation": {},
+        "lastName": "Andersón"
+      }
+    ]
+  },
+  {
+    "id": "g4BGrXHLekjqlx04YupB",
+    "materialPrice": 500,
+    "teacher": {
+      "id": "8h2g9aeow",
+      "phone": "18296469798",
+      "lastName": "Victoriano",
+      "role": "teacher",
+      "firstName": "Lic. Rudiver"
+    },
+    "subject": "Taller de Predicación",
+    "classes": [
+      {
+        "name": "Semana 1",
+        "id": "2a2a4",
+        "date": {
+          "nanoseconds": 995000000,
+          "seconds": 1760642298
+        }
+      },
+      {
+        "date": {
+          "nanoseconds": 209000000,
+          "seconds": 1760642299
+        },
+        "id": "31168",
+        "name": "Semana 2"
+      },
+      {
+        "name": "Semana 3",
+        "date": {
+          "nanoseconds": 366000000,
+          "seconds": 1760642299
+        },
+        "id": "ed6bb"
+      },
+      {
+        "date": {
+          "nanoseconds": 567000000,
+          "seconds": 1760642301
+        },
+        "name": "Semana 4",
+        "id": "d36c7"
+      },
+      {
+        "id": "d9d54",
+        "date": {
+          "seconds": 1760642301,
+          "nanoseconds": 714000000
+        },
+        "name": "Semana 5"
+      },
+      {
+        "name": "Semana 6",
+        "date": {
+          "nanoseconds": 90000000,
+          "seconds": 1760642302
+        },
+        "id": "16461"
+      },
+      {
+        "id": "70c12",
+        "date": {
+          "seconds": 1760642306,
+          "nanoseconds": 472000000
+        },
+        "name": "Semana 7"
+      },
+      {
+        "name": "Semana 8",
+        "id": "2d96c",
+        "date": {
+          "nanoseconds": 664000000,
+          "seconds": 1760642306
+        }
+      },
+      {
+        "date": {
+          "seconds": 1760642311,
+          "nanoseconds": 222000000
+        },
+        "name": "Semana 9",
+        "id": "b44f3"
+      },
+      {
+        "name": "Semana 10",
+        "date": {
+          "seconds": 1760642314,
+          "nanoseconds": 472000000
+        },
+        "id": "80284"
+      },
+      {
+        "name": "Semana 11",
+        "id": "66040",
+        "date": {
+          "seconds": 1760642315,
+          "nanoseconds": 888000000
+        }
+      },
+      {
+        "name": "Semana 12",
+        "id": "28ed2",
+        "date": {
+          "nanoseconds": 329000000,
+          "seconds": 1760642316
+        }
+      }
+    ],
+    "students": [
+      {
+        "id": "5702d",
+        "role": "student",
+        "evaluation": {
+          "participation": 0,
+          "assistance": [],
+          "test": 0,
+          "exposition": 0
+        },
+        "assistance": [],
+        "status": "outstanding",
+        "phone": "",
+        "lastName": "Vasquez Brito",
+        "firstName": "⁠Samuel"
+      },
+      {
+        "lastName": "De La Rosa",
+        "assistance": [],
+        "evaluation": {
+          "exposition": 0,
+          "assistance": [],
+          "participation": 0,
+          "test": 0
+        },
+        "status": "approved",
+        "firstName": "Adalis",
+        "phone": "",
+        "role": "student",
+        "id": "b65ef"
+      },
+      {
+        "assistance": [],
+        "evaluation": {
+          "exposition": 0,
+          "participation": 0,
+          "assistance": [],
+          "test": 0
+        },
+        "firstName": "Anderson",
+        "phone": "",
+        "id": "9a479",
+        "lastName": "Montero",
+        "role": "student",
+        "status": "approved"
+      },
+      {
+        "id": "b3123",
+        "lastName": "Hinojosa",
+        "firstName": "Xiomara",
+        "phone": "",
+        "role": "student",
+        "evaluation": {
+          "assistance": [],
+          "participation": 0,
+          "test": 0,
+          "exposition": 0
+        },
+        "assistance": [],
+        "status": "approved"
+      },
+      {
+        "id": "b7ec2",
+        "firstName": "Judit",
+        "status": "approved",
+        "role": "student",
+        "evaluation": {
+          "test": 0,
+          "participation": 0,
+          "exposition": 0,
+          "assistance": []
+        },
+        "lastName": "Marte",
+        "phone": "",
+        "assistance": []
+      },
+      {
+        "assistance": [],
+        "phone": "",
+        "status": "outstanding",
+        "lastName": "De Luna",
+        "evaluation": {
+          "participation": 0,
+          "test": 0,
+          "exposition": 0,
+          "assistance": []
+        },
+        "role": "student",
+        "firstName": "Elizabeth",
+        "id": "23ccc"
+      },
+      {
+        "role": "student",
+        "id": "a5ed9",
+        "evaluation": {
+          "assistance": [],
+          "test": 0,
+          "participation": 0,
+          "exposition": 0
+        },
+        "phone": "",
+        "lastName": "Rodriguez",
+        "status": "approved",
+        "firstName": "Modesta",
+        "assistance": []
+      },
+      {
+        "role": "student",
+        "evaluation": {
+          "exposition": 0,
+          "assistance": [],
+          "test": 0,
+          "participation": 0
+        },
+        "lastName": "Medina",
+        "assistance": [],
+        "phone": "18298510927",
+        "id": "9b7b9",
+        "firstName": "Milagros"
+      }
+    ],
+    "currentClass": {
+      "id": "28ed2",
+      "date": {
+        "seconds": 1760642316,
+        "nanoseconds": 329000000
+      },
+      "name": "Semana 12"
+    }
+  },
+  {
+    "id": "hULpOt2n2NOmNdueK9F0",
+    "subject": "El Compendio de Teología Pastoral SEAN Nivel 6",
+    "classes": [
+      {
+        "id": "d2ae4",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 1"
+      },
+      {
+        "id": "6e1a0",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 2"
+      },
+      {
+        "id": "7ecb9",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 3"
+      },
+      {
+        "name": "Semana 4",
+        "id": "ca1e3",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "name": "Semana 5",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "a0c72"
+      },
+      {
+        "name": "Semana 6",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "d7150"
+      },
+      {
+        "name": "Semana 7",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "c5c6f"
+      },
+      {
+        "name": "Semana 8",
+        "id": "8f7a8",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "date": {
+          "nanoseconds": 915000000,
+          "seconds": 1713282398
+        },
+        "id": "7113e",
+        "name": "Semana 9"
+      },
+      {
+        "date": {
+          "nanoseconds": 624000000,
+          "seconds": 1713282400
+        },
+        "name": "Semana 10",
+        "id": "153da"
+      }
+    ],
+    "materialPrice": 350,
+    "teacher": {
+      "lastName": "Guerrero",
+      "phone": "18492189919",
+      "role": "teacher",
+      "firstName": "Lic. Magalys",
+      "id": "d0509"
+    },
+    "students": [
+      {
+        "assistance": [],
+        "id": "22aed",
+        "firstName": "Milcíades",
+        "status": "",
+        "lastName": "",
+        "phone": "18094091271",
+        "evaluation": {},
+        "role": "student"
+      },
+      {
+        "assistance": [
+          {
+            "id": "6e1a0",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 2"
+          }
+        ],
+        "evaluation": {},
+        "firstName": "Hilary",
+        "phone": "18096130547",
+        "role": "student",
+        "id": "e3817",
+        "status": "",
+        "lastName": "Marte"
+      },
+      {
+        "evaluation": {},
+        "firstName": "Kelvin",
+        "lastName": "Campusano",
+        "id": "c4f3f",
+        "status": "",
+        "role": "student",
+        "phone": "18093088112",
+        "assistance": []
+      },
+      {
+        "role": "student",
+        "phone": "18492275212",
+        "lastName": "Reyes",
+        "evaluation": {},
+        "firstName": "Sahíra",
+        "id": "1fe09",
+        "status": "",
+        "assistance": [
+          {
+            "name": "Semana 1",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "c692c"
+          },
+          {
+            "id": "49d3",
+            "name": "Semana 3",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "59163"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 4",
+            "id": "7870a"
+          },
+          {
+            "name": "Semana 5",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "694de"
+          },
+          {
+            "name": "Semana 6",
+            "id": "acc23",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 7",
+            "id": "905c2"
+          },
+          {
+            "id": "6271d",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 8"
+          },
+          {
+            "id": "b4b2c",
+            "date": {
+              "seconds": 1713282422,
+              "nanoseconds": 524000000
+            },
+            "name": "Semana 9"
+          },
+          {
+            "name": "Semana 10",
+            "id": "5cbd6",
+            "date": {
+              "seconds": 1713282422,
+              "nanoseconds": 714000000
+            }
+          },
+          {
+            "id": "44f01",
+            "date": {
+              "nanoseconds": 423000000,
+              "seconds": 1713282426
+            },
+            "name": "Semana 11"
+          },
+          {
+            "date": {
+              "seconds": 1713282426,
+              "nanoseconds": 627000000
+            },
+            "id": "28a48",
+            "name": "Semana 12"
+          }
+        ]
+      },
+      {
+        "assistance": [],
+        "firstName": "Santa",
+        "status": "",
+        "evaluation": {},
+        "phone": "18098537857",
+        "role": "student",
+        "lastName": "Monica",
+        "id": "7c201"
+      },
+      {
+        "id": "f0471",
+        "assistance": [
+          {
+            "name": "Semana 1",
+            "id": "dab96",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "71546",
+            "name": "Semana 2"
+          },
+          {
+            "id": "c3f59",
+            "name": "Semana 3",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "id": "a0866",
+            "name": "Semana 4",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "719b1",
+            "name": "Semana 5",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "c95e3",
+            "name": "Semana 6",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "4a071",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 7"
+          },
+          {
+            "id": "e112f",
+            "date": {
+              "nanoseconds": 614000000,
+              "seconds": 1713282404
+            },
+            "name": "Semana 9"
+          },
+          {
+            "name": "Semana 10",
+            "id": "88832",
+            "date": {
+              "nanoseconds": 814000000,
+              "seconds": 1713282404
+            }
+          }
+        ],
+        "lastName": "Soto",
+        "role": "student",
+        "status": "",
+        "evaluation": {},
+        "phone": "18092171859",
+        "firstName": "Silvio"
+      },
+      {
+        "evaluation": {},
+        "assistance": [
+          {
+            "id": "dab96",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 1"
+          },
+          {
+            "id": "71546",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 2"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "c3f59",
+            "name": "Semana 3"
+          },
+          {
+            "id": "a0866",
+            "name": "Semana 4",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 5",
+            "id": "719b1",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 7",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "4a071"
+          },
+          {
+            "date": {
+              "nanoseconds": 614000000,
+              "seconds": 1713282404
+            },
+            "id": "e112f",
+            "name": "Semana 9"
+          },
+          {
+            "id": "88832",
+            "name": "Semana 10",
+            "date": {
+              "seconds": 1713282404,
+              "nanoseconds": 814000000
+            }
+          }
+        ],
+        "id": "d856d",
+        "firstName": "María Josefina",
+        "phone": "18298617801",
+        "role": "student",
+        "lastName": "Feliz",
+        "status": ""
+      },
+      {
+        "status": "",
+        "firstName": "Yahaira",
+        "assistance": [
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "71546",
+            "name": "Semana 2"
+          },
+          {
+            "name": "Semana 3",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "c3f59"
+          },
+          {
+            "name": "Semana 5",
+            "id": "719b1",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 6",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "c95e3"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 8",
+            "id": "eb975"
+          },
+          {
+            "id": "e112f",
+            "name": "Semana 9",
+            "date": {
+              "nanoseconds": 614000000,
+              "seconds": 1713282404
+            }
+          },
+          {
+            "name": "Semana 10",
+            "date": {
+              "nanoseconds": 814000000,
+              "seconds": 1713282404
+            },
+            "id": "88832"
+          }
+        ],
+        "evaluation": {},
+        "lastName": "Cruceta",
+        "phone": "18099934631",
+        "role": "student",
+        "id": "7dba4"
+      },
+      {
+        "status": "",
+        "firstName": "Esteysi ",
+        "assistance": [
+          {
+            "id": "a0866",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 4"
+          },
+          {
+            "id": "719b1",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 5"
+          },
+          {
+            "id": "c95e3",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 6"
+          },
+          {
+            "name": "Semana 7",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "4a071"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "eb975",
+            "name": "Semana 8"
+          },
+          {
+            "name": "Semana 10",
+            "id": "88832",
+            "date": {
+              "nanoseconds": 814000000,
+              "seconds": 1713282404
+            }
+          }
+        ],
+        "id": "b1328",
+        "role": "student",
+        "phone": "18092175223",
+        "lastName": "Castillo",
+        "evaluation": {
+          "exposition": 0,
+          "test": 0,
+          "participation": 0,
+          "assistance": []
+        }
+      },
+      {
+        "lastName": "Castillo",
+        "firstName": "Fabian ",
+        "phone": "18299755223",
+        "evaluation": {
+          "test": 0,
+          "participation": 0,
+          "assistance": [],
+          "exposition": 0
+        },
+        "status": "",
+        "assistance": [
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "a0866",
+            "name": "Semana 4"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "719b1",
+            "name": "Semana 5"
+          },
+          {
+            "name": "Semana 6",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "c95e3"
+          },
+          {
+            "id": "4a071",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 7"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 8",
+            "id": "eb975"
+          },
+          {
+            "date": {
+              "seconds": 1713282404,
+              "nanoseconds": 814000000
+            },
+            "id": "88832",
+            "name": "Semana 10"
+          }
+        ],
+        "role": "student",
+        "id": "346fb"
+      },
+      {
+        "assistance": [],
+        "id": "ef1e6",
+        "status": "",
+        "evaluation": {
+          "test": 0,
+          "participation": 0,
+          "exposition": 0,
+          "assistance": []
+        },
+        "phone": "18498558495",
+        "lastName": "",
+        "role": "student",
+        "firstName": "Noelia"
+      },
+      {
+        "status": "",
+        "role": "student",
+        "phone": "18293040103",
+        "firstName": "Marisol ",
+        "assistance": [
+          {
+            "id": "91a9f",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 2"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "e2968",
+            "name": "Semana 8"
+          },
+          {
+            "id": "de57f",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 6"
+          }
+        ],
+        "evaluation": {
+          "participation": 0,
+          "test": 0,
+          "assistance": [],
+          "exposition": 0
+        },
+        "id": "daf04",
+        "lastName": "Perez"
+      }
+    ],
+    "currentClass": {
+      "name": "Semana 10",
+      "date": {
+        "nanoseconds": 624000000,
+        "seconds": 1713282400
+      },
+      "id": "153da"
+    },
+    "name": "Cuarto de Secundaria (Tercera Planta)"
+  },
+  {
+    "id": "iJAMabjPytgiN8BmXHPD",
+    "classes": [
+      {
+        "name": "Semana 1",
+        "id": "dab96",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "name": "Semana 2",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "71546"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "c3f59",
+        "name": "Semana 3"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 4",
+        "id": "a0866"
+      },
+      {
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "719b1",
+        "name": "Semana 5"
+      },
+      {
+        "name": "Semana 6",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "c95e3"
+      },
+      {
+        "name": "Semana 7",
+        "id": "4a071",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        }
+      },
+      {
+        "id": "eb975",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 8"
+      },
+      {
+        "date": {
+          "seconds": 1713282404,
+          "nanoseconds": 614000000
+        },
+        "id": "e112f",
+        "name": "Semana 9"
+      },
+      {
+        "date": {
+          "seconds": 1713282404,
+          "nanoseconds": 814000000
+        },
+        "name": "Semana 10",
+        "id": "88832"
+      }
+    ],
+    "currentClass": {
+      "id": "88832",
+      "date": {
+        "nanoseconds": 814000000,
+        "seconds": 1713282404
+      },
+      "name": "Semana 10"
+    },
+    "students": [],
+    "subject": "El Compendio de Teología Pastoral SEAN Nivel 3",
+    "materialPrice": 350,
+    "name": "Sexto de Secundaria (Segunda Planta)",
+    "teacher": {
+      "phone": "18297875461",
+      "lastName": "Sepulveda",
+      "id": "48a6e",
+      "firstName": "Lic. Elias",
+      "role": "teacher"
+    }
+  },
+  {
+    "id": "ls9sdVxKuJvEPD4gSe0x",
+    "subject": "El Compendio de Teología Pastoral SEAN Nivel 1",
+    "currentClass": {
+      "name": "Semana 10",
+      "id": "7827d",
+      "date": {
+        "nanoseconds": 631000000,
+        "seconds": 1713282340
+      }
+    },
+    "students": [
+      {
+        "role": "student",
+        "id": "61e02",
+        "lastName": "de la Rosa",
+        "phone": "1",
+        "evaluation": {},
+        "status": "",
+        "firstName": "Sucely",
+        "assistance": [
+          {
+            "name": "Semana 1",
+            "id": "8c814",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 2",
+            "id": "1b4b0"
+          },
+          {
+            "name": "Semana 3",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "4d9b9"
+          }
+        ]
+      },
+      {
+        "id": "5713b",
+        "firstName": "Randy",
+        "assistance": [
+          {
+            "id": "1b4b0",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 2"
+          }
+        ],
+        "lastName": "De la Rosa",
+        "status": "",
+        "role": "student",
+        "phone": "18295490211",
+        "evaluation": {}
+      },
+      {
+        "evaluation": {},
+        "status": "failed",
+        "assistance": [
+          {
+            "name": "Semana 4",
+            "id": "1a6ed",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          }
+        ],
+        "lastName": "Moronta",
+        "phone": "18296338536",
+        "id": "d98f7",
+        "firstName": "Raisa",
+        "role": "student"
+      },
+      {
+        "lastName": "",
+        "role": "student",
+        "status": "failed",
+        "firstName": "Lovelande",
+        "assistance": [
+          {
+            "name": "Semana 2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "1b4b0"
+          },
+          {
+            "id": "4d9b9",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 3"
+          }
+        ],
+        "evaluation": {},
+        "phone": "18295271659",
+        "id": "573da"
+      },
+      {
+        "id": "1c7c3",
+        "firstName": "Roselys",
+        "phone": "18096931531",
+        "status": "failed",
+        "role": "student",
+        "assistance": [
+          {
+            "name": "Semana 2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "1b4b0"
+          }
+        ],
+        "lastName": "",
+        "evaluation": {}
+      },
+      {
+        "assistance": [],
+        "lastName": "",
+        "phone": "18296960973",
+        "id": "4c0b4",
+        "role": "student",
+        "evaluation": {},
+        "status": "failed",
+        "firstName": "Douglas"
+      },
+      {
+        "phone": "18293181676",
+        "lastName": "Ovalles",
+        "status": "failed",
+        "firstName": "Cristian",
+        "role": "student",
+        "evaluation": {},
+        "id": "4253b",
+        "assistance": []
+      },
+      {
+        "firstName": "Carlos",
+        "assistance": [
+          {
+            "id": "43959",
+            "name": "Semana 1",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 2",
+            "id": "730fe",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 3",
+            "id": "e117b"
+          },
+          {
+            "id": "7eed2",
+            "name": "Semana 5",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 331000000,
+              "seconds": 1713282391
+            },
+            "id": "26fac",
+            "name": "Semana 9"
+          }
+        ],
+        "evaluation": {},
+        "status": "",
+        "phone": "18098750096",
+        "id": "6e86c",
+        "role": "student",
+        "lastName": "Mojica"
+      },
+      {
+        "id": "6c4af",
+        "evaluation": {
+          "exposition": 0,
+          "assistance": [],
+          "participation": 0,
+          "test": 0
+        },
+        "firstName": "Yoselyn",
+        "role": "student",
+        "lastName": "Mateo",
+        "phone": "18096463070",
+        "assistance": [
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "8c814",
+            "name": "Semana 1"
+          }
+        ]
+      },
+      {
+        "firstName": "Johanna",
+        "status": "",
+        "assistance": [
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "730fe",
+            "name": "Semana 2"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "2d130",
+            "name": "Semana 4"
+          },
+          {
+            "name": "Semana 1",
+            "id": "43959",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 3",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "e117b"
+          },
+          {
+            "id": "7eed2",
+            "name": "Semana 5",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "id": "59d04",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 6"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "88280",
+            "name": "Semana 8"
+          },
+          {
+            "id": "26fac",
+            "date": {
+              "nanoseconds": 331000000,
+              "seconds": 1713282391
+            },
+            "name": "Semana 9"
+          },
+          {
+            "name": "Semana 10",
+            "id": "eff8",
+            "date": {
+              "nanoseconds": 802000000,
+              "seconds": 1713282396
+            }
+          },
+          {
+            "id": "2fd7e",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 7"
+          }
+        ],
+        "role": "student",
+        "phone": "8297315962",
+        "evaluation": {},
+        "lastName": "Gonzalez",
+        "id": "394d7"
+      },
+      {
+        "id": "acbc6",
+        "assistance": [
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "43959",
+            "name": "Semana 1"
+          },
+          {
+            "id": "e117b",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 3"
+          },
+          {
+            "name": "Semana 5",
+            "id": "7eed2",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 6",
+            "id": "59d04",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "88280",
+            "name": "Semana 8"
+          },
+          {
+            "date": {
+              "nanoseconds": 331000000,
+              "seconds": 1713282391
+            },
+            "name": "Semana 9",
+            "id": "26fac"
+          },
+          {
+            "name": "Semana 10",
+            "date": {
+              "seconds": 1713282396,
+              "nanoseconds": 802000000
+            },
+            "id": "eff8"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "2fd7e",
+            "name": "Semana 7"
+          }
+        ],
+        "status": "",
+        "evaluation": {},
+        "phone": "8092086613",
+        "lastName": "Guerrero",
+        "role": "student",
+        "firstName": "Marisol "
+      },
+      {
+        "status": "",
+        "role": "student",
+        "assistance": [
+          {
+            "id": "730fe",
+            "name": "Semana 2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 4",
+            "id": "2d130"
+          },
+          {
+            "name": "Semana 9",
+            "id": "26fac",
+            "date": {
+              "nanoseconds": 331000000,
+              "seconds": 1713282391
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713282396,
+              "nanoseconds": 802000000
+            },
+            "id": "eff8",
+            "name": "Semana 10"
+          },
+          {
+            "name": "Semana 1",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "43959"
+          },
+          {
+            "name": "Semana 3",
+            "id": "e117b",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "7eed2",
+            "name": "Semana 5"
+          },
+          {
+            "id": "59d04",
+            "name": "Semana 6",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 8",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "88280"
+          },
+          {
+            "id": "2fd7e",
+            "name": "Semana 7",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          }
+        ],
+        "lastName": "Fortuna",
+        "phone": "8496281554",
+        "id": "47c6b",
+        "firstName": "Loemy",
+        "evaluation": {}
+      },
+      {
+        "firstName": "Emiliana",
+        "lastName": "Guzman",
+        "status": "",
+        "role": "student",
+        "phone": "8096372859",
+        "evaluation": {},
+        "id": "1f690",
+        "assistance": [
+          {
+            "name": "Semana 1",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "43959"
+          },
+          {
+            "name": "Semana 2",
+            "id": "730fe",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 3",
+            "id": "e117b",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 4",
+            "id": "2d130"
+          },
+          {
+            "id": "7eed2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 5"
+          },
+          {
+            "id": "59d04",
+            "name": "Semana 6",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "88280",
+            "name": "Semana 8",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 9",
+            "id": "26fac",
+            "date": {
+              "seconds": 1713282391,
+              "nanoseconds": 331000000
+            }
+          },
+          {
+            "id": "2fd7e",
+            "name": "Semana 7",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          }
+        ]
+      },
+      {
+        "lastName": "Lopez",
+        "firstName": "Keidy",
+        "assistance": [
+          {
+            "name": "Semana 3",
+            "id": "e117b",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 1",
+            "id": "43959"
+          },
+          {
+            "name": "Semana 4",
+            "id": "2d130",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "7eed2",
+            "name": "Semana 5",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 8",
+            "id": "88280",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 802000000,
+              "seconds": 1713282396
+            },
+            "name": "Semana 10",
+            "id": "eff8"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "2fd7e",
+            "name": "Semana 7"
+          }
+        ],
+        "status": "",
+        "phone": "8295080449",
+        "id": "53ef3",
+        "role": "student",
+        "evaluation": {
+          "test": 0,
+          "participation": 0,
+          "assistance": [],
+          "exposition": 0
+        }
+      },
+      {
+        "firstName": "Jonfaniz",
+        "id": "edca4",
+        "lastName": "Fermin",
+        "phone": "8096544656",
+        "status": "",
+        "role": "student",
+        "evaluation": {
+          "exposition": 0,
+          "assistance": [],
+          "participation": 0,
+          "test": 0
+        },
+        "assistance": [
+          {
+            "name": "Semana 2",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "730fe"
+          },
+          {
+            "id": "e117b",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 3"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 4",
+            "id": "2d130"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 5",
+            "id": "7eed2"
+          },
+          {
+            "id": "59d04",
+            "name": "Semana 6",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "id": "88280",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 8"
+          },
+          {
+            "name": "Semana 9",
+            "id": "26fac",
+            "date": {
+              "seconds": 1713282391,
+              "nanoseconds": 331000000
+            }
+          },
+          {
+            "id": "eff8",
+            "date": {
+              "nanoseconds": 802000000,
+              "seconds": 1713282396
+            },
+            "name": "Semana 10"
+          },
+          {
+            "id": "2fd7e",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 7"
+          }
+        ]
+      },
+      {
+        "phone": "18299100493",
+        "firstName": "Jose Luis",
+        "role": "student",
+        "id": "1b4fb",
+        "assistance": [],
+        "lastName": "Montero",
+        "evaluation": {
+          "test": 0,
+          "participation": 0,
+          "exposition": 0,
+          "assistance": []
+        }
+      }
+    ],
+    "classes": [
+      {
+        "name": "Semana 1",
+        "id": "8c814",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "id": "1b4b0",
+        "name": "Semana 2",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "4d9b9",
+        "name": "Semana 3"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "1a6ed",
+        "name": "Semana 4"
+      },
+      {
+        "id": "9ff57",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 5"
+      },
+      {
+        "id": "9e451",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 6"
+      },
+      {
+        "name": "Semana 7",
+        "id": "41443",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "bbeef",
+        "name": "Semana 8"
+      },
+      {
+        "date": {
+          "seconds": 1713282335,
+          "nanoseconds": 496000000
+        },
+        "name": "Semana 9",
+        "id": "d7c2f"
+      },
+      {
+        "id": "7827d",
+        "date": {
+          "nanoseconds": 631000000,
+          "seconds": 1713282340
+        },
+        "name": "Semana 10"
+      }
+    ],
+    "name": "Quinto de Secundaria (Segunda Planta)",
+    "teacher": {
+      "role": "teacher",
+      "lastName": "Saldaña",
+      "firstName": "Lic. Loida",
+      "phone": "18098991137",
+      "id": "8bbc6"
+    },
+    "materialPrice": 350
+  },
+  {
+    "id": "n09tbzlxDGFFP34nylWq",
+    "name": "Primero A (Segunda Planta)",
+    "materialPrice": 350,
+    "teacher": {
+      "role": "teacher",
+      "id": "d372c",
+      "lastName": "Padilla",
+      "firstName": "Lic. Williams",
+      "phone": "18094055531"
+    },
+    "classes": [
+      {
+        "id": "c692c",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 1"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "59163",
+        "name": "Semana 2"
+      },
+      {
+        "id": "49d3",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 3"
+      },
+      {
+        "name": "Semana 4",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "7870a"
+      },
+      {
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 5",
+        "id": "694de"
+      },
+      {
+        "name": "Semana 6",
+        "id": "acc23",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        }
+      },
+      {
+        "name": "Semana 7",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "905c2"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 8",
+        "id": "6271d"
+      },
+      {
+        "id": "b4b2c",
+        "date": {
+          "seconds": 1713282422,
+          "nanoseconds": 524000000
+        },
+        "name": "Semana 9"
+      },
+      {
+        "name": "Semana 10",
+        "date": {
+          "seconds": 1713282422,
+          "nanoseconds": 714000000
+        },
+        "id": "5cbd6"
+      }
+    ],
+    "students": [
+      {
+        "id": "7c9cb",
+        "firstName": "Alba",
+        "evaluation": {},
+        "status": "",
+        "role": "student",
+        "phone": "18093019792",
+        "assistance": [
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 3",
+            "id": "49d3"
+          },
+          {
+            "id": "59163",
+            "name": "Semana 2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 4",
+            "id": "7870a"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 5",
+            "id": "694de"
+          },
+          {
+            "id": "acc23",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 6"
+          },
+          {
+            "id": "905c2",
+            "name": "Semana 7",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 8",
+            "id": "6271d"
+          },
+          {
+            "name": "Semana 9",
+            "date": {
+              "seconds": 1713282422,
+              "nanoseconds": 524000000
+            },
+            "id": "b4b2c"
+          },
+          {
+            "date": {
+              "nanoseconds": 714000000,
+              "seconds": 1713282422
+            },
+            "id": "5cbd6",
+            "name": "Semana 10"
+          },
+          {
+            "id": "44f01",
+            "name": "Semana 11",
+            "date": {
+              "nanoseconds": 423000000,
+              "seconds": 1713282426
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 627000000,
+              "seconds": 1713282426
+            },
+            "id": "28a48",
+            "name": "Semana 12"
+          }
+        ],
+        "lastName": "Paniagua"
+      },
+      {
+        "assistance": [
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 5",
+            "id": "694de"
+          },
+          {
+            "id": "acc23",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 6"
+          },
+          {
+            "name": "Semana 7",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "905c2"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "6271d",
+            "name": "Semana 8"
+          },
+          {
+            "date": {
+              "nanoseconds": 524000000,
+              "seconds": 1713282422
+            },
+            "id": "b4b2c",
+            "name": "Semana 9"
+          },
+          {
+            "name": "Semana 10",
+            "date": {
+              "seconds": 1713282422,
+              "nanoseconds": 714000000
+            },
+            "id": "5cbd6"
+          },
+          {
+            "id": "44f01",
+            "date": {
+              "seconds": 1713282426,
+              "nanoseconds": 423000000
+            },
+            "name": "Semana 11"
+          },
+          {
+            "id": "28a48",
+            "date": {
+              "seconds": 1713282426,
+              "nanoseconds": 627000000
+            },
+            "name": "Semana 12"
+          }
+        ],
+        "lastName": "",
+        "status": "",
+        "firstName": "Ramona",
+        "phone": "18495902577",
+        "role": "student",
+        "evaluation": {
+          "test": 0,
+          "exposition": 0,
+          "participation": 0,
+          "assistance": []
+        },
+        "id": "19440"
+      },
+      {
+        "id": "cd34e",
+        "phone": "18496531893",
+        "assistance": [
+          {
+            "id": "dab96",
+            "name": "Semana 1",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 2",
+            "id": "71546"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "c3f59",
+            "name": "Semana 3"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 4",
+            "id": "a0866"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 5",
+            "id": "719b1"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 6",
+            "id": "c95e3"
+          },
+          {
+            "id": "4a071",
+            "name": "Semana 7",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 8",
+            "id": "eb975"
+          },
+          {
+            "date": {
+              "nanoseconds": 614000000,
+              "seconds": 1713282404
+            },
+            "id": "e112f",
+            "name": "Semana 9"
+          },
+          {
+            "date": {
+              "seconds": 1713282404,
+              "nanoseconds": 814000000
+            },
+            "name": "Semana 10",
+            "id": "88832"
+          }
+        ],
+        "evaluation": {},
+        "status": "",
+        "lastName": "Columna",
+        "firstName": "Emel",
+        "role": "student"
+      },
+      {
+        "id": "c30af",
+        "lastName": "Berliza",
+        "phone": "18298771864",
+        "assistance": [
+          {
+            "name": "Semana 3",
+            "id": "49d3",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 2",
+            "id": "59163",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 4",
+            "id": "7870a"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "694de",
+            "name": "Semana 5"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 6",
+            "id": "acc23"
+          },
+          {
+            "id": "905c2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 7"
+          },
+          {
+            "name": "Semana 8",
+            "id": "6271d",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "id": "b4b2c",
+            "name": "Semana 9",
+            "date": {
+              "nanoseconds": 524000000,
+              "seconds": 1713282422
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713282422,
+              "nanoseconds": 714000000
+            },
+            "id": "5cbd6",
+            "name": "Semana 10"
+          },
+          {
+            "date": {
+              "nanoseconds": 423000000,
+              "seconds": 1713282426
+            },
+            "id": "44f01",
+            "name": "Semana 11"
+          },
+          {
+            "id": "28a48",
+            "date": {
+              "nanoseconds": 627000000,
+              "seconds": 1713282426
+            },
+            "name": "Semana 12"
+          }
+        ],
+        "firstName": "Enrique",
+        "evaluation": {},
+        "role": "student",
+        "status": ""
+      },
+      {
+        "firstName": "Gisela",
+        "status": "",
+        "evaluation": {
+          "test": 0,
+          "participation": 0,
+          "assistance": [],
+          "exposition": 0
+        },
+        "lastName": "Sánchez",
+        "id": "92f42",
+        "assistance": [],
+        "role": "student",
+        "phone": "18497012232"
+      },
+      {
+        "phone": "18496367077",
+        "firstName": "Yajaira",
+        "status": "failed",
+        "id": "f0b63",
+        "evaluation": {
+          "participation": 0,
+          "assistance": [],
+          "test": 0,
+          "exposition": 0
+        },
+        "assistance": [],
+        "role": "student",
+        "lastName": "Adames"
+      },
+      {
+        "status": "",
+        "lastName": "Arias",
+        "evaluation": {},
+        "id": "2eb53",
+        "assistance": [
+          {
+            "id": "c3f59",
+            "name": "Semana 3",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 6",
+            "id": "c95e3"
+          }
+        ],
+        "firstName": "Yerelin ",
+        "phone": "18297935696",
+        "role": "student"
+      },
+      {
+        "status": "",
+        "evaluation": {},
+        "assistance": [],
+        "lastName": "Elvera",
+        "firstName": "Elena",
+        "phone": "18092826648",
+        "role": "student",
+        "id": "5464"
+      },
+      {
+        "status": "",
+        "phone": "+1 (849) 754-3560",
+        "role": "student",
+        "evaluation": {},
+        "assistance": [
+          {
+            "id": "3001b",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 5"
+          }
+        ],
+        "id": "4b764",
+        "lastName": "Moya",
+        "firstName": "Dioscatherine "
+      },
+      {
+        "id": "b3e52",
+        "firstName": "Yeidi",
+        "assistance": [
+          {
+            "name": "Semana 1",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "b7e9e"
+          },
+          {
+            "name": "Semana 5",
+            "id": "3001b",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          }
+        ],
+        "phone": "18299341767",
+        "evaluation": {},
+        "lastName": "Feliz Cueva",
+        "role": "student",
+        "status": ""
+      },
+      {
+        "status": "",
+        "assistance": [],
+        "phone": "18099496021",
+        "role": "student",
+        "firstName": "Tania Irene ",
+        "id": "5bb4b",
+        "lastName": "Castro Núñez",
+        "evaluation": {}
+      },
+      {
+        "assistance": [
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "c692c",
+            "name": "Semana 1"
+          },
+          {
+            "name": "Semana 3",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "49d3"
+          },
+          {
+            "name": "Semana 2",
+            "id": "59163",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "id": "7870a",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 4"
+          },
+          {
+            "name": "Semana 5",
+            "id": "694de",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 6",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "acc23"
+          },
+          {
+            "id": "905c2",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 7"
+          },
+          {
+            "id": "6271d",
+            "name": "Semana 8",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 9",
+            "date": {
+              "seconds": 1713282422,
+              "nanoseconds": 524000000
+            },
+            "id": "b4b2c"
+          },
+          {
+            "name": "Semana 10",
+            "id": "5cbd6",
+            "date": {
+              "nanoseconds": 714000000,
+              "seconds": 1713282422
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713282426,
+              "nanoseconds": 423000000
+            },
+            "id": "44f01",
+            "name": "Semana 11"
+          },
+          {
+            "date": {
+              "seconds": 1713282426,
+              "nanoseconds": 627000000
+            },
+            "id": "28a48",
+            "name": "Semana 12"
+          }
+        ],
+        "lastName": "Jacquez",
+        "phone": "18494636902",
+        "role": "student",
+        "status": "",
+        "firstName": "Princesa",
+        "evaluation": {},
+        "id": "39eb7"
+      },
+      {
+        "status": "",
+        "lastName": "Elvera",
+        "role": "student",
+        "assistance": [
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 1",
+            "id": "c692c"
+          },
+          {
+            "name": "Semana 3",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "49d3"
+          },
+          {
+            "id": "7870a",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 4"
+          },
+          {
+            "name": "Semana 5",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "694de"
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 6",
+            "id": "acc23"
+          },
+          {
+            "name": "Semana 7",
+            "id": "905c2",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "id": "6271d",
+            "name": "Semana 8",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "id": "b4b2c",
+            "name": "Semana 9",
+            "date": {
+              "nanoseconds": 524000000,
+              "seconds": 1713282422
+            }
+          },
+          {
+            "id": "5cbd6",
+            "date": {
+              "seconds": 1713282422,
+              "nanoseconds": 714000000
+            },
+            "name": "Semana 10"
+          },
+          {
+            "name": "Semana 11",
+            "date": {
+              "seconds": 1713282426,
+              "nanoseconds": 423000000
+            },
+            "id": "44f01"
+          },
+          {
+            "id": "28a48",
+            "name": "Semana 12",
+            "date": {
+              "seconds": 1713282426,
+              "nanoseconds": 627000000
+            }
+          }
+        ],
+        "evaluation": {
+          "assistance": [],
+          "participation": 0,
+          "test": 0,
+          "exposition": 0
+        },
+        "id": "55ac6",
+        "phone": "18092826648",
+        "firstName": "Vikiana"
+      },
+      {
+        "evaluation": {},
+        "phone": "18498683903",
+        "status": "",
+        "assistance": [
+          {
+            "name": "Semana 5",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "3001b"
+          }
+        ],
+        "lastName": "Jacinto",
+        "id": "6c6d1",
+        "role": "student",
+        "firstName": "Santa"
+      }
+    ],
+    "currentClass": {
+      "name": "Semana 10",
+      "id": "5cbd6",
+      "date": {
+        "nanoseconds": 714000000,
+        "seconds": 1713282422
+      }
+    },
+    "subject": "El Compendio de Teología Pastoral SEAN Nivel 5"
+  },
+  {
+    "id": "sC9yOBvmEoLOn4YMVJUm",
+    "subject": "El Compendio de Teología Pastoral SEAN Nivel 4 ",
+    "classes": [
+      {
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "name": "Semana 1",
+        "id": "4d6b"
+      },
+      {
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "b72b1",
+        "name": "Semana 2"
+      },
+      {
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 3",
+        "id": "9144f"
+      },
+      {
+        "id": "abe01",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "name": "Semana 4"
+      },
+      {
+        "name": "Semana 5",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "9ee63"
+      },
+      {
+        "name": "Semana 6",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "38e63"
+      },
+      {
+        "name": "Semana 7",
+        "date": {
+          "seconds": 1713278579,
+          "nanoseconds": 345000000
+        },
+        "id": "678ab"
+      },
+      {
+        "name": "Semana 8",
+        "date": {
+          "nanoseconds": 345000000,
+          "seconds": 1713278579
+        },
+        "id": "68be4"
+      }
+    ],
+    "materialPrice": 350,
+    "students": [
+      {
+        "evaluation": {},
+        "role": "student",
+        "phone": "",
+        "status": "",
+        "lastName": "Bonilla",
+        "id": "140aa",
+        "firstName": "Felicia ",
+        "assistance": [
+          {
+            "id": "dab96",
+            "name": "Semana 1",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "name": "Semana 2",
+            "id": "71546",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "a0866",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 4"
+          },
+          {
+            "id": "719b1",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 5"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "c95e3",
+            "name": "Semana 6"
+          },
+          {
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "name": "Semana 7",
+            "id": "4a071"
+          },
+          {
+            "id": "eb975",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 8"
+          },
+          {
+            "name": "Semana 9",
+            "date": {
+              "nanoseconds": 614000000,
+              "seconds": 1713282404
+            },
+            "id": "e112f"
+          },
+          {
+            "id": "88832",
+            "date": {
+              "seconds": 1713282404,
+              "nanoseconds": 814000000
+            },
+            "name": "Semana 10"
+          }
+        ]
+      },
+      {
+        "lastName": "Ferrer",
+        "role": "student",
+        "firstName": "Eliel Moisés",
+        "evaluation": {},
+        "assistance": [
+          {
+            "id": "dab96",
+            "name": "Semana 1",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 3",
+            "id": "c3f59",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "719b1",
+            "name": "Semana 5",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            }
+          },
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "name": "Semana 7",
+            "id": "4a071"
+          },
+          {
+            "name": "Semana 10",
+            "date": {
+              "nanoseconds": 814000000,
+              "seconds": 1713282404
+            },
+            "id": "88832"
+          }
+        ],
+        "status": "",
+        "phone": "18097130033",
+        "id": "72299"
+      },
+      {
+        "phone": "18498812959",
+        "lastName": "Paniagua",
+        "assistance": [
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "49d3",
+            "name": "Semana 3"
+          },
+          {
+            "name": "Semana 2",
+            "id": "59163",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "id": "694de",
+            "name": "Semana 5",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            }
+          },
+          {
+            "name": "Semana 6",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "acc23"
+          },
+          {
+            "name": "Semana 7",
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "905c2"
+          },
+          {
+            "name": "Semana 8",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "6271d"
+          }
+        ],
+        "firstName": "Vanessa",
+        "id": "5cd33",
+        "role": "student",
+        "evaluation": {},
+        "status": ""
+      },
+      {
+        "evaluation": {
+          "test": 0,
+          "participation": 0,
+          "assistance": [],
+          "exposition": 0
+        },
+        "lastName": "De la cruz",
+        "assistance": [],
+        "role": "student",
+        "id": "24b1d",
+        "firstName": "Ramon",
+        "status": "",
+        "phone": "18094138149"
+      },
+      {
+        "role": "student",
+        "status": "",
+        "lastName": "",
+        "firstName": "Cristina",
+        "phone": "",
+        "evaluation": {
+          "assistance": [],
+          "test": 0,
+          "exposition": 0,
+          "participation": 0
+        },
+        "id": "a6387",
+        "assistance": []
+      },
+      {
+        "assistance": [
+          {
+            "date": {
+              "seconds": 1713278579,
+              "nanoseconds": 345000000
+            },
+            "id": "c692c",
+            "name": "Semana 1"
+          },
+          {
+            "name": "Semana 3",
+            "date": {
+              "nanoseconds": 345000000,
+              "seconds": 1713278579
+            },
+            "id": "49d3"
+          }
+        ],
+        "evaluation": {},
+        "phone": "18095095495",
+        "role": "student",
+        "id": "49ecd",
+        "status": "",
+        "firstName": "Pamela",
+        "lastName": "Suero"
+      },
+      {
+        "lastName": "De la Rosa",
+        "status": "",
+        "phone": "18497546991",
+        "role": "student",
+        "assistance": [],
+        "firstName": "Felix",
+        "evaluation": {
+          "participation": 0,
+          "exposition": 0,
+          "test": 0,
+          "assistance": []
+        },
+        "id": "5dcd8"
+      },
+      {
+        "status": "",
+        "lastName": "",
+        "firstName": "",
+        "id": "145e8",
+        "phone": "",
+        "assistance": [],
+        "evaluation": {
+          "test": 0,
+          "assistance": [],
+          "exposition": 0,
+          "participation": 0
+        },
+        "role": "student"
+      },
+      {
+        "assistance": [],
+        "id": "60e5d",
+        "phone": "",
+        "status": "",
+        "evaluation": {
+          "participation": 0,
+          "exposition": 0,
+          "test": 0,
+          "assistance": []
+        },
+        "lastName": "Morenci",
+        "firstName": "Yailin",
+        "role": "student"
+      },
+      {
+        "role": "student",
+        "assistance": [],
+        "phone": "18299678218",
+        "lastName": "Mateo ",
+        "firstName": "Veronica ",
+        "id": "eaf0f",
+        "evaluation": {
+          "assistance": [],
+          "test": 0,
+          "exposition": 0,
+          "participation": 0
+        },
+        "status": ""
+      },
+      {
+        "role": "student",
+        "phone": "18094055531",
+        "assistance": [],
+        "firstName": "Williams",
+        "id": "d5e3a",
+        "evaluation": {
+          "participation": 0,
+          "test": 0,
+          "assistance": [],
+          "exposition": 0
+        },
+        "lastName": ""
+      }
+    ],
+    "teacher": {
+      "phone": "18294291184",
+      "id": "b3077",
+      "role": "teacher",
+      "firstName": "Lic. Luz",
+      "lastName": "Peña"
+    },
+    "name": "Segundo de Secundaria (Tercera Planta)",
+    "currentClass": {
+      "id": "4d6b",
+      "date": {
+        "seconds": 1713278579,
+        "nanoseconds": 345000000
+      },
+      "name": "Semana 1"
+    }
+  },
+  {
+    "id": "vioq4Ki2CYXCGzZjbK3L",
+    "teacher": {
+      "phone": "18098565661",
+      "role": "teacher",
+      "firstName": "Dr. Dania",
+      "id": "a1f0",
+      "lastName": "Muñoz"
+    },
+    "subject": "El Discipulado",
+    "classes": [
+      {
+        "name": "Semana 1",
+        "date": {
+          "seconds": 1713450736,
+          "nanoseconds": 563000000
+        },
+        "id": "dbc48"
+      },
+      {
+        "date": {
+          "seconds": 1713450736,
+          "nanoseconds": 563000000
+        },
+        "name": "Semana 2",
+        "id": "2d351"
+      },
+      {
+        "date": {
+          "nanoseconds": 563000000,
+          "seconds": 1713450736
+        },
+        "id": "cd11b",
+        "name": "Semana 3"
+      },
+      {
+        "name": "Semana 4",
+        "date": {
+          "nanoseconds": 563000000,
+          "seconds": 1713450736
+        },
+        "id": "31a6b"
+      },
+      {
+        "date": {
+          "nanoseconds": 563000000,
+          "seconds": 1713450736
+        },
+        "name": "Semana 5",
+        "id": "c3c3a"
+      },
+      {
+        "name": "Semana 6",
+        "id": "8be7e",
+        "date": {
+          "nanoseconds": 563000000,
+          "seconds": 1713450736
+        }
+      },
+      {
+        "name": "Semana 7",
+        "id": "9b88b",
+        "date": {
+          "seconds": 1713450736,
+          "nanoseconds": 563000000
+        }
+      },
+      {
+        "name": "Semana 8",
+        "id": "edb22",
+        "date": {
+          "seconds": 1713450736,
+          "nanoseconds": 563000000
+        }
+      }
+    ],
+    "students": [
+      {
+        "role": "student",
+        "phone": "18299108115",
+        "firstName": "Mercedes",
+        "evaluation": {},
+        "assistance": [],
+        "lastName": "Monero",
+        "id": "e8a84"
+      },
+      {
+        "role": "student",
+        "id": "4d9bb",
+        "assistance": [],
+        "lastName": "Marte",
+        "firstName": "Orison",
+        "evaluation": {},
+        "phone": "18292134023"
+      },
+      {
+        "phone": "18298682299",
+        "assistance": [],
+        "lastName": "Cabral",
+        "id": "8c534",
+        "firstName": "Maria",
+        "role": "student",
+        "evaluation": {}
+      },
+      {
+        "lastName": "",
+        "evaluation": {},
+        "assistance": [],
+        "phone": "18494947288",
+        "firstName": "Alexander",
+        "id": "6d717",
+        "role": "student"
+      },
+      {
+        "evaluation": {},
+        "role": "student",
+        "phone": "18294102399",
+        "firstName": "Raquel",
+        "lastName": "",
+        "id": "a018c",
+        "assistance": []
+      },
+      {
+        "evaluation": {},
+        "firstName": "Brenda",
+        "role": "student",
+        "id": "e941e",
+        "lastName": "",
+        "phone": "18295489334",
+        "assistance": []
+      },
+      {
+        "role": "student",
+        "lastName": "Guzmán",
+        "phone": "18493932843",
+        "firstName": "Eisher",
+        "id": "d6b8e",
+        "evaluation": {},
+        "assistance": []
+      },
+      {
+        "lastName": "Nivar",
+        "phone": "18097210319",
+        "role": "student",
+        "firstName": "Cristal",
+        "assistance": [],
+        "id": "d1a0e",
+        "evaluation": {}
+      },
+      {
+        "lastName": "Morales",
+        "evaluation": {},
+        "id": "2dbf0",
+        "phone": "18493714810",
+        "firstName": "Ana",
+        "role": "student",
+        "assistance": []
+      },
+      {
+        "phone": "18299507344",
+        "assistance": [],
+        "lastName": "Quiñones",
+        "id": "99c1a",
+        "evaluation": {},
+        "role": "student",
+        "firstName": "Nuris"
+      },
+      {
+        "assistance": [],
+        "role": "student",
+        "firstName": "Jorgi",
+        "lastName": "",
+        "evaluation": {
+          "participation": 0,
+          "assistance": [],
+          "test": 0,
+          "exposition": 0
+        },
+        "id": "e836d",
+        "phone": "18493714665"
+      },
+      {
+        "role": "student",
+        "firstName": "Joryi",
+        "phone": "18493714665",
+        "assistance": [
+          {
+            "name": "Semana 1",
+            "id": "dbc48",
+            "date": {
+              "nanoseconds": 563000000,
+              "seconds": 1713450736
+            }
+          }
+        ],
+        "lastName": "Vallejo",
+        "id": "974ff",
+        "evaluation": {
+          "exposition": 0,
+          "participation": 0,
+          "test": 0,
+          "assistance": []
+        }
+      },
+      {
+        "firstName": "Lidia",
+        "assistance": [],
+        "lastName": "Upia Feliz",
+        "evaluation": {
+          "test": 0,
+          "assistance": [],
+          "exposition": 0,
+          "participation": 0
+        },
+        "id": "29bbb",
+        "phone": "18296603338",
+        "role": "student"
+      }
+    ],
+    "currentClass": {
+      "date": {
+        "seconds": 1713450736,
+        "nanoseconds": 563000000
+      },
+      "id": "edb22",
+      "name": "Semana 8"
+    },
+    "name": "Iglesia Oasis de Amor",
+    "materialPrice": 250
+  }
+]

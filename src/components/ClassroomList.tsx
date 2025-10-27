@@ -406,7 +406,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalCla
     const sendMessageFromModal = async () => {
         setLoading(true);
         setShowMessageModal(false);
-
+        console.log("selectedClassrooms =>",selectedClassrooms);
         await Promise.all(selectedClassrooms.map(async classroom => {
             // Replace template variables with actual values
             const processedText = messageText
@@ -424,6 +424,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalCla
                 ...item,
                 id: `${item.phone}@s.whatsapp.net`
             }));
+            console.log("students =>",students);
             if (students.length) {
                 const formData = new FormData();
                 const messages = Array.isArray(message) ? message : [message];

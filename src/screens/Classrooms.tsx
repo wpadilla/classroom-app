@@ -25,6 +25,7 @@ export const debounceUpdate = _.debounce((changedClassroom: IClassroom) => {
 
 const updateClassrooms = async (data: IClassroom) => {
     const docRef = doc(firebaseStoreDB, classroomCollectionName, data.id);
+    console.log("data", docRef);
     await updateDoc(docRef, data as any);
     showSuccessUpdate();
 }
@@ -69,7 +70,6 @@ export const Classrooms = () => {
         setLoading(true);
         const collectionRef = collection(firebaseStoreDB, classroomCollectionName);
         const querySnapshot = await getDocs(collectionRef);
-
         updateClassroom(querySnapshot as any);
         setLoading(false);
     };
@@ -79,6 +79,7 @@ export const Classrooms = () => {
         querySnapshot.forEach((doc: any) => {
             documents.push({id: doc.id, ...doc.data()} as IClassroom);
         });
+        console.log("documents =>", documents);
         if (JSON.stringify(documents) !== JSON.stringify(classroomsData)) {
             setClassrooms(documents);
         }

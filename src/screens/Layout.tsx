@@ -1,7 +1,6 @@
 import {startWhatsappServices} from "../services/whatsapp";
 import {toast} from "react-toastify";
 import {onSocketOnce, PROD_SOCKET_URL} from "../utils/socket.io";
-import {IStudent} from "../App";
 import React, {useMemo} from "react";
 import * as io from "socket.io-client";
 import {Button} from "reactstrap";
@@ -24,12 +23,12 @@ export const Layout = ({children}: any) => {
         handleWhatsappMessaging(onMessageSent, onMessageEnd);
     }, [logged]);
 
-    const onMessageSent = (contact: IStudent) => {
+    const onMessageSent = (contact: any) => {
         console.log('contact', contact)
         toast(`Mensaje enviado a ${contact.firstName}`);
     }
 
-    const onMessageEnd = (contacts: IStudent[]) => {
+    const onMessageEnd = (contacts: any[]) => {
         toast('¡Mensajes Enviados con Exito!', {type: 'success'});
     }
     const login = async (sessionId: string) => {
@@ -41,7 +40,7 @@ export const Layout = ({children}: any) => {
     }
 
 
-    const handleWhatsappMessaging = (sent: (contact: IStudent) => any, end: (contacts: IStudent[]) => any) => {
+    const handleWhatsappMessaging = (sent: (contact: any) => any, end: (contacts: any[]) => any) => {
         if (socket) {
             onSocketOnce(socket, 'ws-message-sent', sent);
             onSocketOnce(socket, 'ws-messages-end', end);

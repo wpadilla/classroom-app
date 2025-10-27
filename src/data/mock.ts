@@ -1,5 +1,4 @@
-import {IClassroom} from "../models/clasroomModel";
-import {IEvaluation} from "../App";
+import {IClassroom, IEvaluation} from "../models/clasroomModel";
 import {generateCustomID} from "../utils/generators";
 
 export const mockClassrooms: () => { data: IClassroom[] } = () => ({

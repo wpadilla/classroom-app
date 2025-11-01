@@ -118,7 +118,7 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
   };
 
   const handleRemoveStudent = async (studentId: string) => {
-    if (!confirm('¿Está seguro de remover este estudiante de la clase?')) {
+    if (!window.confirm('¿Está seguro de remover este estudiante de la clase?')) {
       return;
     }
     

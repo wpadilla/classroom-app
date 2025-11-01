@@ -17,7 +17,8 @@ import {
   WithFieldValue,
   UpdateData,
   DocumentReference,
-  CollectionReference
+  CollectionReference,
+  Timestamp
 } from 'firebase/firestore';
 import { firebaseStoreDB } from '../../utils/firebase';
 
@@ -29,10 +30,51 @@ export const COLLECTIONS = {
   EVALUATIONS: 'evaluations',
   SESSIONS: 'sessions',
   ATTENDANCE: 'attendance',
-  PARTICIPATION: 'participation'
+  PARTICIPATION: 'participation',
+  CLASSROOM_RUNS: 'classroom_runs',
+  FINALIZATION_SNAPSHOTS: 'finalization_snapshots'
 } as const;
 
 export class FirebaseService {
+  /**
+   * Convert Firestore Timestamps to JavaScript Date objects
+   * Recursively processes nested objects and arrays
+   */
+  private static convertTimestamps(data: any): any {
+    if (data === null || data === undefined) {
+      return data;
+    }
+
+    // Check if it's a Firestore Timestamp
+    if (data instanceof Timestamp) {
+      return data.toDate();
+    }
+
+    // Check if it has toDate method (alternative Timestamp check)
+    if (data && typeof data.toDate === 'function') {
+      return data.toDate();
+    }
+
+    // Handle arrays
+    if (Array.isArray(data)) {
+      return data.map(item => this.convertTimestamps(item));
+    }
+
+    // Handle objects
+    if (typeof data === 'object') {
+      const converted: any = {};
+      for (const key in data) {
+        if (data.hasOwnProperty(key)) {
+          converted[key] = this.convertTimestamps(data[key]);
+        }
+      }
+      return converted;
+    }
+
+    // Return primitive values as-is
+    return data;
+  }
+
   // Generic CRUD operations
   
   /**
@@ -44,7 +86,9 @@ export class FirebaseService {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as T;
+        const data = docSnap.data();
+        const converted = this.convertTimestamps(data);
+        return { id: docSnap.id, ...converted } as T;
       }
       return null;
     } catch (error) {
@@ -70,7 +114,9 @@ export class FirebaseService {
       const documents: T[] = [];
       
       querySnapshot.forEach((doc) => {
-        documents.push({ id: doc.id, ...doc.data() } as T);
+        const data = doc.data();
+        const converted = this.convertTimestamps(data);
+        documents.push({ id: doc.id, ...converted } as T);
       });
       
       return documents;
@@ -150,7 +196,9 @@ export class FirebaseService {
       
       const documents: T[] = [];
       querySnapshot.forEach((doc) => {
-        documents.push({ id: doc.id, ...doc.data() } as T);
+        const data = doc.data();
+        const converted = this.convertTimestamps(data);
+        documents.push({ id: doc.id, ...converted } as T);
       });
       
       return documents;
@@ -217,7 +265,9 @@ export class FirebaseService {
       const documents: T[] = [];
       
       querySnapshot.forEach((doc) => {
-        documents.push({ id: doc.id, ...doc.data() } as T);
+        const data = doc.data();
+        const converted = this.convertTimestamps(data);
+        documents.push({ id: doc.id, ...converted } as T);
       });
       
       const hasMore = documents.length > pageSize;

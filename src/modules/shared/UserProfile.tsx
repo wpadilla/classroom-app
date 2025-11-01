@@ -33,7 +33,8 @@ import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { GCloudService } from '../../services/gcloud/gcloud.service';
-import { IUser, IClassroom, IStudentEvaluation, IClassroomHistory, UserRole } from '../../models';
+import { ClassroomRestartService } from '../../services/classroom/classroom-restart.service';
+import { IUser, IClassroom, IStudentEvaluation, IClassroomHistory, UserRole, IClassroomRun } from '../../models';
 import { toast } from 'react-toastify';
 
 const UserProfile: React.FC = () => {
@@ -47,6 +48,9 @@ const UserProfile: React.FC = () => {
   const [evaluations, setEvaluations] = useState<IStudentEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
+  const [teacherRuns, setTeacherRuns] = useState<any[]>([]);
+  const [selectedRun, setSelectedRun] = useState<any>(null);
+  const [runDetailsModal, setRunDetailsModal] = useState(false);
   
   // Modal states
   const [passwordModal, setPasswordModal] = useState(false);
@@ -93,6 +97,12 @@ const UserProfile: React.FC = () => {
         // Load evaluations
         const studentEvaluations = await EvaluationService.getStudentEvaluations(user.id);
         setEvaluations(studentEvaluations);
+        
+        // Load teacher runs if user is teacher or admin
+        if (userProfile.isTeacher || userProfile.role === 'teacher' || userProfile.role === 'admin') {
+          const runs = await ClassroomRestartService.getTeacherRuns(user.id);
+          setTeacherRuns(runs);
+        }
       }
     } catch (error) {
       console.error('Error loading profile data:', error);
@@ -355,7 +365,21 @@ const UserProfile: React.FC = () => {
               style={{ cursor: 'pointer' }}
             >
               <i className="bi bi-easel me-2"></i>
-              Clases Impartidas
+              Clases Actuales
+            </NavLink>
+          </NavItem>
+        )}
+        
+        {/* Show runs history tab for teachers and admins */}
+        {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
+          <NavItem>
+            <NavLink
+              className={activeTab === 'runs' ? 'active' : ''}
+              onClick={() => setActiveTab('runs')}
+              style={{ cursor: 'pointer' }}
+            >
+              <i className="bi bi-archive me-2"></i>
+              Historial de Ejecuciones
             </NavLink>
           </NavItem>
         )}
@@ -448,7 +472,7 @@ const UserProfile: React.FC = () => {
           </Card>
         </TabPane>
 
-        {/* Teaching Classes Tab */}
+        {/* Teaching Classes Tab - Current Active Classes */}
         {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
           <TabPane tabId="teaching">
             <Row>
@@ -460,36 +484,227 @@ const UserProfile: React.FC = () => {
                   </Alert>
                 </Col>
               ) : (
-                teachingClassrooms.map(classroom => (
-                  <Col md={6} key={classroom.id} className="mb-3">
-                    <Card className="h-100">
-                      <CardHeader className="bg-info text-white">
-                        <h6 className="mb-0">{classroom.subject}</h6>
-                      </CardHeader>
-                      <CardBody>
-                        <p className="text-muted mb-2">
-                          <i className="bi bi-people me-2"></i>
-                          Estudiantes: {classroom.studentIds?.length || 0}
-                        </p>
-                        <p className="text-muted mb-2">
-                          <i className="bi bi-calendar me-2"></i>
-                          Módulo actual: {classroom.currentModule?.name || 'No definido'}
-                        </p>
-                        <p className="text-muted mb-2">
-                          <i className="bi bi-book me-2"></i>
-                          Total módulos: {classroom.modules?.length || 0}
-                        </p>
-                        <div className="mt-3">
-                          <Badge color={classroom.isActive ? 'success' : 'secondary'}>
-                            {classroom.isActive ? 'Activo' : 'Inactivo'}
-                          </Badge>
-                        </div>
-                      </CardBody>
-                    </Card>
-                  </Col>
-                ))
+                teachingClassrooms.map(classroom => {
+                  const completedModules = classroom.modules?.filter(m => m.isCompleted).length || 0;
+                  const totalModules = classroom.modules?.length || 0;
+                  const progress = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
+                  
+                  return (
+                    <Col md={6} key={classroom.id} className="mb-3">
+                      <Card className="h-100 border-info">
+                        <CardHeader className="bg-info text-white">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <h6 className="mb-0">{classroom.subject}</h6>
+                            <Badge color="light" className="text-info">
+                              {classroom.name}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardBody>
+                          <div className="mb-3">
+                            <div className="d-flex justify-content-between mb-1">
+                              <small className="text-muted">Progreso del Curso</small>
+                              <small className="text-muted">{completedModules}/{totalModules}</small>
+                            </div>
+                            <Progress
+                              value={progress}
+                              color={progress >= 75 ? 'success' : progress >= 50 ? 'warning' : 'danger'}
+                              style={{ height: '8px' }}
+                            />
+                          </div>
+                          
+                          <div className="d-flex justify-content-between mb-2">
+                            <span className="text-muted">
+                              <i className="bi bi-people me-2"></i>
+                              Estudiantes:
+                            </span>
+                            <Badge color="primary">{classroom.studentIds?.length || 0}</Badge>
+                          </div>
+                          
+                          <div className="d-flex justify-content-between mb-2">
+                            <span className="text-muted">
+                              <i className="bi bi-calendar me-2"></i>
+                              Módulo actual:
+                            </span>
+                            <Badge color="secondary">
+                              Semana {classroom.currentModule?.weekNumber || 1}
+                            </Badge>
+                          </div>
+                          
+                          {classroom.schedule && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span className="text-muted">
+                                <i className="bi bi-clock me-2"></i>
+                                Horario:
+                              </span>
+                              <span className="small">
+                                {classroom.schedule.dayOfWeek} {classroom.schedule.time}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {classroom.room && (
+                            <div className="d-flex justify-content-between mb-2">
+                              <span className="text-muted">
+                                <i className="bi bi-door-open me-2"></i>
+                                Salón:
+                              </span>
+                              <span className="small">{classroom.room}</span>
+                            </div>
+                          )}
+                          
+                          <hr />
+                          
+                          <div className="d-flex justify-content-between align-items-center">
+                            <Badge color={classroom.isActive ? 'success' : 'secondary'}>
+                              {classroom.isActive ? 'Activa' : 'Inactiva'}
+                            </Badge>
+                            {classroom.whatsappGroup && (
+                              <Badge color="success">
+                                <i className="bi bi-whatsapp me-1"></i>
+                                WhatsApp
+                              </Badge>
+                            )}
+                          </div>
+                        </CardBody>
+                      </Card>
+                    </Col>
+                  );
+                })
               )}
             </Row>
+          </TabPane>
+        )}
+
+        {/* Teacher Runs History Tab - Historical Executions */}
+        {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
+          <TabPane tabId="runs">
+            <Card>
+              <CardHeader>
+                <h5 className="mb-0">
+                  <i className="bi bi-archive me-2"></i>
+                  Historial de Clases Finalizadas
+                </h5>
+                <small className="text-muted">
+                  Todas las ejecuciones de clases que has impartido
+                </small>
+              </CardHeader>
+              <CardBody>
+                {teacherRuns.length === 0 ? (
+                  <Alert color="info">
+                    <i className="bi bi-info-circle me-2"></i>
+                    No hay ejecuciones de clases finalizadas aún
+                  </Alert>
+                ) : (
+                  <Table responsive hover>
+                    <thead>
+                      <tr>
+                        <th>Ejecución</th>
+                        <th>Materia</th>
+                        <th>Programa</th>
+                        <th className="text-center">Estudiantes</th>
+                        <th className="text-center">Promedio</th>
+                        <th className="text-center">Aprobados</th>
+                        <th>Fecha Finalización</th>
+                        <th className="text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teacherRuns.map((run: IClassroomRun) => {
+                        const passedStudents = 
+                          run.statistics.distribution.excellent +
+                          run.statistics.distribution.good +
+                          run.statistics.distribution.regular;
+                        
+                        return (
+                          <tr key={run.id}>
+                            <td>
+                              <Badge color="secondary">#{run.runNumber}</Badge>
+                            </td>
+                            <td>
+                              <strong>{run.classroomSubject}</strong>
+                              <br />
+                              <small className="text-muted">{run.classroomName}</small>
+                            </td>
+                            <td>{run.programName}</td>
+                            <td className="text-center">
+                              <Badge color="primary">{run.totalStudents}</Badge>
+                            </td>
+                            <td className="text-center">
+                              <Badge color={getGradeColor(run.statistics.averageGrade)}>
+                                {run.statistics.averageGrade.toFixed(1)}%
+                              </Badge>
+                            </td>
+                            <td className="text-center">
+                              <Badge color="success">
+                                {passedStudents}/{run.totalStudents}
+                              </Badge>
+                              <br />
+                              <small className="text-muted">
+                                {run.statistics.passRate.toFixed(0)}%
+                              </small>
+                            </td>
+                            <td>
+                              <small>
+                                {new Date(run.endDate).toLocaleDateString('es-ES', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </small>
+                            </td>
+                            <td className="text-center">
+                              <Button
+                                color="primary"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  setRunDetailsModal(true);
+                                }}
+                              >
+                                <i className="bi bi-eye"></i>
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                )}
+                
+                {/* Summary Stats */}
+                {teacherRuns.length > 0 && (
+                  <Card className="bg-light mt-3">
+                    <CardBody>
+                      <Row className="text-center">
+                        <Col md={3}>
+                          <h5 className="mb-0">{teacherRuns.length}</h5>
+                          <small className="text-muted">Total Ejecuciones</small>
+                        </Col>
+                        <Col md={3}>
+                          <h5 className="mb-0">
+                            {teacherRuns.reduce((sum, r) => sum + r.totalStudents, 0)}
+                          </h5>
+                          <small className="text-muted">Estudiantes Enseñados</small>
+                        </Col>
+                        <Col md={3}>
+                          <h5 className="mb-0">
+                            {(teacherRuns.reduce((sum, r) => sum + r.statistics.averageGrade, 0) / teacherRuns.length).toFixed(1)}%
+                          </h5>
+                          <small className="text-muted">Promedio Histórico</small>
+                        </Col>
+                        <Col md={3}>
+                          <h5 className="mb-0">
+                            {(teacherRuns.reduce((sum, r) => sum + r.statistics.passRate, 0) / teacherRuns.length).toFixed(0)}%
+                          </h5>
+                          <small className="text-muted">Tasa Aprobación</small>
+                        </Col>
+                      </Row>
+                    </CardBody>
+                  </Card>
+                )}
+              </CardBody>
+            </Card>
           </TabPane>
         )}
 
@@ -560,67 +775,76 @@ const UserProfile: React.FC = () => {
 
         {/* History Tab */}
         <TabPane tabId="history">
-          {profile.completedClassrooms && profile.completedClassrooms.length > 0 ? (
-            <Card>
-              <CardBody>
-                <Table responsive hover>
-                  <thead>
-                    <tr>
-                      <th>Clase</th>
-                      <th>Programa</th>
-                      <th>Rol</th>
-                      <th>Fecha Inicio</th>
-                      <th>Fecha Fin</th>
-                      <th className="text-center">Calificación</th>
-                      <th className="text-center">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {profile.completedClassrooms.map((history: IClassroomHistory, index) => (
-                      <tr key={index}>
-                        <td>{history.classroomName}</td>
-                        <td>{history.programName}</td>
-                        <td>
-                          <Badge color={history.role === 'teacher' ? 'info' : 'primary'}>
-                            {history.role === 'teacher' ? 'Profesor' : 'Estudiante'}
-                          </Badge>
-                        </td>
-                        <td>
-                          {new Date(history.enrollmentDate).toLocaleDateString('es-ES')}
-                        </td>
-                        <td>
-                          {new Date(history.completionDate).toLocaleDateString('es-ES')}
-                        </td>
-                        <td className="text-center">
-                          {history.role === 'student' && history.finalGrade ? (
-                            <Badge color={getGradeColor(history.finalGrade)}>
-                              {history.finalGrade.toFixed(1)}%
-                            </Badge>
-                          ) : (
-                            <span className="text-muted">N/A</span>
-                          )}
-                        </td>
-                        <td className="text-center">
-                          <Badge color={
-                            history.status === 'completed' ? 'success' :
-                            history.status === 'dropped' ? 'warning' : 'danger'
-                          }>
-                            {history.status === 'completed' ? 'Completado' :
-                             history.status === 'dropped' ? 'Abandonado' : 'Reprobado'}
-                          </Badge>
-                        </td>
+          {/* Combine student and teacher history */}
+          {(() => {
+            const studentHistory = profile.completedClassrooms || [];
+            const teacherHistory = profile.taughtClassrooms || [];
+            const combinedHistory = [...studentHistory, ...teacherHistory].sort(
+              (a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()
+            );
+
+            return combinedHistory.length > 0 ? (
+              <Card>
+                <CardBody>
+                  <Table responsive hover>
+                    <thead>
+                      <tr>
+                        <th>Clase</th>
+                        <th>Programa</th>
+                        <th>Rol</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th className="text-center">Calificación</th>
+                        <th className="text-center">Estado</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </CardBody>
-            </Card>
-          ) : (
-            <Alert color="info">
-              <i className="bi bi-info-circle me-2"></i>
-              No hay clases completadas en el historial
-            </Alert>
-          )}
+                    </thead>
+                    <tbody>
+                      {combinedHistory.map((history: IClassroomHistory, index) => (
+                        <tr key={`${history.classroomId}-${history.role}-${index}`}>
+                          <td>{history.classroomName}</td>
+                          <td>{history.programName}</td>
+                          <td>
+                            <Badge color={history.role === 'teacher' ? 'info' : 'primary'}>
+                              {history.role === 'teacher' ? 'Profesor' : 'Estudiante'}
+                            </Badge>
+                          </td>
+                          <td>
+                            {new Date(history.enrollmentDate).toLocaleDateString('es-ES')}
+                          </td>
+                          <td>
+                            {new Date(history.completionDate).toLocaleDateString('es-ES')}
+                          </td>
+                          <td className="text-center">
+                            {history.role === 'student' && history.finalGrade !== undefined ? (
+                              <Badge color={getGradeColor(history.finalGrade)}>
+                                {history.finalGrade.toFixed(1)}%
+                              </Badge>
+                            ) : (
+                              <span className="text-muted">N/A</span>
+                            )}
+                          </td>
+                          <td className="text-center">
+                            <Badge color={
+                              history.status === 'completed' ? 'success' :
+                              history.status === 'dropped' ? 'warning' : 'danger'
+                            }>
+                              {history.status === 'completed' ? 'Completado' :
+                               history.status === 'dropped' ? 'Abandonado' : 'Reprobado'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </CardBody>
+              </Card>
+            ) : (
+              <Alert color="info">
+                <i className="bi bi-info-circle me-2"></i>
+                No hay clases completadas en el historial
+              </Alert>
+            );
+          })()}
         </TabPane>
       </TabContent>
 
@@ -695,6 +919,231 @@ const UserProfile: React.FC = () => {
             ) : (
               'Actualizar Foto'
             )}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Classroom Run Details Modal */}
+      <Modal isOpen={runDetailsModal} toggle={() => setRunDetailsModal(false)} size="xl">
+        <ModalHeader toggle={() => setRunDetailsModal(false)}>
+          <i className="bi bi-archive me-2"></i>
+          Detalles de Ejecución {selectedRun && `#${selectedRun.runNumber}`}
+        </ModalHeader>
+        <ModalBody>
+          {selectedRun && (
+            <>
+              {/* Header Info */}
+              <Row className="mb-4">
+                <Col md={8}>
+                  <h4>{selectedRun.classroomSubject}</h4>
+                  <p className="text-muted mb-2">{selectedRun.classroomName} - {selectedRun.programName}</p>
+                  <div className="d-flex gap-2">
+                    <Badge color="secondary">Ejecución #{selectedRun.runNumber}</Badge>
+                    <Badge color="info">{selectedRun.totalStudents} Estudiantes</Badge>
+                    {selectedRun.room && (
+                      <Badge color="secondary">
+                        <i className="bi bi-door-open me-1"></i>
+                        {selectedRun.room}
+                      </Badge>
+                    )}
+                  </div>
+                </Col>
+                <Col md={4} className="text-md-end">
+                  <small className="text-muted d-block">Período</small>
+                  <strong>
+                    {new Date(selectedRun.startDate).toLocaleDateString('es-ES')}
+                  </strong>
+                  {' - '}
+                  <strong>
+                    {new Date(selectedRun.endDate).toLocaleDateString('es-ES')}
+                  </strong>
+                </Col>
+              </Row>
+
+              {/* Statistics Cards */}
+              <Row className="mb-4">
+                <Col md={3}>
+                  <Card className="text-center bg-light">
+                    <CardBody>
+                      <h3 className="mb-0">
+                        <Badge color={getGradeColor(selectedRun.statistics.averageGrade)}>
+                          {selectedRun.statistics.averageGrade.toFixed(1)}%
+                        </Badge>
+                      </h3>
+                      <small className="text-muted">Promedio General</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={3}>
+                  <Card className="text-center bg-light">
+                    <CardBody>
+                      <h3 className="mb-0 text-success">{selectedRun.statistics.passRate.toFixed(0)}%</h3>
+                      <small className="text-muted">Tasa de Aprobación</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={3}>
+                  <Card className="text-center bg-light">
+                    <CardBody>
+                      <h3 className="mb-0 text-info">{selectedRun.statistics.attendanceRate.toFixed(0)}%</h3>
+                      <small className="text-muted">Asistencia Promedio</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={3}>
+                  <Card className="text-center bg-light">
+                    <CardBody>
+                      <h3 className="mb-0">{selectedRun.completedModules}/{selectedRun.totalModules}</h3>
+                      <small className="text-muted">Módulos Completados</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+              </Row>
+
+              {/* Distribution Chart */}
+              <Card className="mb-3">
+                <CardHeader>
+                  <h6 className="mb-0">Distribución de Calificaciones</h6>
+                </CardHeader>
+                <CardBody>
+                  <Row>
+                    <Col md={3}>
+                      <div className="text-center mb-2">
+                        <div className="mb-1">
+                          <Badge color="success" style={{ fontSize: '1.2rem' }}>
+                            {selectedRun.statistics.distribution.excellent}
+                          </Badge>
+                        </div>
+                        <Progress
+                          value={(selectedRun.statistics.distribution.excellent / selectedRun.totalStudents) * 100}
+                          color="success"
+                        />
+                        <small className="text-muted">Excelente (90-100)</small>
+                      </div>
+                    </Col>
+                    <Col md={3}>
+                      <div className="text-center mb-2">
+                        <div className="mb-1">
+                          <Badge color="info" style={{ fontSize: '1.2rem' }}>
+                            {selectedRun.statistics.distribution.good}
+                          </Badge>
+                        </div>
+                        <Progress
+                          value={(selectedRun.statistics.distribution.good / selectedRun.totalStudents) * 100}
+                          color="info"
+                        />
+                        <small className="text-muted">Bueno (80-89)</small>
+                      </div>
+                    </Col>
+                    <Col md={3}>
+                      <div className="text-center mb-2">
+                        <div className="mb-1">
+                          <Badge color="warning" style={{ fontSize: '1.2rem' }}>
+                            {selectedRun.statistics.distribution.regular}
+                          </Badge>
+                        </div>
+                        <Progress
+                          value={(selectedRun.statistics.distribution.regular / selectedRun.totalStudents) * 100}
+                          color="warning"
+                        />
+                        <small className="text-muted">Regular (70-79)</small>
+                      </div>
+                    </Col>
+                    <Col md={3}>
+                      <div className="text-center mb-2">
+                        <div className="mb-1">
+                          <Badge color="danger" style={{ fontSize: '1.2rem' }}>
+                            {selectedRun.statistics.distribution.poor}
+                          </Badge>
+                        </div>
+                        <Progress
+                          value={(selectedRun.statistics.distribution.poor / selectedRun.totalStudents) * 100}
+                          color="danger"
+                        />
+                        <small className="text-muted">Deficiente (&lt;70)</small>
+                      </div>
+                    </Col>
+                  </Row>
+                </CardBody>
+              </Card>
+
+              {/* Student List */}
+              <Card>
+                <CardHeader>
+                  <h6 className="mb-0">Estudiantes de esta Ejecución</h6>
+                </CardHeader>
+                <CardBody>
+                  <Table responsive hover size="sm">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th className="text-center">Calificación</th>
+                        <th className="text-center">Asistencia</th>
+                        <th className="text-center">Participación</th>
+                        <th className="text-center">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRun.students.map((student: any, index: number) => (
+                        <tr key={student.studentId}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <strong>{student.studentName}</strong>
+                            {student.studentEmail && (
+                              <>
+                                <br />
+                                <small className="text-muted">{student.studentEmail}</small>
+                              </>
+                            )}
+                          </td>
+                          <td>{student.studentPhone}</td>
+                          <td className="text-center">
+                            {student.finalGrade !== undefined ? (
+                              <Badge color={getGradeColor(student.finalGrade)}>
+                                {student.finalGrade.toFixed(1)}%
+                              </Badge>
+                            ) : (
+                              <span className="text-muted">N/A</span>
+                            )}
+                          </td>
+                          <td className="text-center">
+                            <Badge color={student.attendanceRate >= 80 ? 'success' : 'warning'}>
+                              {student.attendanceRate.toFixed(0)}%
+                            </Badge>
+                          </td>
+                          <td className="text-center">
+                            <Badge color="info">
+                              {student.participationPoints} pts
+                            </Badge>
+                          </td>
+                          <td className="text-center">
+                            <Badge color={
+                              student.status === 'completed' ? 'success' : 'danger'
+                            }>
+                              {student.status === 'completed' ? 'Aprobado' : 'Reprobado'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </CardBody>
+              </Card>
+
+              {/* Notes if any */}
+              {selectedRun.notes && (
+                <Alert color="info" className="mt-3">
+                  <strong>Notas:</strong> {selectedRun.notes}
+                </Alert>
+              )}
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setRunDetailsModal(false)}>
+            Cerrar
           </Button>
         </ModalFooter>
       </Modal>

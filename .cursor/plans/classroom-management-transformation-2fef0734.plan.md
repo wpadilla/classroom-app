@@ -6,21 +6,21 @@
 ### 1.1 Create New Data Models and Interfaces
 
 - Create `src/models/` directory with separated model files:
-                                - `user.model.ts`: Unified user entity (students/teachers/admin) with roles
-                                - `program.model.ts`: New program hierarchy level
-                                - `classroom.model.ts`: Updated classroom with WhatsApp group integration
-                                - `evaluation.model.ts`: New flexible evaluation system
-                                - `whatsapp.model.ts`: WhatsApp group and messaging models
-                                - `auth.model.ts`: Authentication and session models
+                                                                - `user.model.ts`: Unified user entity (students/teachers/admin) with roles
+                                                                - `program.model.ts`: New program hierarchy level
+                                                                - `classroom.model.ts`: Updated classroom with WhatsApp group integration
+                                                                - `evaluation.model.ts`: New flexible evaluation system
+                                                                - `whatsapp.model.ts`: WhatsApp group and messaging models
+                                                                - `auth.model.ts`: Authentication and session models
 
 ### 1.2 Firebase Collections Structure
 
 - Create new collections:
-                                - `users`: Unified collection for all users (students, teachers, admins)
-                                - `programs`: Program management
-                                - `classrooms`: Updated with program reference and WhatsApp group
-                                - `evaluations`: Separate evaluation records
-                                - `sessions`: User authentication sessions
+                                                                - `users`: Unified collection for all users (students, teachers, admins)
+                                                                - `programs`: Program management
+                                                                - `classrooms`: Updated with program reference and WhatsApp group
+                                                                - `evaluations`: Separate evaluation records
+                                                                - `sessions`: User authentication sessions
 
 ### 1.3 User Model Structure
 
@@ -51,17 +51,17 @@ interface IUser {
 ### 2.1 Authentication System
 
 - Create `src/modules/auth/` directory:
-                                - `Login.tsx`: Universal login (phone/email + password)
-                                - `AuthContext.tsx`: Authentication state management
-                                - `ProtectedRoute.tsx`: Role-based route protection
-                                - `AuthService.ts`: Authentication logic
+                                                                - `Login.tsx`: Universal login (phone/email + password)
+                                                                - `AuthContext.tsx`: Authentication state management
+                                                                - `ProtectedRoute.tsx`: Role-based route protection
+                                                                - `AuthService.ts`: Authentication logic
 
 ### 2.2 Role-Based Access Control (RBAC)
 
 - Implement permission system:
-                                - **Admin**: Full CRUD on all entities
-                                - **Teacher**: Read/Update own classrooms and student profiles
-                                - **Student**: Read own profile and enrolled classrooms
+                                                                - **Admin**: Full CRUD on all entities
+                                                                - **Teacher**: Read/Update own classrooms and student profiles
+                                                                - **Student**: Read own profile and enrolled classrooms
 - Create `PermissionGuard` component for UI elements
 - Add role checking in all service methods
 
@@ -70,51 +70,51 @@ interface IUser {
 ### 3.1 User Profile System
 
 - Create `src/modules/users/` directory:
-                                - `UserOnboarding.tsx`: Registration flow with photo upload
-                                - `UserProfile.tsx`: Universal profile view (adapts to role)
-                                - `UserList.tsx`: Admin view for all users
-                                - `UserService.ts`: CRUD operations for users
-                                - `RoleManager.tsx`: Admin component to change user roles
+                                                                - `UserOnboarding.tsx`: Registration flow with photo upload
+                                                                - `UserProfile.tsx`: Universal profile view (adapts to role)
+                                                                - `UserList.tsx`: Admin view for all users
+                                                                - `UserService.ts`: CRUD operations for users
+                                                                - `RoleManager.tsx`: Admin component to change user roles
 
 ### 3.2 Teacher Management
 
 - Create teacher-specific components:
-                                - `TeacherDashboard.tsx`: View assigned classrooms
-                                - `TeacherClassroom.tsx`: Manage classroom (attendance, participation)
-                                - `TeacherStudentView.tsx`: View student profiles
+                                                                - `TeacherDashboard.tsx`: View assigned classrooms
+                                                                - `TeacherClassroom.tsx`: Manage classroom (attendance, participation)
+                                                                - `TeacherStudentView.tsx`: View student profiles
 
 ### 3.3 Student Features
 
 - Create student-specific components:
-                                - `StudentDashboard.tsx`: View enrolled classrooms
-                                - `StudentProgress.tsx`: View grades and history
-                                - `StudentClassroom.tsx`: View classroom details
+                                                                - `StudentDashboard.tsx`: View enrolled classrooms
+                                                                - `StudentProgress.tsx`: View grades and history
+                                                                - `StudentClassroom.tsx`: View classroom details
 
 ### 3.4 Admin Panel
 
 - Create `src/modules/admin/` directory:
-                                - `AdminDashboard.tsx`: Overview of system
-                                - `UserManagement.tsx`: Manage all users and roles
-                                - `ProgramManagement.tsx`: CRUD for programs
-                                - `ClassroomManagement.tsx`: CRUD for classrooms
-                                - `TeacherAssignment.tsx`: Assign/remove teachers from classrooms
-                                - `StudentEnrollment.tsx`: Enroll/remove students from classrooms
+                                                                - `AdminDashboard.tsx`: Overview of system
+                                                                - `UserManagement.tsx`: Manage all users and roles
+                                                                - `ProgramManagement.tsx`: CRUD for programs
+                                                                - `ClassroomManagement.tsx`: CRUD for classrooms
+                                                                - `TeacherAssignment.tsx`: Assign/remove teachers from classrooms
+                                                                - `StudentEnrollment.tsx`: Enroll/remove students from classrooms
 
 ## Phase 4: WhatsApp Integration
 
 ### 4.1 WhatsApp Service Layer
 
 - Create `src/services/whatsapp/` directory:
-                                - `WhatsappService.ts`: Core WhatsApp API integration
-                                - `WhatsappGroupService.ts`: Group management operations
-                                - `WhatsappMessageService.ts`: Messaging functionality
+                                                                - `WhatsappService.ts`: Core WhatsApp API integration
+                                                                - `WhatsappGroupService.ts`: Group management operations
+                                                                - `WhatsappMessageService.ts`: Messaging functionality
 
 ### 4.2 Classroom WhatsApp Features
 
 - Add WhatsApp dropdown to each classroom (admin/teacher only):
-                                - Create group option
-                                - Sync group participants
-                                - Send group message
+                                                                - Create group option
+                                                                - Sync group participants
+                                                                - Send group message
 - Add bulk messaging with checkbox selection
 - Store WhatsApp group data in classroom object
 
@@ -123,9 +123,9 @@ interface IUser {
 ### 5.1 Program Management
 
 - Create `src/modules/programs/` directory:
-                                - `ProgramList.tsx`: List all programs (filtered by role)
-                                - `ProgramForm.tsx`: Create/edit programs (admin only)
-                                - `ProgramService.ts`: Program CRUD operations
+                                                                - `ProgramList.tsx`: List all programs (filtered by role)
+                                                                - `ProgramForm.tsx`: Create/edit programs (admin only)
+                                                                - `ProgramService.ts`: Program CRUD operations
 
 ### 5.2 Classroom-Program Association
 
@@ -139,20 +139,20 @@ interface IUser {
 ### 6.1 Evaluation Components
 
 - Create `src/modules/evaluation/` directory:
-                                - `EvaluationConfig.tsx`: Configure evaluation criteria (teacher/admin)
-                                - `StudentEvaluation.tsx`: Evaluate individual students
-                                - `AttendanceTracker.tsx`: Module-by-module attendance
-                                - `ParticipationTracker.tsx`: Participation points system
-                                - `EvaluationSummary.tsx`: View final grades
+                                                                - `EvaluationConfig.tsx`: Configure evaluation criteria (teacher/admin)
+                                                                - `StudentEvaluation.tsx`: Evaluate individual students
+                                                                - `AttendanceTracker.tsx`: Module-by-module attendance
+                                                                - `ParticipationTracker.tsx`: Participation points system
+                                                                - `EvaluationSummary.tsx`: View final grades
 
 ### 6.2 Evaluation Features
 
 - Implement flexible point system (total 100 points):
-                                - Questionnaires (Book completion)
-                                - Attendance (automatic calculation)
-                                - Participation (incremental per module)
-                                - Final exam/practice
-                                - Custom criteria (teacher-defined)
+                                                                - Questionnaires (Book completion)
+                                                                - Attendance (automatic calculation)
+                                                                - Participation (incremental per module)
+                                                                - Final exam/practice
+                                                                - Custom criteria (teacher-defined)
 - Create evaluation summary view
 - Allow only teachers/admins to modify evaluations
 
@@ -168,9 +168,9 @@ interface IUser {
 ### 7.2 Offline Data Management
 
 - Implement IndexedDB for local storage:
-                                - Store classroom data locally (for teachers)
-                                - Queue offline changes
-                                - Sync when online
+                                                                - Store classroom data locally (for teachers)
+                                                                - Queue offline changes
+                                                                - Sync when online
 - Create sync service for data reconciliation
 - Add online/offline status indicator
 - Prioritize teacher offline features (attendance, participation)
@@ -227,11 +227,11 @@ interface IUser {
 ### 10.1 Data Migration
 
 - Create migration script for existing data:
-                                - Convert existing students and teachers to unified users
-                                - Assign appropriate roles
-                                - Create default program for existing classrooms
-                                - Convert evaluation format
-                                - Maintain classroom history
+                                                                - Convert existing students and teachers to unified users
+                                                                - Assign appropriate roles
+                                                                - Create default program for existing classrooms
+                                                                - Convert evaluation format
+                                                                - Maintain classroom history
 
 ### 10.2 Testing & Deployment
 

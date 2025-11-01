@@ -34,7 +34,7 @@ export interface IUser {
   
   // Teacher-specific data
   teachingClassrooms?: string[]; // Current classrooms as teacher
-  taughtClassrooms?: IClassroomHistory[]; // Historical record of taught classrooms
+  taughtClassrooms?: IClassroomHistory[]; // Historical record of taught classrooms (uses role: 'teacher')
   
   // Additional metadata
   lastLogin?: Date;

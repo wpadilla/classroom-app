@@ -33,8 +33,9 @@ import { toast } from 'react-toastify';
 import { ProgramService } from '../../services/program/program.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
-import { IProgram, IClassroom, IUser, ICustomCriterion } from '../../models';
+import { IProgram, IClassroom, IUser, ICustomCriterion, IClassroomRun } from '../../models';
 import ClassroomForm, { ClassroomFormData } from './components/ClassroomForm';
+import ClassroomRestartModal from './components/ClassroomRestartModal';
 
 const ProgramManagement: React.FC = () => {
   // State
@@ -54,6 +55,13 @@ const ProgramManagement: React.FC = () => {
   const [editingClassroom, setEditingClassroom] = useState<IClassroom | null>(null);
   const [statsModal, setStatsModal] = useState(false);
   const [selectedProgramStats, setSelectedProgramStats] = useState<any>(null);
+  const [restartModal, setRestartModal] = useState(false);
+  const [classroomToRestart, setClassroomToRestart] = useState<IClassroom | null>(null);
+  const [classroomRunsModal, setClassroomRunsModal] = useState(false);
+  const [selectedClassroomForRuns, setSelectedClassroomForRuns] = useState<IClassroom | null>(null);
+  const [classroomRuns, setClassroomRuns] = useState<any[]>([]);
+  const [selectedRun, setSelectedRun] = useState<any>(null);
+  const [runDetailsModal, setRunDetailsModal] = useState(false);
   
   // Form state for program
   const [programForm, setProgramForm] = useState({
@@ -276,6 +284,36 @@ const ProgramManagement: React.FC = () => {
     }
   };
 
+  const handleOpenRestartModal = (classroom: IClassroom) => {
+    setClassroomToRestart(classroom);
+    setRestartModal(true);
+  };
+
+  const handleRestartSuccess = () => {
+    setRestartModal(false);
+    setClassroomToRestart(null);
+    loadData();
+  };
+
+  const handleViewClassroomRuns = async (classroom: IClassroom) => {
+    try {
+      const runs = await ClassroomService.getClassroomRuns(classroom.id);
+      setClassroomRuns(runs);
+      setSelectedClassroomForRuns(classroom);
+      setClassroomRunsModal(true);
+    } catch (error) {
+      console.error('Error loading classroom runs:', error);
+      toast.error('Error al cargar el historial');
+    }
+  };
+
+  const getGradeColor = (grade: number): string => {
+    if (grade >= 90) return 'success';
+    if (grade >= 80) return 'info';
+    if (grade >= 70) return 'warning';
+    return 'danger';
+  };
+
   const handleViewStats = async (program: IProgram) => {
     try {
       const stats = await ProgramService.getProgramStatistics(program.id);
@@ -479,19 +517,66 @@ const ProgramManagement: React.FC = () => {
                         <ListGroup>
                           {programClassrooms.map(classroom => {
                             const teacher = teachers.find(t => t.id === classroom.teacherId);
+                            const completedModules = classroom.modules?.filter(m => m.isCompleted).length || 0;
+                            const totalModules = classroom.modules?.length || 0;
+                            
                             return (
                               <ListGroupItem key={classroom.id}>
                                 <div className="d-flex justify-content-between align-items-center">
                                   <div className="flex-grow-1">
-                                    <strong>{classroom.subject}</strong> - {classroom.name}
-                                    <br />
-                                    <small className="text-muted">
+                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                      <strong>{classroom.subject}</strong> - {classroom.name}
+                                      {classroom.room && (
+                                        <Badge color="secondary" className="small">
+                                          <i className="bi bi-door-open me-1"></i>
+                                          {classroom.room}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <small className="text-muted d-block mb-1">
+                                      <i className="bi bi-person-badge me-1"></i>
                                       Profesor: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Sin asignar'}
                                       {' • '}
+                                      <i className="bi bi-people ms-2 me-1"></i>
                                       {classroom.studentIds?.length || 0} estudiantes
+                                      {' • '}
+                                      <i className="bi bi-list-check ms-2 me-1"></i>
+                                      {completedModules}/{totalModules} módulos
                                     </small>
                                   </div>
                                   <div className="d-flex align-items-center gap-2">
+                                    {/* Finalized Badge */}
+                                    {!classroom.isActive && classroom.endDate && (
+                                      <Badge color="warning" className="me-1">
+                                        <i className="bi bi-flag-fill me-1"></i>
+                                        Finalizada
+                                      </Badge>
+                                    )}
+                                    
+                                    {/* View History Button - Show for all classes */}
+                                    <Button
+                                      color="info"
+                                      size="sm"
+                                      outline
+                                      onClick={() => handleViewClassroomRuns(classroom)}
+                                      title="Ver historial de ejecuciones"
+                                    >
+                                      <i className="bi bi-archive"></i>
+                                    </Button>
+                                    
+                                    {/* Restart Button - Only show for finalized classes */}
+                                    {!classroom.isActive && classroom.endDate && (
+                                      <Button
+                                        color="success"
+                                        size="sm"
+                                        outline
+                                        onClick={() => handleOpenRestartModal(classroom)}
+                                        title="Reiniciar clase para nuevo grupo"
+                                      >
+                                        <i className="bi bi-arrow-clockwise"></i>
+                                      </Button>
+                                    )}
+                                    
                                     {/* Status Switch */}
                                     <div className="form-check form-switch">
                                       <input
@@ -725,6 +810,405 @@ const ProgramManagement: React.FC = () => {
         program={selectedProgram}
         teachers={teachers}
       />
+
+      {/* Classroom Restart Modal */}
+      <ClassroomRestartModal
+        isOpen={restartModal}
+        onClose={() => setRestartModal(false)}
+        classroom={classroomToRestart}
+        onSuccess={handleRestartSuccess}
+      />
+
+      {/* Classroom Runs History Modal */}
+      <Modal isOpen={classroomRunsModal} toggle={() => setClassroomRunsModal(false)} size="xl">
+        <ModalHeader toggle={() => setClassroomRunsModal(false)}>
+          <i className="bi bi-archive me-2"></i>
+          Historial de Ejecuciones - {selectedClassroomForRuns?.subject}
+        </ModalHeader>
+        <ModalBody>
+          {selectedClassroomForRuns && (
+            <>
+              <Alert color="info" className="mb-3">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>{selectedClassroomForRuns.name}</strong>
+                    <br />
+                    <small>
+                      Cada ejecución representa un grupo de estudiantes que completó esta clase
+                    </small>
+                  </div>
+                  <Badge color="primary">
+                    {classroomRuns.length} Ejecuciones Totales
+                  </Badge>
+                </div>
+              </Alert>
+
+              {classroomRuns.length === 0 ? (
+                <Alert color="warning">
+                  <i className="bi bi-info-circle me-2"></i>
+                  Esta clase aún no tiene ejecuciones finalizadas
+                </Alert>
+              ) : (
+                <>
+                  {/* Summary Statistics */}
+                  <Row className="mb-3">
+                    <Col md={3}>
+                      <Card className="text-center bg-light">
+                        <CardBody>
+                          <h4 className="mb-0">{classroomRuns.length}</h4>
+                          <small className="text-muted">Ejecuciones</small>
+                        </CardBody>
+                      </Card>
+                    </Col>
+                    <Col md={3}>
+                      <Card className="text-center bg-light">
+                        <CardBody>
+                          <h4 className="mb-0">
+                            {classroomRuns.reduce((sum, r) => sum + r.totalStudents, 0)}
+                          </h4>
+                          <small className="text-muted">Total Estudiantes</small>
+                        </CardBody>
+                      </Card>
+                    </Col>
+                    <Col md={3}>
+                      <Card className="text-center bg-light">
+                        <CardBody>
+                          <h4 className="mb-0">
+                            {(classroomRuns.reduce((sum, r) => sum + r.statistics.averageGrade, 0) / classroomRuns.length).toFixed(1)}%
+                          </h4>
+                          <small className="text-muted">Promedio Histórico</small>
+                        </CardBody>
+                      </Card>
+                    </Col>
+                    <Col md={3}>
+                      <Card className="text-center bg-light">
+                        <CardBody>
+                          <h4 className="mb-0">
+                            {(classroomRuns.reduce((sum, r) => sum + r.statistics.passRate, 0) / classroomRuns.length).toFixed(0)}%
+                          </h4>
+                          <small className="text-muted">Tasa Aprobación</small>
+                        </CardBody>
+                      </Card>
+                    </Col>
+                  </Row>
+
+                  {/* Runs Table */}
+                  <Table responsive hover>
+                    <thead>
+                      <tr>
+                        <th>Ejecución</th>
+                        <th className="text-center">Estudiantes</th>
+                        <th className="text-center">Promedio</th>
+                        <th className="text-center">Aprobados</th>
+                        <th className="text-center">Asistencia</th>
+                        <th className="text-center">Módulos</th>
+                        <th>Período</th>
+                        <th className="text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classroomRuns.map((run: IClassroomRun) => {
+                        const passedStudents = 
+                          run.statistics.distribution.excellent +
+                          run.statistics.distribution.good +
+                          run.statistics.distribution.regular;
+                        
+                        return (
+                          <tr key={run.id}>
+                            <td>
+                              <Badge color="secondary">#{run.runNumber}</Badge>
+                            </td>
+                            <td className="text-center">
+                              <Badge color="primary">{run.totalStudents}</Badge>
+                            </td>
+                            <td className="text-center">
+                              <Badge color={getGradeColor(run.statistics.averageGrade)}>
+                                {run.statistics.averageGrade.toFixed(1)}%
+                              </Badge>
+                            </td>
+                            <td className="text-center">
+                              <Badge color="success">
+                                {passedStudents}/{run.totalStudents}
+                              </Badge>
+                              <br />
+                              <small className="text-muted">
+                                {run.statistics.passRate.toFixed(0)}%
+                              </small>
+                            </td>
+                            <td className="text-center">
+                              <Badge color={run.statistics.attendanceRate >= 80 ? 'success' : 'warning'}>
+                                {run.statistics.attendanceRate.toFixed(0)}%
+                              </Badge>
+                            </td>
+                            <td className="text-center">
+                              <Badge color={run.completedModules === run.totalModules ? 'success' : 'warning'}>
+                                {run.completedModules}/{run.totalModules}
+                              </Badge>
+                            </td>
+                            <td>
+                              <small>
+                                {new Date(run.startDate).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
+                                {' - '}
+                                {new Date(run.endDate).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </small>
+                            </td>
+                            <td className="text-center">
+                              <Button
+                                color="primary"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  setRunDetailsModal(true);
+                                }}
+                              >
+                                <i className="bi bi-eye"></i>
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </>
+              )}
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setClassroomRunsModal(false)}>
+            Cerrar
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Run Details Modal */}
+      <Modal isOpen={runDetailsModal} toggle={() => setRunDetailsModal(false)} size="xl">
+        <ModalHeader toggle={() => setRunDetailsModal(false)}>
+          <i className="bi bi-file-earmark-text me-2"></i>
+          Detalles Completos - Ejecución {selectedRun && `#${selectedRun.runNumber}`}
+        </ModalHeader>
+        <ModalBody>
+          {selectedRun && (
+            <>
+              {/* Header Info */}
+              <Row className="mb-4">
+                <Col md={8}>
+                  <h4>{selectedRun.classroomSubject}</h4>
+                  <p className="text-muted mb-2">{selectedRun.classroomName} - {selectedRun.programName}</p>
+                  <div className="d-flex gap-2 flex-wrap">
+                    <Badge color="secondary">Ejecución #{selectedRun.runNumber}</Badge>
+                    <Badge color="info">
+                      <i className="bi bi-people me-1"></i>
+                      {selectedRun.totalStudents} Estudiantes
+                    </Badge>
+                    <Badge color="secondary">
+                      <i className="bi bi-person-badge me-1"></i>
+                      {selectedRun.teacherName}
+                    </Badge>
+                    {selectedRun.room && (
+                      <Badge color="secondary">
+                        <i className="bi bi-door-open me-1"></i>
+                        {selectedRun.room}
+                      </Badge>
+                    )}
+                    {selectedRun.schedule && (
+                      <Badge color="secondary">
+                        <i className="bi bi-clock me-1"></i>
+                        {selectedRun.schedule.dayOfWeek} {selectedRun.schedule.time}
+                      </Badge>
+                    )}
+                  </div>
+                </Col>
+                <Col md={4} className="text-md-end">
+                  <small className="text-muted d-block">Período</small>
+                  <strong>
+                    {new Date(selectedRun.startDate).toLocaleDateString('es-ES')}
+                  </strong>
+                  {' - '}
+                  <strong>
+                    {new Date(selectedRun.endDate).toLocaleDateString('es-ES')}
+                  </strong>
+                </Col>
+              </Row>
+
+              {/* Statistics Cards */}
+              <Row className="mb-4">
+                <Col md={2}>
+                  <Card className="text-center">
+                    <CardBody>
+                      <h4>
+                        <Badge color={getGradeColor(selectedRun.statistics.averageGrade)}>
+                          {selectedRun.statistics.averageGrade.toFixed(1)}%
+                        </Badge>
+                      </h4>
+                      <small className="text-muted">Promedio</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={2}>
+                  <Card className="text-center">
+                    <CardBody>
+                      <h4 className="text-success">{selectedRun.statistics.passRate.toFixed(0)}%</h4>
+                      <small className="text-muted">Aprobación</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={2}>
+                  <Card className="text-center">
+                    <CardBody>
+                      <h4 className="text-info">{selectedRun.statistics.attendanceRate.toFixed(0)}%</h4>
+                      <small className="text-muted">Asistencia</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={2}>
+                  <Card className="text-center">
+                    <CardBody>
+                      <h4 className="text-success">{selectedRun.statistics.highestGrade.toFixed(1)}%</h4>
+                      <small className="text-muted">Más Alta</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={2}>
+                  <Card className="text-center">
+                    <CardBody>
+                      <h4 className="text-danger">{selectedRun.statistics.lowestGrade.toFixed(1)}%</h4>
+                      <small className="text-muted">Más Baja</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+                <Col md={2}>
+                  <Card className="text-center">
+                    <CardBody>
+                      <h4>{selectedRun.completedModules}/{selectedRun.totalModules}</h4>
+                      <small className="text-muted">Módulos</small>
+                    </CardBody>
+                  </Card>
+                </Col>
+              </Row>
+
+              {/* Distribution */}
+              <Card className="mb-3">
+                <CardHeader>
+                  <h6 className="mb-0">Distribución de Calificaciones</h6>
+                </CardHeader>
+                <CardBody>
+                  <Row>
+                    <Col md={3}>
+                      <div className="text-center">
+                        <h5><Badge color="success">{selectedRun.statistics.distribution.excellent}</Badge></h5>
+                        <Progress value={(selectedRun.statistics.distribution.excellent / selectedRun.totalStudents) * 100} color="success" />
+                        <small>Excelente (90-100)</small>
+                      </div>
+                    </Col>
+                    <Col md={3}>
+                      <div className="text-center">
+                        <h5><Badge color="info">{selectedRun.statistics.distribution.good}</Badge></h5>
+                        <Progress value={(selectedRun.statistics.distribution.good / selectedRun.totalStudents) * 100} color="info" />
+                        <small>Bueno (80-89)</small>
+                      </div>
+                    </Col>
+                    <Col md={3}>
+                      <div className="text-center">
+                        <h5><Badge color="warning">{selectedRun.statistics.distribution.regular}</Badge></h5>
+                        <Progress value={(selectedRun.statistics.distribution.regular / selectedRun.totalStudents) * 100} color="warning" />
+                        <small>Regular (70-79)</small>
+                      </div>
+                    </Col>
+                    <Col md={3}>
+                      <div className="text-center">
+                        <h5><Badge color="danger">{selectedRun.statistics.distribution.poor}</Badge></h5>
+                        <Progress value={(selectedRun.statistics.distribution.poor / selectedRun.totalStudents) * 100} color="danger" />
+                        <small>Deficiente (&lt;70)</small>
+                      </div>
+                    </Col>
+                  </Row>
+                </CardBody>
+              </Card>
+
+              {/* Student List */}
+              <Card>
+                <CardHeader>
+                  <h6 className="mb-0">Lista de Estudiantes ({selectedRun.totalStudents})</h6>
+                </CardHeader>
+                <CardBody>
+                  <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    <Table responsive hover size="sm">
+                      <thead className="sticky-top bg-white">
+                        <tr>
+                          <th>#</th>
+                          <th>Nombre</th>
+                          <th>Teléfono</th>
+                          <th className="text-center">Calificación</th>
+                          <th className="text-center">Asistencia</th>
+                          <th className="text-center">Participación</th>
+                          <th className="text-center">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedRun.students
+                          .sort((a: any, b: any) => (b.finalGrade || 0) - (a.finalGrade || 0))
+                          .map((student: any, index: number) => (
+                            <tr key={student.studentId}>
+                              <td>{index + 1}</td>
+                              <td>
+                                <strong>{student.studentName}</strong>
+                                {student.studentEmail && (
+                                  <>
+                                    <br />
+                                    <small className="text-muted">{student.studentEmail}</small>
+                                  </>
+                                )}
+                              </td>
+                              <td>{student.studentPhone}</td>
+                              <td className="text-center">
+                                {student.finalGrade !== undefined ? (
+                                  <Badge color={getGradeColor(student.finalGrade)}>
+                                    {student.finalGrade.toFixed(1)}%
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted">N/A</span>
+                                )}
+                              </td>
+                              <td className="text-center">
+                                <Badge color={student.attendanceRate >= 80 ? 'success' : 'warning'}>
+                                  {student.attendanceRate.toFixed(0)}%
+                                </Badge>
+                              </td>
+                              <td className="text-center">
+                                <Badge color="info">
+                                  {student.participationPoints} pts
+                                </Badge>
+                              </td>
+                              <td className="text-center">
+                                <Badge color={student.status === 'completed' ? 'success' : 'danger'}>
+                                  {student.status === 'completed' ? 'Aprobado' : 'Reprobado'}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                </CardBody>
+              </Card>
+
+              {/* Notes */}
+              {selectedRun.notes && (
+                <Alert color="info" className="mt-3">
+                  <i className="bi bi-sticky me-2"></i>
+                  <strong>Notas:</strong> {selectedRun.notes}
+                </Alert>
+              )}
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setRunDetailsModal(false)}>
+            Cerrar
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Statistics Modal */}
       <Modal isOpen={statsModal} toggle={() => setStatsModal(false)}>

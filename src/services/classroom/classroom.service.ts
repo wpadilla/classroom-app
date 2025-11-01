@@ -5,6 +5,8 @@ import { IClassroom, IModule, IWhatsappGroup, IEvaluationCriteria } from '../../
 import { orderBy, where } from 'firebase/firestore';
 import { UserService } from '../user/user.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { ClassroomFinalizationService, IFinalizationOptions, IFinalizationResult } from './classroom-finalization.service';
+import { ClassroomRestartService, IRestartResult } from './classroom-restart.service';
 
 export class ClassroomService {
   /**
@@ -459,5 +461,64 @@ export class ClassroomService {
         hasWhatsappGroup: false
       };
     }
+  }
+
+  /**
+   * Finalize classroom - Move students and teacher to history
+   * Delegates to ClassroomFinalizationService
+   */
+  static async finalizeClassroom(
+    classroomId: string,
+    options: IFinalizationOptions = {}
+  ): Promise<IFinalizationResult> {
+    return await ClassroomFinalizationService.finalizeClassroom(classroomId, options);
+  }
+
+  /**
+   * Revert classroom finalization
+   * Delegates to ClassroomFinalizationService
+   */
+  static async revertFinalization(classroomId: string): Promise<IFinalizationResult> {
+    return await ClassroomFinalizationService.revertFinalization(classroomId);
+  }
+
+  /**
+   * Check if classroom is finalized
+   */
+  static async isFinalized(classroomId: string): Promise<boolean> {
+    return await ClassroomFinalizationService.isFinalized(classroomId);
+  }
+
+  /**
+   * Get finalization statistics
+   */
+  static async getFinalizationStats(classroomId: string) {
+    return await ClassroomFinalizationService.getFinalizationStats(classroomId);
+  }
+
+  /**
+   * Restart classroom - Create historical record and reset for new group
+   * Delegates to ClassroomRestartService
+   */
+  static async restartClassroom(
+    classroomId: string,
+    userId: string,
+    notes?: string
+  ): Promise<IRestartResult> {
+    return await ClassroomRestartService.restartClassroom(classroomId, userId, notes);
+  }
+
+  /**
+   * Get all historical runs for a classroom
+   */
+  static async getClassroomRuns(classroomId: string) {
+    return await ClassroomRestartService.getClassroomRuns(classroomId);
+  }
+
+  /**
+   * Get aggregated statistics across all runs
+   */
+  static async getAggregatedRunStats(classroomId: string) {
+    return await ClassroomRestartService.getAggregatedStats(classroomId);
   }
 }

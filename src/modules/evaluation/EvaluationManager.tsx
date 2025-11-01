@@ -37,6 +37,7 @@ import { EvaluationService } from '../../services/evaluation/evaluation.service'
 import { UserService } from '../../services/user/user.service';
 import { IClassroom, IStudentEvaluation, IUser, IEvaluationCriteria, ICustomCriterion } from '../../models';
 import { toast } from 'react-toastify';
+import ClassroomFinalizationModal from '../shared/ClassroomFinalizationModal';
 
 interface EvaluationFormData {
   questionnaires: number;
@@ -60,12 +61,14 @@ const EvaluationManager: React.FC = () => {
   // Modal states
   const [criteriaModal, setCriteriaModal] = useState(false);
   const [evaluationModal, setEvaluationModal] = useState(false);
+  const [finalizationModal, setFinalizationModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<IUser | null>(null);
   const [evaluationForm, setEvaluationForm] = useState<EvaluationFormData>({
     questionnaires: 0,
     finalExam: 0,
     customScores: []
   });
+  const [isFinalized, setIsFinalized] = useState(false);
   
   // Criteria form
   const [criteriaForm, setCriteriaForm] = useState<IEvaluationCriteria>({
@@ -106,6 +109,10 @@ const EvaluationManager: React.FC = () => {
       }
       
       setClassroom(classroomData);
+      
+      // Check if finalized
+      const finalized = await ClassroomService.isFinalized(classroomId);
+      setIsFinalized(finalized);
       
       // Set criteria from classroom
       if (classroomData.evaluationCriteria) {
@@ -433,32 +440,60 @@ const EvaluationManager: React.FC = () => {
             Volver a la Clase
           </Button>
           
-          <div className="d-flex justify-content-between align-items-center">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
-              <h2>Evaluaciones - {classroom.subject}</h2>
+              <h2>
+                Evaluaciones - {classroom.subject}
+                {isFinalized && (
+                  <Badge color="warning" className="ms-2">
+                    <i className="bi bi-flag-fill me-1"></i>
+                    Finalizada
+                  </Badge>
+                )}
+              </h2>
               <p className="text-muted">{classroom.name}</p>
             </div>
-            <div>
+            <div className="d-flex gap-2 flex-wrap">
               <Button
                 color="info"
-                className="me-2"
                 onClick={() => setCriteriaModal(true)}
+                disabled={isFinalized}
               >
                 <i className="bi bi-gear me-2"></i>
-                Configurar Criterios
+                <span className="d-none d-sm-inline">Configurar</span> Criterios
               </Button>
               <Button
                 color="success"
                 onClick={handleMarkAllAsEvaluated}
-                disabled={saving}
+                disabled={saving || isFinalized}
               >
                 <i className="bi bi-check-all me-2"></i>
-                Finalizar Todas
+                <span className="d-none d-sm-inline">Finalizar</span> Todas
+              </Button>
+              <Button
+                color={isFinalized ? 'warning' : 'danger'}
+                onClick={() => setFinalizationModal(true)}
+              >
+                <i className={`bi bi-${isFinalized ? 'arrow-counterclockwise' : 'flag-fill'} me-2`}></i>
+                {isFinalized ? 'Revertir' : 'Finalizar'} Clase
               </Button>
             </div>
           </div>
         </Col>
       </Row>
+
+      {/* Finalized Alert */}
+      {isFinalized && (
+        <Row className="mb-3">
+          <Col>
+            <Alert color="warning">
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              <strong>Clase Finalizada:</strong> Esta clase ha sido finalizada y los estudiantes han sido movidos al historial.
+              Para realizar cambios, debes revertir la finalización.
+            </Alert>
+          </Col>
+        </Row>
+      )}
 
       {/* Statistics */}
       <Row className="mb-4">
@@ -587,6 +622,8 @@ const EvaluationManager: React.FC = () => {
                             color="primary"
                             size="sm"
                             onClick={() => handleOpenEvaluationModal(student)}
+                            disabled={isFinalized}
+                            title={isFinalized ? 'Revierte la finalización para editar' : 'Editar evaluación'}
                           >
                             <i className="bi bi-pencil"></i>
                           </Button>
@@ -964,6 +1001,14 @@ const EvaluationManager: React.FC = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Classroom Finalization Modal */}
+      <ClassroomFinalizationModal
+        isOpen={finalizationModal}
+        onClose={() => setFinalizationModal(false)}
+        classroom={classroom}
+        onSuccess={loadData}
+      />
     </Container>
   );
 };

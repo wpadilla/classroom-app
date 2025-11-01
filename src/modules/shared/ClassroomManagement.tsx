@@ -31,11 +31,13 @@ import {
   NavLink,
   TabContent,
   TabPane,
-  Spinner
+  Spinner,
+  Progress
 } from 'reactstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import StudentEnrollment from './StudentEnrollment';
+import ClassroomFinalizationModal from './ClassroomFinalizationModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
@@ -63,6 +65,10 @@ const ClassroomManagement: React.FC = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [syncingGroup, setSyncingGroup] = useState(false);
+  
+  // Finalization state
+  const [finalizationModal, setFinalizationModal] = useState(false);
+  const [isFinalized, setIsFinalized] = useState(false);
   
   // Attendance state - Now per module
   const [attendanceRecords, setAttendanceRecords] = useState<Map<string, boolean>>(new Map());
@@ -107,6 +113,10 @@ const ClassroomManagement: React.FC = () => {
       
       setClassroom(classroomData);
       setCurrentModule(classroomData.currentModule || classroomData.modules[0]);
+      
+      // Check if finalized
+      const finalized = await ClassroomService.isFinalized(id);
+      setIsFinalized(finalized);
       
       // Load students
       if (classroomData.studentIds && classroomData.studentIds.length > 0) {
@@ -321,17 +331,48 @@ const ClassroomManagement: React.FC = () => {
   };
 
   const handleModuleChange = async (module: IModule) => {
-    if (!id) return;
+    if (!id || !classroom) return;
     
-    setCurrentModule(module);
-    
-    // Update current module in classroom
     try {
+      // Auto-complete previous module when moving forward
+      if (currentModule && module.weekNumber > currentModule.weekNumber && !currentModule.isCompleted) {
+        await handleToggleModuleCompletion(currentModule.id, false);
+      }
+      
+      setCurrentModule(module);
+      
+      // Update current module in classroom
       await ClassroomService.updateClassroom(id, {
         currentModule: module
       });
     } catch (error) {
       console.error('Error updating current module:', error);
+      toast.error('Error al cambiar de módulo');
+    }
+  };
+
+  const handleToggleModuleCompletion = async (moduleId: string, currentStatus: boolean) => {
+    if (!id || !classroom || isFinalized) return;
+    
+    try {
+      const updatedModules = classroom.modules.map(m => 
+        m.id === moduleId ? { ...m, isCompleted: !currentStatus } : m
+      );
+      
+      // Update local state immediately
+      setClassroom({ ...classroom, modules: updatedModules });
+      
+      // Update in database
+      await ClassroomService.updateClassroom(id, {
+        modules: updatedModules
+      });
+      
+      toast.success(`Módulo ${!currentStatus ? 'completado' : 'marcado como pendiente'}`);
+    } catch (error) {
+      console.error('Error toggling module completion:', error);
+      toast.error('Error al actualizar el módulo');
+      // Reload to revert optimistic update
+      await loadClassroomData();
     }
   };
 
@@ -378,21 +419,44 @@ const ClassroomManagement: React.FC = () => {
           
           <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>
-              <h4 className="mb-1">{classroom.subject}</h4>
+              <h4 className="mb-1">
+                {classroom.subject}
+                {isFinalized && (
+                  <Badge color="warning" className="ms-2">
+                    <i className="bi bi-flag-fill me-1"></i>
+                    Finalizada
+                  </Badge>
+                )}
+              </h4>
               <p className="text-muted mb-0 small">
                 {classroom.name} • {students.length} estudiantes
               </p>
             </div>
             
-            {/* WhatsApp Dropdown - Mobile Optimized */}
-            <Dropdown 
-              isOpen={whatsappDropdownOpen} 
-              toggle={() => setWhatsappDropdownOpen(!whatsappDropdownOpen)}
-            >
-              <DropdownToggle caret color="success" size="sm">
-                <i className="bi bi-whatsapp me-1"></i>
-                <span className="d-none d-sm-inline">WhatsApp</span>
-              </DropdownToggle>
+            <div className="d-flex gap-2">
+              {/* Finalization Button */}
+              <Button
+                color={isFinalized ? 'warning' : 'danger'}
+                size="sm"
+                outline={!isFinalized}
+                onClick={() => setFinalizationModal(true)}
+                title={isFinalized ? 'Revertir finalización' : 'Finalizar clase'}
+              >
+                <i className={`bi bi-${isFinalized ? 'arrow-counterclockwise' : 'flag-fill'} me-1`}></i>
+                <span className="d-none d-sm-inline">
+                  {isFinalized ? 'Revertir' : 'Finalizar'}
+                </span>
+              </Button>
+              
+              {/* WhatsApp Dropdown - Mobile Optimized */}
+              <Dropdown 
+                isOpen={whatsappDropdownOpen} 
+                toggle={() => setWhatsappDropdownOpen(!whatsappDropdownOpen)}
+              >
+                <DropdownToggle caret color="success" size="sm">
+                  <i className="bi bi-whatsapp me-1"></i>
+                  <span className="d-none d-sm-inline">WhatsApp</span>
+                </DropdownToggle>
               <DropdownMenu end>
                 {!classroom.whatsappGroup ? (
                   <DropdownItem onClick={handleCreateWhatsappGroup} disabled={creatingGroup}>
@@ -435,34 +499,94 @@ const ClassroomManagement: React.FC = () => {
                   </>
                 )}
               </DropdownMenu>
-            </Dropdown>
+              </Dropdown>
+            </div>
           </div>
         </Col>
       </Row>
 
-      {/* Module Selector - Mobile Optimized */}
+      {/* Finalized Alert */}
+      {isFinalized && (
+        <Row className="mb-3">
+          <Col>
+            <Alert color="warning" className="mb-0">
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              <strong>Clase Finalizada:</strong> Esta clase ha sido finalizada. 
+              No se pueden hacer cambios en asistencia o participación.
+              Para modificar, debes revertir la finalización primero.
+            </Alert>
+          </Col>
+        </Row>
+      )}
+
+      {/* Module Selector - Mobile Optimized with Completion Tracking */}
       <Row className="mb-3">
         <Col>
           <Card className="border-0 shadow-sm">
-            <CardBody className="p-2">
-              <div className="d-flex align-items-center mb-2">
-                <small className="text-muted me-2">Módulo:</small>
-                <Badge color="primary">
-                  {currentModule?.weekNumber || 1} de {classroom.modules.length}
-                </Badge>
+            <CardBody className="p-3">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h6 className="mb-0">Progreso del Curso</h6>
+                  <small className="text-muted">
+                    Módulo {currentModule?.weekNumber || 1} de {classroom.modules.length}
+                  </small>
+                </div>
+                <div className="text-end">
+                  <Badge color="info">
+                    {classroom.modules.filter(m => m.isCompleted).length}/{classroom.modules.length} Completados
+                  </Badge>
+                </div>
               </div>
-              <div className="d-flex gap-1 overflow-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
+              
+              {/* Progress Bar */}
+              <Progress
+                value={(classroom.modules.filter(m => m.isCompleted).length / classroom.modules.length) * 100}
+                color={(classroom.modules.filter(m => m.isCompleted).length / classroom.modules.length) >= 0.75 ? 'success' : 'warning'}
+                className="mb-3"
+                style={{ height: '8px' }}
+              />
+              
+              {/* Module Buttons */}
+              <div className="d-flex gap-2 overflow-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
                 {classroom.modules.map(module => (
-                  <Button
-                    key={module.id}
-                    color={currentModule?.id === module.id ? 'primary' : 'outline-primary'}
-                    onClick={() => handleModuleChange(module)}
-                    size="sm"
-                    className="flex-shrink-0"
-                  >
-                    {module.isCompleted && <i className="bi bi-check-circle-fill me-1"></i>}
-                    S{module.weekNumber}
-                  </Button>
+                  <div key={module.id} className="flex-shrink-0">
+                    <Button
+                      color={currentModule?.id === module.id ? 'primary' : 
+                             module.isCompleted ? 'success' : 'outline-secondary'}
+                      onClick={() => handleModuleChange(module)}
+                      size="sm"
+                      className="d-flex align-items-center gap-1"
+                      style={{ minWidth: '80px' }}
+                    >
+                      {module.isCompleted && <i className="bi bi-check-circle-fill"></i>}
+                      S{module.weekNumber}
+                    </Button>
+                    
+                    {/* Completion Checkbox - Only show for current or past modules */}
+                    {(currentModule && module.weekNumber <= currentModule.weekNumber) && (
+                      <div className="form-check form-check-sm mt-1 text-center">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id={`module-complete-${module.id}`}
+                          checked={module.isCompleted}
+                          onChange={() => handleToggleModuleCompletion(module.id, module.isCompleted)}
+                          disabled={isFinalized}
+                          style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
+                        />
+                        <label 
+                          className="form-check-label small text-muted" 
+                          htmlFor={`module-complete-${module.id}`}
+                          style={{ 
+                            cursor: isFinalized ? 'not-allowed' : 'pointer',
+                            fontSize: '0.7rem'
+                          }}
+                        >
+                          {module.isCompleted ? 'OK' : 'Pendiente'}
+                        </label>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </CardBody>
@@ -519,11 +643,39 @@ const ClassroomManagement: React.FC = () => {
         <TabPane tabId="attendance">
           <Card className="border-0 shadow-sm">
             <CardHeader className="bg-white">
-              <h6 className="mb-0">
-                <i className="bi bi-calendar-check me-2"></i>
-                Semana {currentModule?.weekNumber}
-              </h6>
-              <small className="text-muted">Los cambios se guardan automáticamente</small>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="mb-1">
+                    <i className="bi bi-calendar-check me-2"></i>
+                    Semana {currentModule?.weekNumber} - {currentModule?.name}
+                  </h6>
+                  <small className="text-muted">
+                    {isFinalized ? 'Clase finalizada - Solo lectura' : 'Los cambios se guardan automáticamente'}
+                  </small>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="current-module-complete"
+                      checked={currentModule?.isCompleted || false}
+                      onChange={() => currentModule && handleToggleModuleCompletion(currentModule.id, currentModule.isCompleted)}
+                      disabled={isFinalized}
+                      style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
+                    />
+                    <label 
+                      className="form-check-label" 
+                      htmlFor="current-module-complete"
+                      style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
+                    >
+                      <Badge color={currentModule?.isCompleted ? 'success' : 'warning'}>
+                        {currentModule?.isCompleted ? 'Completado' : 'Pendiente'}
+                      </Badge>
+                    </label>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardBody className="p-0">
               {students.length === 0 ? (
@@ -576,6 +728,7 @@ const ClassroomManagement: React.FC = () => {
                               name={`attendance-${student.id}`}
                               checked={attendanceRecords.get(student.id) === true}
                               onChange={() => handleAttendanceChange(student.id, true)}
+                              disabled={isFinalized}
                             />
                           </td>
                           <td className="text-center">
@@ -584,6 +737,7 @@ const ClassroomManagement: React.FC = () => {
                               name={`attendance-${student.id}`}
                               checked={attendanceRecords.get(student.id) === false}
                               onChange={() => handleAttendanceChange(student.id, false)}
+                              disabled={isFinalized}
                             />
                           </td>
                         </tr>
@@ -600,11 +754,20 @@ const ClassroomManagement: React.FC = () => {
         <TabPane tabId="participation">
           <Card className="border-0 shadow-sm">
             <CardHeader className="bg-white">
-              <h6 className="mb-0">
-                <i className="bi bi-hand-thumbs-up me-2"></i>
-                Participación - Semana {currentModule?.weekNumber}
-              </h6>
-              <small className="text-muted">Los cambios se guardan automáticamente</small>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="mb-1">
+                    <i className="bi bi-hand-thumbs-up me-2"></i>
+                    Participación - Semana {currentModule?.weekNumber}
+                  </h6>
+                  <small className="text-muted">
+                    {isFinalized ? 'Clase finalizada - Solo lectura' : 'Los cambios se guardan automáticamente'}
+                  </small>
+                </div>
+                <Badge color={currentModule?.isCompleted ? 'success' : 'warning'}>
+                  Módulo {currentModule?.isCompleted ? 'Completado' : 'Pendiente'}
+                </Badge>
+              </div>
             </CardHeader>
             <CardBody className="p-0">
               {students.length === 0 ? (
@@ -643,6 +806,7 @@ const ClassroomManagement: React.FC = () => {
                                   color="danger"
                                   outline
                                   onClick={() => handleParticipationChange(student.id, -1)}
+                                  disabled={isFinalized}
                                 >
                                   <i className="bi bi-dash"></i>
                                 </Button>
@@ -650,6 +814,7 @@ const ClassroomManagement: React.FC = () => {
                                   color="success"
                                   outline
                                   onClick={() => handleParticipationChange(student.id, 1)}
+                                  disabled={isFinalized}
                                 >
                                   <i className="bi bi-plus"></i>
                                 </Button>
@@ -806,6 +971,14 @@ const ClassroomManagement: React.FC = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Classroom Finalization Modal */}
+      <ClassroomFinalizationModal
+        isOpen={finalizationModal}
+        onClose={() => setFinalizationModal(false)}
+        classroom={classroom}
+        onSuccess={loadClassroomData}
+      />
     </Container>
   );
 };

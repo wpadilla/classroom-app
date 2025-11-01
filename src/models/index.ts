@@ -11,6 +11,6 @@ export * from './auth.model';
 export type { UserRole, IUser, IClassroomHistory } from './user.model';
 export type { IProgram } from './program.model';
 export type { IClassroom, IModule, IEnrollment } from './classroom.model';
-export type { IStudentEvaluation, IEvaluationCriteria, IAttendanceRecord, IParticipationRecord } from './evaluation.model';
+export type { IStudentEvaluation, IEvaluationCriteria, IAttendanceRecord } from './evaluation.model';
 export type { IWhatsappGroup, IWhatsappMessage } from './whatsapp.model';
 export type { IAuthCredentials, IAuthResponse, ISession } from './auth.model';

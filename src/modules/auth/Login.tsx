@@ -1,6 +1,6 @@
 // Universal Login Component
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { IAuthCredentials } from '../../models';
 
 const Login: React.FC = () => {
-  const { login, loading } = useAuth();
+  const { login, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -31,7 +31,27 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const from = location.state?.from?.pathname || '/';
+  const from = location.state?.from?.pathname || '/admin';
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      // Navigate to appropriate dashboard based on role
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin/dashboard', { replace: true });
+          break;
+        case 'teacher':
+          navigate('/teacher/dashboard', { replace: true });
+          break;
+        case 'student':
+          navigate('/student/dashboard', { replace: true });
+          break;
+        default:
+          navigate('/', { replace: true });
+      }
+    }
+  }, [loading, isAuthenticated, user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

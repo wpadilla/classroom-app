@@ -7,9 +7,10 @@ export interface IClassroomHistory {
   classroomName: string;
   programId: string;
   programName: string;
+  role: 'student' | 'teacher'; // Role in the classroom
   enrollmentDate: Date;
   completionDate: Date;
-  finalGrade: number;
+  finalGrade?: number; // Optional as teachers may not have grades
   status: 'completed' | 'dropped' | 'failed';
 }
 

@@ -1,5 +1,6 @@
 // Flexible Evaluation System Model
 
+
 export interface ICustomCriterion {
   id: string;
   name: string;
@@ -14,6 +15,7 @@ export interface IEvaluationCriteria {
   participationPointsPerModule: number; // Points required per module (1-3, default: 1)
   finalExam: number; // Points for final exam/practice
   customCriteria: ICustomCriterion[]; // Teacher-defined criteria
+  participationRecords: any;
   // Validation: Total must equal 100
 }
 
@@ -23,7 +25,7 @@ export interface IStudentEvaluation {
   studentId: string;
   classroomId: string;
   moduleId: string;
-  
+  participationRecords: any[];
   // Points achieved by criterion
   scores: {
     questionnaires: number;

@@ -33,7 +33,8 @@ import { toast } from 'react-toastify';
 import { ProgramService } from '../../services/program/program.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
-import { IProgram, IClassroom, IUser } from '../../models';
+import { IProgram, IClassroom, IUser, ICustomCriterion } from '../../models';
+import ClassroomForm, { ClassroomFormData } from './components/ClassroomForm';
 
 const ProgramManagement: React.FC = () => {
   // State
@@ -50,6 +51,7 @@ const ProgramManagement: React.FC = () => {
   const [programToDelete, setProgramToDelete] = useState<IProgram | null>(null);
   const [classroomModal, setClassroomModal] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<IProgram | null>(null);
+  const [editingClassroom, setEditingClassroom] = useState<IClassroom | null>(null);
   const [statsModal, setStatsModal] = useState(false);
   const [selectedProgramStats, setSelectedProgramStats] = useState<any>(null);
   
@@ -73,27 +75,6 @@ const ProgramManagement: React.FC = () => {
     }
   });
   
-  // Form state for classroom
-  const [classroomForm, setClassroomForm] = useState({
-    name: '',
-    subject: '',
-    description: '',
-    teacherId: '',
-    isActive: true,
-    materialPrice: 0,
-    schedule: {
-      dayOfWeek: 'Monday',
-      time: '18:00',
-      duration: 120
-    },
-    evaluationCriteria: {
-      questionnaires: 25,
-      attendance: 25,
-      participation: 25,
-      finalExam: 25,
-      customCriteria: []
-    }
-  });
 
   useEffect(() => {
     loadData();
@@ -133,7 +114,11 @@ const ProgramManagement: React.FC = () => {
         minStudents: program.minStudents || 5,
         totalCredits: program.totalCredits || 0,
         requirements: program.requirements || [],
-        materials: program.materials || { books: [], resources: [], cost: 0 }
+        materials: {
+          books: program.materials?.books || [],
+          resources: program.materials?.resources || [],
+          cost: program.materials?.cost || 0
+        }
       });
     } else {
       setEditingProgram(null);
@@ -169,7 +154,10 @@ const ProgramManagement: React.FC = () => {
         toast.success('Programa actualizado exitosamente');
       } else {
         // Create new program
-        await ProgramService.createProgram(programForm);
+        await ProgramService.createProgram({
+          ...programForm,
+          classrooms: []
+        });
         toast.success('Programa creado exitosamente');
       }
       
@@ -207,67 +195,84 @@ const ProgramManagement: React.FC = () => {
     }
   };
 
-  const handleOpenClassroomModal = (program: IProgram) => {
+  const handleOpenClassroomModal = (program: IProgram, classroom?: IClassroom) => {
     setSelectedProgram(program);
-    setClassroomForm({
-      name: '',
-      subject: '',
-      description: '',
-      teacherId: '',
-      isActive: true,
-      materialPrice: 0,
-      schedule: {
-        dayOfWeek: 'Monday',
-        time: '18:00',
-        duration: 120
-      },
-      evaluationCriteria: {
-        questionnaires: 25,
-        attendance: 25,
-        participation: 25,
-        finalExam: 25,
-        customCriteria: []
-      }
-    });
+    setEditingClassroom(classroom || null);
     setClassroomModal(true);
   };
 
-  const handleCreateClassroom = async () => {
-    if (!selectedProgram) return;
-    
-    // Validation
-    if (!classroomForm.name || !classroomForm.subject || !classroomForm.teacherId) {
-      toast.error('Por favor complete todos los campos requeridos');
-      return;
+  const handleSaveClassroom = async (formData: ClassroomFormData) => {
+    if (!selectedProgram) {
+      throw new Error('No se ha seleccionado un programa');
     }
     
     try {
-      // Create classroom
-      const classroomId = await ClassroomService.createClassroom({
-        ...classroomForm,
-        programId: selectedProgram.id,
-        studentIds: [],
-        modules: Array.from({ length: 8 }, (_, i) => ({
-          id: `module-${Date.now()}-${i}`,
-          name: `Semana ${i + 1}`,
-          weekNumber: i + 1,
-          date: new Date(),
-          isCompleted: false
-        }))
-      });
+      if (editingClassroom) {
+        // Update existing classroom
+        await ClassroomService.updateClassroom(editingClassroom.id, {
+          ...formData,
+          programId: selectedProgram.id
+        });
+        
+        // Update teacher assignment if changed
+        if (formData.teacherId !== editingClassroom.teacherId) {
+          // Remove old teacher
+          await UserService.removeTeacherFromClassroom(editingClassroom.teacherId, editingClassroom.id);
+          // Assign new teacher
+          await UserService.assignTeacherToClassroom(formData.teacherId, editingClassroom.id);
+        }
+        
+        toast.success('Clase actualizada exitosamente');
+      } else {
+        // Create new classroom
+        const classroomId = await ClassroomService.createClassroom({
+          ...formData,
+          programId: selectedProgram.id,
+          studentIds: [],
+          startDate: new Date(),
+          modules: Array.from({ length: 8 }, (_, i) => ({
+            id: `module-${Date.now()}-${i}`,
+            name: `Semana ${i + 1}`,
+            weekNumber: i + 1,
+            date: new Date(),
+            isCompleted: false
+          }))
+        });
+        
+        // Add classroom to program
+        await ProgramService.addClassroomToProgram(selectedProgram.id, classroomId);
+        
+        // Assign teacher to classroom
+        await UserService.assignTeacherToClassroom(formData.teacherId, classroomId);
+        
+        toast.success('Clase creada exitosamente');
+      }
       
-      // Add classroom to program
-      await ProgramService.addClassroomToProgram(selectedProgram.id, classroomId);
-      
-      // Assign teacher to classroom
-      await UserService.assignTeacherToClassroom(classroomForm.teacherId, classroomId);
-      
-      toast.success('Clase creada exitosamente');
       setClassroomModal(false);
+      setEditingClassroom(null);
       await loadData();
     } catch (error: any) {
-      console.error('Error creating classroom:', error);
-      toast.error(error.message || 'Error al crear clase');
+      console.error('Error saving classroom:', error);
+      throw error; // Re-throw to be handled by the form
+    }
+  };
+
+  const handleCloseClassroomModal = () => {
+    setClassroomModal(false);
+    setEditingClassroom(null);
+    setSelectedProgram(null);
+  };
+
+  const handleToggleClassroomStatus = async (classroomId: string, currentStatus: boolean) => {
+    try {
+      await ClassroomService.updateClassroom(classroomId, {
+        isActive: !currentStatus
+      });
+      toast.success(`Clase ${currentStatus ? 'desactivada' : 'activada'} exitosamente`);
+      await loadData();
+    } catch (error) {
+      console.error('Error toggling classroom status:', error);
+      toast.error('Error al cambiar el estado de la clase');
     }
   };
 
@@ -477,7 +482,7 @@ const ProgramManagement: React.FC = () => {
                             return (
                               <ListGroupItem key={classroom.id}>
                                 <div className="d-flex justify-content-between align-items-center">
-                                  <div>
+                                  <div className="flex-grow-1">
                                     <strong>{classroom.subject}</strong> - {classroom.name}
                                     <br />
                                     <small className="text-muted">
@@ -486,9 +491,38 @@ const ProgramManagement: React.FC = () => {
                                       {classroom.studentIds?.length || 0} estudiantes
                                     </small>
                                   </div>
-                                  <Badge color={classroom.isActive ? 'success' : 'secondary'}>
-                                    {classroom.isActive ? 'Activa' : 'Inactiva'}
-                                  </Badge>
+                                  <div className="d-flex align-items-center gap-2">
+                                    {/* Status Switch */}
+                                    <div className="form-check form-switch">
+                                      <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        role="switch"
+                                        id={`switch-${classroom.id}`}
+                                        checked={classroom.isActive}
+                                        onChange={() => handleToggleClassroomStatus(classroom.id, classroom.isActive)}
+                                        style={{ cursor: 'pointer' }}
+                                      />
+                                      <label 
+                                        className="form-check-label text-muted small" 
+                                        htmlFor={`switch-${classroom.id}`}
+                                        style={{ cursor: 'pointer' }}
+                                      >
+                                        {classroom.isActive ? 'Activa' : 'Inactiva'}
+                                      </label>
+                                    </div>
+                                    
+                                    {/* Edit Button */}
+                                    <Button
+                                      color="primary"
+                                      size="sm"
+                                      outline
+                                      onClick={() => handleOpenClassroomModal(program, classroom)}
+                                      title="Editar clase"
+                                    >
+                                      <i className="bi bi-pencil"></i>
+                                    </Button>
+                                  </div>
                                 </div>
                               </ListGroupItem>
                             );
@@ -682,236 +716,15 @@ const ProgramManagement: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Classroom Creation Modal */}
-      <Modal isOpen={classroomModal} toggle={() => setClassroomModal(false)} size="lg">
-        <ModalHeader toggle={() => setClassroomModal(false)}>
-          Nueva Clase para {selectedProgram?.name}
-        </ModalHeader>
-        <ModalBody>
-          <Form>
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="className">Nombre de la Clase *</Label>
-                  <Input
-                    type="text"
-                    id="className"
-                    value={classroomForm.name}
-                    onChange={(e) => setClassroomForm({ ...classroomForm, name: e.target.value })}
-                    placeholder="Ej: Grupo A"
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="subject">Materia *</Label>
-                  <Input
-                    type="text"
-                    id="subject"
-                    value={classroomForm.subject}
-                    onChange={(e) => setClassroomForm({ ...classroomForm, subject: e.target.value })}
-                    placeholder="Ej: Introducción a la Teología"
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={12}>
-                <FormGroup>
-                  <Label for="classDescription">Descripción</Label>
-                  <Input
-                    type="textarea"
-                    id="classDescription"
-                    rows={2}
-                    value={classroomForm.description}
-                    onChange={(e) => setClassroomForm({ ...classroomForm, description: e.target.value })}
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="teacher">Profesor *</Label>
-                  <Input
-                    type="select"
-                    id="teacher"
-                    value={classroomForm.teacherId}
-                    onChange={(e) => setClassroomForm({ ...classroomForm, teacherId: e.target.value })}
-                  >
-                    <option value="">Seleccione un profesor</option>
-                    {teachers.map(teacher => (
-                      <option key={teacher.id} value={teacher.id}>
-                        {teacher.firstName} {teacher.lastName}
-                      </option>
-                    ))}
-                  </Input>
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="materialPrice">Precio del Material</Label>
-                  <Input
-                    type="number"
-                    id="materialPrice"
-                    value={classroomForm.materialPrice}
-                    onChange={(e) => setClassroomForm({ ...classroomForm, materialPrice: parseInt(e.target.value) })}
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={4}>
-                <FormGroup>
-                  <Label for="dayOfWeek">Día de la Semana</Label>
-                  <Input
-                    type="select"
-                    id="dayOfWeek"
-                    value={classroomForm.schedule.dayOfWeek}
-                    onChange={(e) => setClassroomForm({ 
-                      ...classroomForm, 
-                      schedule: { ...classroomForm.schedule, dayOfWeek: e.target.value }
-                    })}
-                  >
-                    <option value="Monday">Lunes</option>
-                    <option value="Tuesday">Martes</option>
-                    <option value="Wednesday">Miércoles</option>
-                    <option value="Thursday">Jueves</option>
-                    <option value="Friday">Viernes</option>
-                    <option value="Saturday">Sábado</option>
-                    <option value="Sunday">Domingo</option>
-                  </Input>
-                </FormGroup>
-              </Col>
-              <Col md={4}>
-                <FormGroup>
-                  <Label for="time">Hora</Label>
-                  <Input
-                    type="time"
-                    id="time"
-                    value={classroomForm.schedule.time}
-                    onChange={(e) => setClassroomForm({ 
-                      ...classroomForm, 
-                      schedule: { ...classroomForm.schedule, time: e.target.value }
-                    })}
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={4}>
-                <FormGroup>
-                  <Label for="duration">Duración (minutos)</Label>
-                  <Input
-                    type="number"
-                    id="duration"
-                    value={classroomForm.schedule.duration}
-                    onChange={(e) => setClassroomForm({ 
-                      ...classroomForm, 
-                      schedule: { ...classroomForm.schedule, duration: parseInt(e.target.value) }
-                    })}
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={12}>
-                <h6>Criterios de Evaluación (Total: 100 puntos)</h6>
-                <Row>
-                  <Col md={3}>
-                    <FormGroup>
-                      <Label for="questionnaires">Cuestionarios</Label>
-                      <Input
-                        type="number"
-                        id="questionnaires"
-                        value={classroomForm.evaluationCriteria.questionnaires}
-                        onChange={(e) => setClassroomForm({ 
-                          ...classroomForm, 
-                          evaluationCriteria: { 
-                            ...classroomForm.evaluationCriteria, 
-                            questionnaires: parseInt(e.target.value) 
-                          }
-                        })}
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col md={3}>
-                    <FormGroup>
-                      <Label for="attendance">Asistencia</Label>
-                      <Input
-                        type="number"
-                        id="attendance"
-                        value={classroomForm.evaluationCriteria.attendance}
-                        onChange={(e) => setClassroomForm({ 
-                          ...classroomForm, 
-                          evaluationCriteria: { 
-                            ...classroomForm.evaluationCriteria, 
-                            attendance: parseInt(e.target.value) 
-                          }
-                        })}
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col md={3}>
-                    <FormGroup>
-                      <Label for="participation">Participación</Label>
-                      <Input
-                        type="number"
-                        id="participation"
-                        value={classroomForm.evaluationCriteria.participation}
-                        onChange={(e) => setClassroomForm({ 
-                          ...classroomForm, 
-                          evaluationCriteria: { 
-                            ...classroomForm.evaluationCriteria, 
-                            participation: parseInt(e.target.value) 
-                          }
-                        })}
-                      />
-                    </FormGroup>
-                  </Col>
-                  <Col md={3}>
-                    <FormGroup>
-                      <Label for="finalExam">Examen Final</Label>
-                      <Input
-                        type="number"
-                        id="finalExam"
-                        value={classroomForm.evaluationCriteria.finalExam}
-                        onChange={(e) => setClassroomForm({ 
-                          ...classroomForm, 
-                          evaluationCriteria: { 
-                            ...classroomForm.evaluationCriteria, 
-                            finalExam: parseInt(e.target.value) 
-                          }
-                        })}
-                      />
-                    </FormGroup>
-                  </Col>
-                </Row>
-                <Alert color={
-                  (classroomForm.evaluationCriteria.questionnaires +
-                   classroomForm.evaluationCriteria.attendance +
-                   classroomForm.evaluationCriteria.participation +
-                   classroomForm.evaluationCriteria.finalExam) === 100 ? 'success' : 'warning'
-                }>
-                  Total: {
-                    classroomForm.evaluationCriteria.questionnaires +
-                    classroomForm.evaluationCriteria.attendance +
-                    classroomForm.evaluationCriteria.participation +
-                    classroomForm.evaluationCriteria.finalExam
-                  } / 100 puntos
-                </Alert>
-              </Col>
-            </Row>
-          </Form>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setClassroomModal(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            color="primary" 
-            onClick={handleCreateClassroom}
-            disabled={
-              (classroomForm.evaluationCriteria.questionnaires +
-               classroomForm.evaluationCriteria.attendance +
-               classroomForm.evaluationCriteria.participation +
-               classroomForm.evaluationCriteria.finalExam) !== 100
-            }
-          >
-            Crear Clase
-          </Button>
-        </ModalFooter>
-      </Modal>
+      {/* Classroom Form Component */}
+      <ClassroomForm
+        isOpen={classroomModal}
+        onClose={handleCloseClassroomModal}
+        onSave={handleSaveClassroom}
+        classroom={editingClassroom}
+        program={selectedProgram}
+        teachers={teachers}
+      />
 
       {/* Statistics Modal */}
       <Modal isOpen={statsModal} toggle={() => setStatsModal(false)}>

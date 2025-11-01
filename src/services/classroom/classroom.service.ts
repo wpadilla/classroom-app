@@ -141,7 +141,7 @@ export class ClassroomService {
         }
       }
       
-      await FirebaseService.updateDocument(COLLECTIONS.CLASSROOMS, classroomId, updates);
+      await FirebaseService.updateDocument(COLLECTIONS.CLASSROOMS, classroomId, updates as any);
     } catch (error) {
       console.error(`Error updating classroom ${classroomId}:`, error);
       throw error;
@@ -203,12 +203,20 @@ export class ClassroomService {
         .filter(s => s.phone)
         .map(s => WhatsappService.formatPhoneNumber(s.phone));
       
+      // Get teacher phone number and add to the group
+      const teacher = await UserService.getUserById(classroom.teacherId);
+      if (teacher && teacher.phone) {
+        const teacherPhone = WhatsappService.formatPhoneNumber(teacher.phone);
+        // Add teacher at the beginning of the list (will be admin by default)
+        phoneNumbers.unshift(teacherPhone);
+      }
+      
       // Create WhatsApp group
       const groupName = `${classroom.subject} - ${classroom.name}`;
       const groupResponse = await WhatsappService.createGroup(
         groupName,
         phoneNumbers,
-        `Grupo de la clase ${classroom.subject}`
+        `Grupo de la clase ${classroom.subject}. Profesor: ${teacher ? `${teacher.firstName} ${teacher.lastName}` : 'N/A'}`
       );
       
       if (!groupResponse.success || !groupResponse.data) {
@@ -242,11 +250,20 @@ export class ClassroomService {
         .filter(s => s.phone)
         .map(s => WhatsappService.formatPhoneNumber(s.phone));
       
+      // Get teacher phone and add to participants
+      const teacher = await UserService.getUserById(classroom.teacherId);
+      const allPhones = [...studentPhones];
+      if (teacher && teacher.phone) {
+        const teacherPhone = WhatsappService.formatPhoneNumber(teacher.phone);
+        // Add teacher at the beginning
+        allPhones.unshift(teacherPhone);
+      }
+      
       // Sync with WhatsApp group
       const response = await WhatsappService.syncGroupParticipants(
         classroom.whatsappGroup.id,
         classroomId,
-        studentPhones
+        allPhones
       );
       
       if (!response.success) {
@@ -257,7 +274,15 @@ export class ClassroomService {
       const participants = await WhatsappService.getGroupParticipants(classroom.whatsappGroup.id);
       
       // Add new participants as students if they're not in the classroom
+      // Exclude teacher from being added as student
+      const teacherPhone = teacher?.phone ? WhatsappService.formatPhoneNumber(teacher.phone) : null;
+      
       for (const participant of participants) {
+        // Skip if it's the teacher
+        if (teacherPhone && participant.phone === teacherPhone) {
+          continue;
+        }
+        
         const existingStudent = students.find(
           s => WhatsappService.formatPhoneNumber(s.phone) === participant.phone
         );
@@ -299,7 +324,9 @@ export class ClassroomService {
         {
           type: 'text',
           content: message
-        } as any
+        } as any,
+        5, // delay
+        classroom.whatsappGroup.name || `${classroom.subject} - ${classroom.name}` // group title
       );
       
       if (!response.success) {

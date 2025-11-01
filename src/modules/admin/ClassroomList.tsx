@@ -136,7 +136,7 @@ const ClassroomList: React.FC = () => {
         <Col xs="6" className="mb-2">
           <Input
             type="select"
-            size="sm"
+            bsSize="sm"
             value={filterProgram}
             onChange={(e) => setFilterProgram(e.target.value)}
           >
@@ -151,7 +151,7 @@ const ClassroomList: React.FC = () => {
         <Col xs="6" className="mb-2">
           <Input
             type="select"
-            size="sm"
+            bsSize="sm"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >

@@ -1,6 +1,6 @@
 // User Registration Component with Photo Upload
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -22,7 +22,7 @@ import { IRegistrationData } from '../../models';
 import { GCloudService } from '../../services/gcloud/gcloud.service';
 
 const Register: React.FC = () => {
-  const { register, loading } = useAuth();
+  const { register, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -42,6 +42,26 @@ const Register: React.FC = () => {
   const [generalError, setGeneralError] = useState<string>('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      // Navigate to appropriate dashboard based on role
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin/dashboard', { replace: true });
+          break;
+        case 'teacher':
+          navigate('/teacher/dashboard', { replace: true });
+          break;
+        case 'student':
+          navigate('/student/dashboard', { replace: true });
+          break;
+        default:
+          navigate('/', { replace: true });
+      }
+    }
+  }, [loading, isAuthenticated, user, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

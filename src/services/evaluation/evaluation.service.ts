@@ -147,6 +147,7 @@ export class EvaluationService {
           studentId,
           classroomId,
           moduleId,
+          participationRecords: [],
           scores: {
             questionnaires: 0,
             attendance: 0,
@@ -232,6 +233,7 @@ export class EvaluationService {
           studentId,
           classroomId,
           moduleId: '',
+          participationRecords: [],
           scores: {
             questionnaires: 0,
             attendance: 0,

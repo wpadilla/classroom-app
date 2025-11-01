@@ -74,7 +74,8 @@ const EvaluationManager: React.FC = () => {
     participation: 20,
     participationPointsPerModule: 1, // Default: 1 point per module
     finalExam: 40,
-    customCriteria: []
+    customCriteria: [],
+    participationRecords: []
   });
 
   useEffect(() => {
@@ -154,6 +155,7 @@ const EvaluationManager: React.FC = () => {
               studentId: student.id,
               classroomId: classroomId,
               moduleId: '', // Will be set when evaluation is done
+              participationRecords: [],
               scores: {
                 questionnaires: 0,
                 attendance: 0,

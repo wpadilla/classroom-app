@@ -171,7 +171,7 @@ const StudentClassroom: React.FC = () => {
           ? (scores.finalExam / criteria.finalExam) * 100 
           : 0
       },
-      ...criteria.custom.map(c => ({
+      ...criteria.customCriteria.map(c => ({
         name: c.name,
         points: c.points,
         earned: scores.customScores.find(cs => cs.criterionId === c.id)?.score || 0,

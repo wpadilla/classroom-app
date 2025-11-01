@@ -5,16 +5,13 @@ import {
   IWhatsappGroup,
   IWhatsappMessage,
   IWhatsappSession,
-  ICreateWhatsappGroupRequest,
-  ISyncWhatsappGroupRequest,
-  ISendWhatsappMessageRequest,
   IWhatsappResponse,
   IWhatsappGroupResponse,
   IWhatsappMessageResponse
 } from '../../models';
 
 const WHATSAPP_API_URL = 'https://betuel-promotions.xyz/api/whatsapp';
-const DEFAULT_SESSION_ID = 'classroom-app';
+const DEFAULT_SESSION_ID = 'bibleAssistant';
 
 export class WhatsappService {
   private static sessionId: string = DEFAULT_SESSION_ID;
@@ -46,7 +43,7 @@ export class WhatsappService {
   static async getSessionStatus(): Promise<IWhatsappSession> {
     try {
       const response = await axios.post(`${this.apiUrl}/status`, {
-        sessionId: this.sessionId
+        sessionId: this.sessionId,
       });
 
       return response.data;
@@ -65,14 +62,21 @@ export class WhatsappService {
     description?: string
   ): Promise<IWhatsappGroupResponse> {
     try {
-      const request: ICreateWhatsappGroupRequest = {
+      // Format payload according to ICreateWhatsappGroupPayload
+      const payload = {
         sessionId: this.sessionId,
-        groupName,
-        participants,
-        description
+        groupDetails: {
+          title: groupName,
+          description: description || '',
+          participants: participants
+        },
+        clients: participants.map(phone => ({
+          phone: phone,
+          name: '' // Optional, can be filled if we have the name
+        }))
       };
 
-      const response = await axios.post(`${this.apiUrl}/group/create`, request);
+      const response = await axios.post(`${this.apiUrl}/group/create`, payload);
 
       return {
         success: true,
@@ -97,22 +101,17 @@ export class WhatsappService {
     studentsPhones: string[]
   ): Promise<IWhatsappResponse> {
     try {
-      // Get current group participants
-      const participants = await this.getGroupParticipants(groupId);
-      
-      const currentPhones = participants.map(p => p.phone);
-      const phonesToAdd = studentsPhones.filter(phone => !currentPhones.includes(phone));
-      const phonesToRemove = currentPhones.filter(phone => !studentsPhones.includes(phone));
-
-      const request: ISyncWhatsappGroupRequest = {
+      // Format payload according to ISyncWhatsappGroupPayload
+      const payload = {
         sessionId: this.sessionId,
-        groupId,
-        classroomId,
-        addParticipants: phonesToAdd,
-        removeParticipants: phonesToRemove
+        whatsappGroupID: groupId,
+        clients: studentsPhones.map(phone => ({
+          phone: phone,
+          name: '' // Optional, can be filled if we have the name
+        }))
       };
 
-      const response = await axios.post(`${this.apiUrl}/group/sync`, request);
+      const response = await axios.post(`${this.apiUrl}/group/sync`, payload);
 
       return {
         success: true,
@@ -148,18 +147,63 @@ export class WhatsappService {
    * Send message to WhatsApp group or individual
    */
   static async sendMessage(
-    recipients: string[],
+    recipients: string[] | any[],
     message: IWhatsappMessage,
-    delay: number = 5
+    delay: number = 5,
+    groupTitle?: string
   ): Promise<IWhatsappMessageResponse> {
     try {
       const formData = new FormData();
+      
+      // Format contacts according to the correct structure
+      const contacts = recipients.map(recipient => {
+        // If recipient is already an object with contact info, use it
+        if (typeof recipient === 'object' && recipient.phone) {
+          return {
+            phone: recipient.phone,
+            id: recipient.id || (recipient.phone.includes('@') ? recipient.phone : `${recipient.phone}@s.whatsapp.net`),
+            ...(recipient.firstName && { firstName: recipient.firstName }),
+            ...(recipient.lastName && { lastName: recipient.lastName }),
+            ...(recipient.fullName && { fullName: recipient.fullName }),
+            ...(recipient.score !== undefined && { score: recipient.score }),
+            ...(recipient.absentTimes !== undefined && { absentTimes: recipient.absentTimes }),
+            ...(recipient.teacherName && { teacherName: recipient.teacherName }),
+            ...(recipient.subject && { subject: recipient.subject }),
+            ...(recipient.schedule && { schedule: recipient.schedule }),
+            ...(recipient.materialPrice !== undefined && { materialPrice: recipient.materialPrice }),
+            ...(recipient.classroom && { classroom: recipient.classroom }),
+            ...(recipient.title && { title: recipient.title })
+          };
+        }
+        
+        // If recipient is just a string (phone number or group ID)
+        const contact: any = {
+          phone: recipient,
+          id: recipient.includes('@') ? recipient : `${recipient}@s.whatsapp.net`
+        };
+        
+        // If it's a group ID and we have a title, add it
+        if (groupTitle && recipient.includes('@g.us')) {
+          contact.title = groupTitle;
+        }
+        
+        return contact;
+      });
+      
+      // Format messages according to the correct structure
+      const messages = [{
+        text: message.content,
+        ...(message.media && {
+          media: message.media
+        })
+      }];
+      
       formData.append('sessionId', this.sessionId);
-      formData.append('contacts', JSON.stringify(recipients));
-      formData.append('messages', JSON.stringify([message]));
+      formData.append('contacts', JSON.stringify(contacts));
+      formData.append('messages', JSON.stringify(messages));
       formData.append('delay', delay.toString());
 
-      // Add media if present
+      // Add media file if present
       if (message.media && message.type !== 'text') {
         // Handle file upload if needed
         // This would require converting media URL to blob/file
@@ -190,11 +234,17 @@ export class WhatsappService {
    */
   static async sendBulkMessages(
     groupIds: string[],
-    message: IWhatsappMessage
+    message: IWhatsappMessage,
+    groupTitles?: { [groupId: string]: string }
   ): Promise<IWhatsappResponse[]> {
     try {
       const promises = groupIds.map(groupId =>
-        this.sendMessage([groupId], message)
+        this.sendMessage(
+          [groupId], 
+          message,
+          5, // delay
+          groupTitles?.[groupId] // group title if provided
+        )
       );
 
       const results = await Promise.allSettled(promises);

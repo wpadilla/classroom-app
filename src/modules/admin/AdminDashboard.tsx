@@ -173,15 +173,27 @@ const AdminDashboard: React.FC = () => {
                 WhatsApp
               </h5>
               <div className="d-grid gap-2">
-                <Button color="outline-success">
+                <Button 
+                  tag={Link} 
+                  to="/admin/whatsapp"
+                  color="outline-success"
+                >
                   <i className="bi bi-qr-code me-2"></i>
-                  Conectar WhatsApp
+                  Gestionar WhatsApp
                 </Button>
-                <Button color="outline-success">
+                <Button 
+                  tag={Link} 
+                  to="/admin/whatsapp/groups"
+                  color="outline-success"
+                >
                   <i className="bi bi-people me-2"></i>
                   Administrar Grupos
                 </Button>
-                <Button color="outline-success">
+                <Button 
+                  tag={Link} 
+                  to="/admin/whatsapp/bulk-messaging"
+                  color="outline-success"
+                >
                   <i className="bi bi-send me-2"></i>
                   Enviar Mensaje Masivo
                 </Button>

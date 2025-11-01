@@ -41,6 +41,7 @@ export interface IClassroom {
     time: string; // e.g., "18:00"
     duration: number; // in minutes
   };
+  room?: string; // Physical classroom/room where classes are held
   location?: string;
   maxStudents?: number;
   materialPrice: number;

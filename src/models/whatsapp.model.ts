@@ -62,19 +62,29 @@ export interface IWhatsappSession {
 }
 
 // WhatsApp API request/response types
+// These interfaces match the backend API structure
+
 export interface ICreateWhatsappGroupRequest {
   sessionId: string;
-  groupName: string;
-  participants: string[]; // Phone numbers
-  description?: string;
+  groupDetails: {
+    title: string;
+    description?: string;
+    participants: string[]; // Phone numbers
+    photo?: string | null;
+  };
+  clients: Array<{
+    phone: string;
+    name?: string;
+  }>;
 }
 
 export interface ISyncWhatsappGroupRequest {
   sessionId: string;
-  groupId: string;
-  classroomId: string;
-  addParticipants?: string[]; // Phone numbers to add
-  removeParticipants?: string[]; // Phone numbers to remove
+  whatsappGroupID: string;
+  clients: Array<{
+    phone: string;
+    name?: string;
+  }>;
 }
 
 export interface ISendWhatsappMessageRequest {

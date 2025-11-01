@@ -46,6 +46,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
     if (user.role === 'admin') {
       items.push(
         { path: '/admin/dashboard', icon: 'bi-house-fill', label: 'Inicio' },
+        { path: '/admin/profile', icon: 'bi-person-fill', label: 'Perfil' },
         { path: '/admin/users', icon: 'bi-people-fill', label: 'Usuarios' },
         { path: '/admin/programs', icon: 'bi-collection-fill', label: 'Programas' },
         { path: '/admin/classrooms', icon: 'bi-door-open-fill', label: 'Clases' }
@@ -53,6 +54,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
     } else if (user.role === 'teacher' || user.isTeacher) {
       items.push(
         { path: '/teacher/dashboard', icon: 'bi-house-fill', label: 'Inicio' },
+        { path: '/teacher/profile', icon: 'bi-person-fill', label: 'Perfil' },
         { path: '/teacher/students', icon: 'bi-people-fill', label: 'Estudiantes' },
         { path: '/teacher/classrooms', icon: 'bi-door-open-fill', label: 'Clases' }
       );

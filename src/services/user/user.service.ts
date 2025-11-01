@@ -276,6 +276,7 @@ export class UserService {
         classroomName,
         programId,
         programName,
+        role: 'student', // This is for student completion
         enrollmentDate: new Date(), // Should get actual enrollment date
         completionDate: new Date(),
         finalGrade,

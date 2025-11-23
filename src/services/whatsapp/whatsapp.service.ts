@@ -62,15 +62,27 @@ export class WhatsappService {
     description?: string
   ): Promise<IWhatsappGroupResponse> {
     try {
+      // Filter and format participants
+      const validParticipants = participants
+        .map(p => this.processPhoneNumber(p))
+        .filter((p): p is string => p !== null);
+
+      if (validParticipants.length === 0) {
+        return {
+          success: false,
+          error: 'No hay participantes válidos para crear el grupo'
+        };
+      }
+
       // Format payload according to ICreateWhatsappGroupPayload
       const payload = {
         sessionId: this.sessionId,
         groupDetails: {
           title: groupName,
           description: description || '',
-          participants: participants
+          participants: validParticipants
         },
-        clients: participants.map(phone => ({
+        clients: validParticipants.map(phone => ({
           phone: phone,
           name: '' // Optional, can be filled if we have the name
         }))
@@ -101,11 +113,23 @@ export class WhatsappService {
     studentsPhones: string[]
   ): Promise<IWhatsappResponse> {
     try {
+      // Filter and format phones
+      const validPhones = studentsPhones
+        .map(p => this.processPhoneNumber(p))
+        .filter((p): p is string => p !== null);
+
+      if (validPhones.length === 0) {
+        return {
+          success: false,
+          error: 'No hay números de teléfono válidos para sincronizar'
+        };
+      }
+
       // Format payload according to ISyncWhatsappGroupPayload
       const payload = {
         sessionId: this.sessionId,
         whatsappGroupID: groupId,
-        clients: studentsPhones.map(phone => ({
+        clients: validPhones.map(phone => ({
           phone: phone,
           name: '' // Optional, can be filled if we have the name
         }))
@@ -154,14 +178,17 @@ export class WhatsappService {
   ): Promise<IWhatsappMessageResponse> {
     try {
       const formData = new FormData();
-      
-      // Format contacts according to the correct structure
+
+      // Filter and format contacts
       const contacts = recipients.map(recipient => {
         // If recipient is already an object with contact info, use it
         if (typeof recipient === 'object' && recipient.phone) {
+          const processedPhone = this.processPhoneNumber(recipient.phone);
+          if (!processedPhone) return null;
+
           return {
-            phone: recipient.phone,
-            id: recipient.id || (recipient.phone.includes('@') ? recipient.phone : `${recipient.phone}@s.whatsapp.net`),
+            phone: processedPhone,
+            id: recipient.id || (processedPhone.includes('@') ? processedPhone : `${processedPhone}@s.whatsapp.net`),
             ...(recipient.firstName && { firstName: recipient.firstName }),
             ...(recipient.lastName && { lastName: recipient.lastName }),
             ...(recipient.fullName && { fullName: recipient.fullName }),
@@ -175,21 +202,39 @@ export class WhatsappService {
             ...(recipient.title && { title: recipient.title })
           };
         }
-        
+
         // If recipient is just a string (phone number or group ID)
-        const contact: any = {
-          phone: recipient,
-          id: recipient.includes('@') ? recipient : `${recipient}@s.whatsapp.net`
-        };
-        
-        // If it's a group ID and we have a title, add it
-        if (groupTitle && recipient.includes('@g.us')) {
-          contact.title = groupTitle;
+        const recipientStr = String(recipient);
+
+        // Check if it's a group ID (contains @g.us)
+        if (recipientStr.includes('@g.us')) {
+          const contact: any = {
+            phone: recipientStr,
+            id: recipientStr
+          };
+          if (groupTitle) {
+            contact.title = groupTitle;
+          }
+          return contact;
         }
-        
-        return contact;
-      });
-      
+
+        // It's a phone number
+        const processedPhone = this.processPhoneNumber(recipientStr);
+        if (!processedPhone) return null;
+
+        return {
+          phone: processedPhone,
+          id: `${processedPhone}@s.whatsapp.net`
+        };
+      }).filter(contact => contact !== null);
+
+      if (contacts.length === 0) {
+        return {
+          success: false,
+          error: 'No hay destinatarios válidos'
+        };
+      }
+
       // Format messages according to the correct structure
       const messages = [{
         text: message.content,
@@ -197,7 +242,7 @@ export class WhatsappService {
           media: message.media
         })
       }];
-      
+
       formData.append('sessionId', this.sessionId);
       formData.append('contacts', JSON.stringify(contacts));
       formData.append('messages', JSON.stringify(messages));
@@ -240,7 +285,7 @@ export class WhatsappService {
     try {
       const promises = groupIds.map(groupId =>
         this.sendMessage(
-          [groupId], 
+          [groupId],
           message,
           5, // delay
           groupTitles?.[groupId] // group title if provided
@@ -360,26 +405,39 @@ export class WhatsappService {
   }
 
   /**
-   * Format phone number for WhatsApp
+   * Process phone number: remove non-numeric, validate length, format
+   * Returns formatted number or null if invalid
    */
-  static formatPhoneNumber(phone: string): string {
+  static processPhoneNumber(phone: string): string | null {
     // Remove all non-numeric characters
     let cleaned = phone.replace(/\D/g, '');
-    
-    // Add country code if not present (assuming Dominican Republic)
-    if (!cleaned.startsWith('1') && cleaned.length === 10) {
+
+    // Check length requirements
+    if (cleaned.length < 10) {
+      return null;
+    }
+
+    // If length is exactly 10, prepend '1'
+    if (cleaned.length === 10) {
       cleaned = '1' + cleaned;
     }
-    
+
     return cleaned;
+  }
+
+  /**
+   * Format phone number for WhatsApp
+   * @deprecated Use processPhoneNumber instead
+   */
+  static formatPhoneNumber(phone: string): string {
+    const processed = this.processPhoneNumber(phone);
+    return processed || phone.replace(/\D/g, '');
   }
 
   /**
    * Validate phone number format
    */
   static isValidPhoneNumber(phone: string): boolean {
-    const cleaned = phone.replace(/\D/g, '');
-    // Check for valid phone number length (with or without country code)
-    return cleaned.length >= 10 && cleaned.length <= 15;
+    return this.processPhoneNumber(phone) !== null;
   }
 }

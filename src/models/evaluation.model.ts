@@ -34,19 +34,19 @@ export interface IStudentEvaluation {
     finalExam: number;
     customScores: { criterionId: string; score: number }[];
   };
-  
+
   // Attendance tracking per module
   attendanceRecords: IAttendanceRecord[];
-  
+
   // Participation: Simple total points (no per-module tracking needed)
   participationPoints: number; // Total accumulated participation points
-  
+
   // Final calculation
   totalScore: number; // Sum of all scores
   percentage: number; // totalScore as percentage
   letterGrade?: string; // A, B, C, D, F
   status: 'in-progress' | 'completed' | 'evaluated';
-  
+
   // Metadata
   evaluatedBy?: string; // Teacher ID who evaluated
   evaluatedAt?: Date;

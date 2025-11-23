@@ -105,6 +105,24 @@ export class UserService {
   }
 
   /**
+   * Get users by IDs
+   */
+  static async getUsersByIds(userIds: string[]): Promise<IUser[]> {
+    if (!userIds || userIds.length === 0) return [];
+    
+    try {
+      // Use Promise.all to fetch users by ID individually
+      // This avoids issues with querying by 'id' field which might not exist in the document data
+      const promises = userIds.map(id => this.getUserById(id));
+      const results = await Promise.all(promises);
+      return results.filter(u => u !== null) as IUser[];
+    } catch (error) {
+      console.error('Error getting users by IDs:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get teachers by classroom
    */
   static async getTeachersByClassroom(classroomId: string): Promise<IUser[]> {

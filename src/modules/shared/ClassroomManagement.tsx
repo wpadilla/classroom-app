@@ -45,11 +45,14 @@ import { EvaluationService } from '../../services/evaluation/evaluation.service'
 import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
 import { IClassroom, IUser, IModule, IStudentEvaluation, IAttendanceRecord } from '../../models';
 
+import { useOffline } from '../../contexts/OfflineContext';
+
 const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  
+  const { user } = useAuth();
+  const { isOffline } = useOffline();
+
   // State
   const [classroom, setClassroom] = useState<IClassroom | null>(null);
   const [students, setStudents] = useState<IUser[]>([]);
@@ -57,7 +60,7 @@ const ClassroomManagement: React.FC = () => {
   const [currentModule, setCurrentModule] = useState<IModule | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('attendance');
-  
+
   // WhatsApp state
   const [whatsappDropdownOpen, setWhatsappDropdownOpen] = useState(false);
   const [whatsappMessageModal, setWhatsappMessageModal] = useState(false);
@@ -65,22 +68,22 @@ const ClassroomManagement: React.FC = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [syncingGroup, setSyncingGroup] = useState(false);
-  
+
   // Finalization state
   const [finalizationModal, setFinalizationModal] = useState(false);
   const [isFinalized, setIsFinalized] = useState(false);
-  
+
   // Attendance state - Now per module
   const [attendanceRecords, setAttendanceRecords] = useState<Map<string, boolean>>(new Map());
-  
+
   // Participation state - Track total participation including pending changes
   const [participationTotals, setParticipationTotals] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
-    if (id && user) {
+    if (id && user) { // Keep user in dependency for permission checks
       loadClassroomData();
     }
-  }, [id, user]);
+  }, [id, user, isOffline]); // Reload when offline status changes or user changes
 
   useEffect(() => {
     // Load attendance and participation for current module when it changes
@@ -91,58 +94,67 @@ const ClassroomManagement: React.FC = () => {
   }, [currentModule, evaluations]);
 
   const loadClassroomData = async () => {
-    if (!id || !user) return;
-    
+    if (!id || !user) return; // Ensure user is available for permission checks
+
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Load classroom
+      // Load from Firebase (cache-first by default if offline)
       const classroomData = await ClassroomService.getClassroomById(id);
+
       if (!classroomData) {
         toast.error('Clase no encontrada');
         navigate(user.role === 'admin' ? '/admin/classrooms' : '/teacher/dashboard');
         return;
       }
-      
+
       // Check permissions
       if (user.role !== 'admin' && classroomData.teacherId !== user.id) {
         toast.error('No tienes permiso para acceder a esta clase');
         navigate('/teacher/dashboard');
         return;
       }
-      
-      setClassroom(classroomData);
-      setCurrentModule(classroomData.currentModule || classroomData.modules[0]);
-      
-      // Check if finalized
-      const finalized = await ClassroomService.isFinalized(id);
-      setIsFinalized(finalized);
-      
+
+      // Load evaluations
+      const evaluationsData = await EvaluationService.getClassroomEvaluations(id);
+
       // Load students
+      let studentsData: IUser[] = [];
       if (classroomData.studentIds && classroomData.studentIds.length > 0) {
-        const studentPromises = classroomData.studentIds.map(studentId => 
-          UserService.getUserById(studentId)
-        );
-        const studentResults = await Promise.all(studentPromises);
-        const validStudents = studentResults.filter(s => s !== null) as IUser[];
-        setStudents(validStudents);
-        
-        // Load evaluations for all students
-        const evaluationPromises = validStudents.map(student =>
-          EvaluationService.getStudentClassroomEvaluation(student.id, id)
-        );
-        const evaluationResults = await Promise.all(evaluationPromises);
-        
-        const evaluationMap = new Map<string, IStudentEvaluation>();
-        validStudents.forEach((student, index) => {
-          const evaluation = evaluationResults[index];
-          if (evaluation) {
-            evaluationMap.set(student.id, evaluation);
-          }
-        });
-        
-        setEvaluations(evaluationMap);
+        studentsData = await UserService.getUsersByIds(classroomData.studentIds);
       }
+
+      setClassroom(classroomData);
+      setStudents(studentsData);
+
+      // Process evaluations map
+      const evalMap = new Map();
+      evaluationsData.forEach(e => evalMap.set(e.studentId, e));
+      setEvaluations(evalMap);
+
+      // Initialize attendance and participation for current module
+      const activeModule = classroomData.modules.find(m => !m.isCompleted) || classroomData.modules[classroomData.modules.length - 1];
+      setCurrentModule(activeModule);
+
+      // Update local tracking state based on loaded evaluations
+      const attendanceMap = new Map<string, boolean>();
+      const participationMap = new Map<string, number>();
+
+      evaluationsData.forEach(evaluation => {
+        // Attendance for current module
+        if (activeModule) {
+          const record = evaluation.attendanceRecords?.find(r => r.moduleId === activeModule.id);
+          if (record) {
+            attendanceMap.set(evaluation.studentId, record.isPresent);
+          }
+        }
+
+        // Total participation
+        participationMap.set(evaluation.studentId, evaluation.participationPoints || 0);
+      });
+
+      setAttendanceRecords(attendanceMap);
+      setParticipationTotals(participationMap);
+
     } catch (error) {
       console.error('Error loading classroom data:', error);
       toast.error('Error al cargar los datos de la clase');
@@ -153,36 +165,36 @@ const ClassroomManagement: React.FC = () => {
 
   const loadModuleAttendance = () => {
     if (!currentModule) return;
-    
+
     const attendanceMap = new Map<string, boolean>();
-    
+
     evaluations.forEach((evaluation, studentId) => {
       const moduleAttendance = evaluation.attendanceRecords?.find(
         record => record.moduleId === currentModule.id
       );
-      
+
       if (moduleAttendance) {
         attendanceMap.set(studentId, moduleAttendance.isPresent);
       }
     });
-    
+
     setAttendanceRecords(attendanceMap);
   };
 
   const loadParticipationTotals = () => {
     const totalsMap = new Map<string, number>();
-    
+
     evaluations.forEach((evaluation, studentId) => {
       const total = evaluation.participationPoints || 0;
       totalsMap.set(studentId, total);
     });
-    
+
     setParticipationTotals(totalsMap);
   };
 
   const handleCreateWhatsappGroup = async () => {
     if (!id) return;
-    
+
     try {
       setCreatingGroup(true);
       await ClassroomService.createWhatsappGroup(id);
@@ -198,7 +210,7 @@ const ClassroomManagement: React.FC = () => {
 
   const handleSyncWhatsappGroup = async () => {
     if (!id) return;
-    
+
     try {
       setSyncingGroup(true);
       await ClassroomService.syncWhatsappGroup(id);
@@ -217,7 +229,7 @@ const ClassroomManagement: React.FC = () => {
       toast.error('Por favor ingrese un mensaje');
       return;
     }
-    
+
     try {
       setSendingMessage(true);
       await ClassroomService.sendWhatsappMessage(id, whatsappMessage);
@@ -233,14 +245,13 @@ const ClassroomManagement: React.FC = () => {
   };
 
   const handleAttendanceChange = async (studentId: string, isPresent: boolean) => {
-    if (!currentModule || !user || !id) return;
-    
+    if (!id || !currentModule || !user) return;
+
     // Update UI immediately
     const newAttendance = new Map(attendanceRecords);
     newAttendance.set(studentId, isPresent);
     setAttendanceRecords(newAttendance);
-    
-    // Save to database in background
+
     try {
       await EvaluationService.recordAttendance(
         studentId,
@@ -249,13 +260,13 @@ const ClassroomManagement: React.FC = () => {
         isPresent,
         user.id
       );
-      
+
       // Update evaluations state to reflect the change
       const evaluation = evaluations.get(studentId);
       if (evaluation) {
         const updatedRecords = [...(evaluation.attendanceRecords || [])];
         const existingIndex = updatedRecords.findIndex(r => r.moduleId === currentModule.id);
-        
+
         const newRecord: IAttendanceRecord = {
           moduleId: currentModule.id,
           studentId: studentId,
@@ -264,18 +275,18 @@ const ClassroomManagement: React.FC = () => {
           markedBy: user.id,
           markedAt: new Date()
         };
-        
+
         if (existingIndex !== -1) {
           updatedRecords[existingIndex] = newRecord;
         } else {
           updatedRecords.push(newRecord);
         }
-        
+
         const updatedEvaluation: IStudentEvaluation = {
           ...evaluation,
           attendanceRecords: updatedRecords
         };
-        
+
         const newEvaluations = new Map(evaluations);
         newEvaluations.set(studentId, updatedEvaluation);
         setEvaluations(newEvaluations);
@@ -289,58 +300,56 @@ const ClassroomManagement: React.FC = () => {
     }
   };
 
-  const handleParticipationChange = async (studentId: string, delta: number) => {
+  const handleParticipationChange = async (studentId: string, points: number) => {
     if (!id) return;
-    
+
     // Update UI immediately
-    const currentTotal = participationTotals.get(studentId) || 0;
-    const newTotal = currentTotal + delta;
-    
+    const currentPoints = participationTotals.get(studentId) || 0;
+    const newPoints = Math.max(0, currentPoints + points); // Prevent negative points
+
     const newTotals = new Map(participationTotals);
-    newTotals.set(studentId, newTotal);
+    newTotals.set(studentId, newPoints);
     setParticipationTotals(newTotals);
-    
-    // Save to database in background
+
     try {
       await EvaluationService.recordParticipation(
         studentId,
         id,
-        delta
+        points
       );
-      
+
       // Update evaluations state to reflect the change
       const evaluation = evaluations.get(studentId);
       if (evaluation) {
         const updatedEvaluation: IStudentEvaluation = {
           ...evaluation,
-          participationPoints: newTotal
+          participationPoints: newPoints
         };
-        
+
         const newEvaluations = new Map(evaluations);
         newEvaluations.set(studentId, updatedEvaluation);
         setEvaluations(newEvaluations);
       }
     } catch (error) {
-      console.error('Error saving participation:', error);
-      // Revert UI change on error
-      const revertedTotals = new Map(participationTotals);
-      revertedTotals.set(studentId, currentTotal);
-      setParticipationTotals(revertedTotals);
-      toast.error('Error al guardar participación');
+      console.error('Error recording participation:', error);
+      toast.error('Error al registrar participación');
+      // Revert
+      newTotals.set(studentId, currentPoints);
+      setParticipationTotals(new Map(newTotals));
     }
   };
 
   const handleModuleChange = async (module: IModule) => {
     if (!id || !classroom) return;
-    
+
     try {
       // Auto-complete previous module when moving forward
       if (currentModule && module.weekNumber > currentModule.weekNumber && !currentModule.isCompleted) {
         await handleToggleModuleCompletion(currentModule.id, false);
       }
-      
+
       setCurrentModule(module);
-      
+
       // Update current module in classroom
       await ClassroomService.updateClassroom(id, {
         currentModule: module
@@ -353,20 +362,20 @@ const ClassroomManagement: React.FC = () => {
 
   const handleToggleModuleCompletion = async (moduleId: string, currentStatus: boolean) => {
     if (!id || !classroom || isFinalized) return;
-    
+
     try {
-      const updatedModules = classroom.modules.map(m => 
+      const updatedModules = classroom.modules.map(m =>
         m.id === moduleId ? { ...m, isCompleted: !currentStatus } : m
       );
-      
+
       // Update local state immediately
       setClassroom({ ...classroom, modules: updatedModules });
-      
+
       // Update in database
       await ClassroomService.updateClassroom(id, {
         modules: updatedModules
       });
-      
+
       toast.success(`Módulo ${!currentStatus ? 'completado' : 'marcado como pendiente'}`);
     } catch (error) {
       console.error('Error toggling module completion:', error);
@@ -381,9 +390,33 @@ const ClassroomManagement: React.FC = () => {
     if (!evaluation?.attendanceRecords || evaluation.attendanceRecords.length === 0) {
       return 0;
     }
-    
+
     const present = evaluation.attendanceRecords.filter(r => r.isPresent).length;
     return (present / evaluation.attendanceRecords.length) * 100;
+  };
+
+  const handleToggleStudentStatus = async (studentId: string, currentStatus: boolean) => {
+    if (!id) return;
+
+    try {
+      // Update UI immediately
+      const evaluation = evaluations.get(studentId);
+      if (evaluation) {
+        const updatedEvaluation = { ...evaluation, isActive: !currentStatus };
+        const newEvaluations = new Map(evaluations);
+        newEvaluations.set(studentId, updatedEvaluation);
+        setEvaluations(newEvaluations);
+      }
+
+      // Save to database (Firebase handles offline persistence)
+      await EvaluationService.updateStudentStatus(studentId, id, !currentStatus);
+      toast.success(`Estudiante ${!currentStatus ? 'activado' : 'desactivado'} en esta clase`);
+    } catch (error) {
+      console.error('Error toggling student status:', error);
+      toast.error('Error al cambiar estado del estudiante');
+      // Revert on error
+      await loadClassroomData();
+    }
   };
 
   if (loading) {
@@ -416,7 +449,7 @@ const ClassroomManagement: React.FC = () => {
             <i className="bi bi-arrow-left me-2"></i>
             Volver
           </Button>
-          
+
           <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <div>
               <h4 className="mb-1">
@@ -432,7 +465,7 @@ const ClassroomManagement: React.FC = () => {
                 {classroom.name} • {students.length} estudiantes
               </p>
             </div>
-            
+
             <div className="d-flex gap-2">
               {/* Finalization Button */}
               <Button
@@ -447,58 +480,58 @@ const ClassroomManagement: React.FC = () => {
                   {isFinalized ? 'Revertir' : 'Finalizar'}
                 </span>
               </Button>
-              
+
               {/* WhatsApp Dropdown - Mobile Optimized */}
-              <Dropdown 
-                isOpen={whatsappDropdownOpen} 
+              <Dropdown
+                isOpen={whatsappDropdownOpen}
                 toggle={() => setWhatsappDropdownOpen(!whatsappDropdownOpen)}
               >
                 <DropdownToggle caret color="success" size="sm">
                   <i className="bi bi-whatsapp me-1"></i>
                   <span className="d-none d-sm-inline">WhatsApp</span>
                 </DropdownToggle>
-              <DropdownMenu end>
-                {!classroom.whatsappGroup ? (
-                  <DropdownItem onClick={handleCreateWhatsappGroup} disabled={creatingGroup}>
-                    {creatingGroup ? (
-                      <>
-                        <Spinner size="sm" className="me-2" />
-                        Creando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-plus-circle me-2"></i>
-                        Crear Grupo
-                      </>
-                    )}
-                  </DropdownItem>
-                ) : (
-                  <>
-                    <DropdownItem header>
-                      <i className="bi bi-check-circle-fill text-success me-2"></i>
-                      Grupo Conectado
-                    </DropdownItem>
-                    <DropdownItem divider />
-                    <DropdownItem onClick={handleSyncWhatsappGroup} disabled={syncingGroup}>
-                      {syncingGroup ? (
+                <DropdownMenu end>
+                  {!classroom.whatsappGroup ? (
+                    <DropdownItem onClick={handleCreateWhatsappGroup} disabled={creatingGroup}>
+                      {creatingGroup ? (
                         <>
                           <Spinner size="sm" className="me-2" />
-                          Sincronizando...
+                          Creando...
                         </>
                       ) : (
                         <>
-                          <i className="bi bi-arrow-repeat me-2"></i>
-                          Sincronizar
+                          <i className="bi bi-plus-circle me-2"></i>
+                          Crear Grupo
                         </>
                       )}
                     </DropdownItem>
-                    <DropdownItem onClick={() => setWhatsappMessageModal(true)}>
-                      <i className="bi bi-send me-2"></i>
-                      Enviar Mensaje
-                    </DropdownItem>
-                  </>
-                )}
-              </DropdownMenu>
+                  ) : (
+                    <>
+                      <DropdownItem header>
+                        <i className="bi bi-check-circle-fill text-success me-2"></i>
+                        Grupo Conectado
+                      </DropdownItem>
+                      <DropdownItem divider />
+                      <DropdownItem onClick={handleSyncWhatsappGroup} disabled={syncingGroup}>
+                        {syncingGroup ? (
+                          <>
+                            <Spinner size="sm" className="me-2" />
+                            Sincronizando...
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-arrow-repeat me-2"></i>
+                            Sincronizar
+                          </>
+                        )}
+                      </DropdownItem>
+                      <DropdownItem onClick={() => setWhatsappMessageModal(true)}>
+                        <i className="bi bi-send me-2"></i>
+                        Enviar Mensaje
+                      </DropdownItem>
+                    </>
+                  )}
+                </DropdownMenu>
               </Dropdown>
             </div>
           </div>
@@ -511,7 +544,7 @@ const ClassroomManagement: React.FC = () => {
           <Col>
             <Alert color="warning" className="mb-0">
               <i className="bi bi-exclamation-triangle me-2"></i>
-              <strong>Clase Finalizada:</strong> Esta clase ha sido finalizada. 
+              <strong>Clase Finalizada:</strong> Esta clase ha sido finalizada.
               No se pueden hacer cambios en asistencia o participación.
               Para modificar, debes revertir la finalización primero.
             </Alert>
@@ -537,7 +570,7 @@ const ClassroomManagement: React.FC = () => {
                   </Badge>
                 </div>
               </div>
-              
+
               {/* Progress Bar */}
               <Progress
                 value={(classroom.modules.filter(m => m.isCompleted).length / classroom.modules.length) * 100}
@@ -545,14 +578,14 @@ const ClassroomManagement: React.FC = () => {
                 className="mb-3"
                 style={{ height: '8px' }}
               />
-              
+
               {/* Module Buttons */}
               <div className="d-flex gap-2 overflow-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
                 {classroom.modules.map(module => (
                   <div key={module.id} className="flex-shrink-0">
                     <Button
-                      color={currentModule?.id === module.id ? 'primary' : 
-                             module.isCompleted ? 'success' : 'outline-secondary'}
+                      color={currentModule?.id === module.id ? 'primary' :
+                        module.isCompleted ? 'success' : 'outline-secondary'}
                       onClick={() => handleModuleChange(module)}
                       size="sm"
                       className="d-flex align-items-center gap-1"
@@ -561,7 +594,7 @@ const ClassroomManagement: React.FC = () => {
                       {module.isCompleted && <i className="bi bi-check-circle-fill"></i>}
                       S{module.weekNumber}
                     </Button>
-                    
+
                     {/* Completion Checkbox - Only show for current or past modules */}
                     {(currentModule && module.weekNumber <= currentModule.weekNumber) && (
                       <div className="form-check form-check-sm mt-1 text-center">
@@ -574,10 +607,10 @@ const ClassroomManagement: React.FC = () => {
                           disabled={isFinalized}
                           style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
                         />
-                        <label 
-                          className="form-check-label small text-muted" 
+                        <label
+                          className="form-check-label small text-muted"
                           htmlFor={`module-complete-${module.id}`}
-                          style={{ 
+                          style={{
                             cursor: isFinalized ? 'not-allowed' : 'pointer',
                             fontSize: '0.7rem'
                           }}
@@ -664,8 +697,8 @@ const ClassroomManagement: React.FC = () => {
                       disabled={isFinalized}
                       style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
                     />
-                    <label 
-                      className="form-check-label" 
+                    <label
+                      className="form-check-label"
                       htmlFor="current-module-complete"
                       style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
                     >
@@ -788,7 +821,7 @@ const ClassroomManagement: React.FC = () => {
                     <tbody>
                       {students.map((student, index) => {
                         const totalPoints = participationTotals.get(student.id) || 0;
-                        
+
                         return (
                           <tr key={student.id}>
                             <td className="ps-3">{index + 1}</td>
@@ -833,8 +866,8 @@ const ClassroomManagement: React.FC = () => {
 
         {/* Students Tab - Using StudentEnrollment Component */}
         <TabPane tabId="students">
-          <StudentEnrollment 
-            classroom={classroom} 
+          <StudentEnrollment
+            classroom={classroom}
             onUpdate={loadClassroomData}
           />
         </TabPane>
@@ -861,7 +894,7 @@ const ClassroomManagement: React.FC = () => {
                 <i className="bi bi-info-circle me-2"></i>
                 <small>Las evaluaciones finales se configuran en el último módulo</small>
               </Alert>
-              
+
               {students.length === 0 ? (
                 <Alert color="warning" className="m-3">
                   No hay estudiantes inscritos
@@ -876,6 +909,7 @@ const ClassroomManagement: React.FC = () => {
                         <th className="text-center">Asist.</th>
                         <th className="text-center">Part.</th>
                         <th className="text-center">Estado</th>
+                        <th className="text-center">Activo</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -883,9 +917,10 @@ const ClassroomManagement: React.FC = () => {
                         const evaluation = evaluations.get(student.id);
                         const attendanceRate = getStudentAttendanceRate(student.id);
                         const participation = participationTotals.get(student.id) || 0;
-                        
+                        const isActive = evaluation?.isActive !== false; // Default to true if undefined
+
                         return (
-                          <tr key={student.id}>
+                          <tr key={student.id} className={!isActive ? 'table-secondary text-muted' : ''}>
                             <td className="ps-3">{index + 1}</td>
                             <td>
                               <div className="fw-bold small">{student.firstName} {student.lastName}</div>
@@ -901,16 +936,28 @@ const ClassroomManagement: React.FC = () => {
                               </Badge>
                             </td>
                             <td className="text-center">
-                              <Badge 
+                              <Badge
                                 color={
                                   evaluation?.status === 'evaluated' ? 'success' :
-                                  evaluation?.status === 'in-progress' ? 'warning' : 'secondary'
+                                    evaluation?.status === 'in-progress' ? 'warning' : 'secondary'
                                 }
                                 className="small"
                               >
                                 {evaluation?.status === 'evaluated' ? 'OK' :
-                                 evaluation?.status === 'in-progress' ? 'En Progreso' : 'Pendiente'}
+                                  evaluation?.status === 'in-progress' ? 'En Progreso' : 'Pendiente'}
                               </Badge>
+                            </td>
+                            <td className="text-center">
+                              <div className="form-check form-switch d-flex justify-content-center">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  role="switch"
+                                  checked={isActive}
+                                  onChange={() => handleToggleStudentStatus(student.id, isActive)}
+                                  style={{ cursor: 'pointer' }}
+                                />
+                              </div>
                             </td>
                           </tr>
                         );
@@ -925,8 +972,8 @@ const ClassroomManagement: React.FC = () => {
       </TabContent>
 
       {/* WhatsApp Message Modal */}
-      <Modal 
-        isOpen={whatsappMessageModal} 
+      <Modal
+        isOpen={whatsappMessageModal}
         toggle={() => setWhatsappMessageModal(false)}
         className="modal-fullscreen-sm-down"
       >

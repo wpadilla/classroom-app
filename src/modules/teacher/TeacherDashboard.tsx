@@ -24,11 +24,13 @@ import { UserService } from '../../services/user/user.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { IClassroom, IUser, IStudentEvaluation } from '../../models';
 import { toast } from 'react-toastify';
+import { useOffline } from '../../contexts/OfflineContext';
 
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { isOffline } = useOffline();
   const navigate = useNavigate();
-  
+
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
   const [students, setStudents] = useState<IUser[]>([]);
   const [evaluations, setEvaluations] = useState<IStudentEvaluation[]>([]);
@@ -43,67 +45,69 @@ const TeacherDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user) { // Removed isOffline and isSyncing from dependency array and condition
       loadDashboardData();
     }
-  }, [user]);
+  }, [user]); // Removed isOffline and isSyncing from dependency array
 
   const loadDashboardData = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      
-      // Get teacher's classrooms (or all for admin)
-      const isAdmin = user.role === 'admin';
-      const teacherClassrooms = await ClassroomService.getClassroomsByTeacher(user.id, isAdmin);
-      setClassrooms(teacherClassrooms);
-      
-      // Get all students from teacher's classrooms
+
+      // Load classrooms
+      // Firebase automatically handles offline cache for these requests
+      const classroomsData = await ClassroomService.getClassroomsByTeacher(user.id);
+      setClassrooms(classroomsData);
+
+      // Load students
       const allStudentIds = new Set<string>();
-      teacherClassrooms.forEach(classroom => {
-        classroom.studentIds?.forEach(id => allStudentIds.add(id));
+      classroomsData.forEach(c => {
+        c.studentIds?.forEach(id => allStudentIds.add(id));
       });
-      
-      // Load student data
-      const studentPromises = Array.from(allStudentIds).map(id => 
-        UserService.getUserById(id)
-      );
-      const studentResults = await Promise.all(studentPromises);
-      const validStudents = studentResults.filter(s => s !== null) as IUser[];
-      setStudents(validStudents);
-      
+
+      let studentsData: IUser[] = [];
+      if (allStudentIds.size > 0) {
+        // We can use Promise.all to fetch users if we don't have a bulk method, 
+        // or use UserService.getUsersByIds if implemented (it was added in previous steps)
+        studentsData = await UserService.getUsersByIds(Array.from(allStudentIds));
+      }
+      setStudents(studentsData);
+
       // Load evaluations
-      const evaluationPromises = teacherClassrooms.map(classroom =>
-        EvaluationService.getClassroomEvaluations(classroom.id)
+      // We need evaluations for stats
+      const evaluationPromises = classroomsData.map(c =>
+        EvaluationService.getClassroomEvaluations(c.id)
       );
       const evaluationResults = await Promise.all(evaluationPromises);
       const allEvaluations = evaluationResults.flat();
       setEvaluations(allEvaluations);
-      
+
       // Calculate statistics
-      calculateStatistics(teacherClassrooms, validStudents, allEvaluations);
+      calculateStatistics(classroomsData, studentsData, allEvaluations);
+
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      toast.error('Error al cargar el panel');
+      toast.error('Error al cargar datos del dashboard');
     } finally {
       setLoading(false);
     }
   };
 
   const calculateStatistics = (
-    classrooms: IClassroom[], 
-    students: IUser[], 
+    classrooms: IClassroom[],
+    students: IUser[],
     evaluations: IStudentEvaluation[]
   ) => {
     const activeClassrooms = classrooms.filter(c => c.isActive);
-    
+
     // Get today's classes
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    const todayClasses = classrooms.filter(c => 
+    const todayClasses = classrooms.filter(c =>
       c.schedule?.dayOfWeek === today && c.isActive
     );
-    
+
     // Calculate average attendance
     let totalAttendance = 0;
     let attendanceCount = 0;
@@ -114,14 +118,14 @@ const TeacherDashboard: React.FC = () => {
         attendanceCount++;
       }
     });
-    
+
     const averageAttendance = attendanceCount > 0 ? totalAttendance / attendanceCount : 0;
-    
+
     // Count pending evaluations
-    const pendingEvaluations = evaluations.filter(e => 
+    const pendingEvaluations = evaluations.filter(e =>
       e.status === 'in-progress' || !e.status
     ).length;
-    
+
     setStats({
       totalClassrooms: classrooms.length,
       activeClassrooms: activeClassrooms.length,
@@ -144,7 +148,7 @@ const TeacherDashboard: React.FC = () => {
   const getNextClass = () => {
     const now = new Date();
     const currentTime = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     return stats.todayClasses.find(classroom => {
       if (classroom.schedule?.time) {
         return classroom.schedule.time > currentTime;
@@ -192,7 +196,7 @@ const TeacherDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={3}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -204,7 +208,7 @@ const TeacherDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={3}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -216,7 +220,7 @@ const TeacherDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={3}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -333,8 +337,8 @@ const TeacherDashboard: React.FC = () => {
                         <td>
                           <Progress
                             value={getClassroomProgress(classroom)}
-                            color={getClassroomProgress(classroom) >= 75 ? 'success' : 
-                                   getClassroomProgress(classroom) >= 50 ? 'warning' : 'danger'}
+                            color={getClassroomProgress(classroom) >= 75 ? 'success' :
+                              getClassroomProgress(classroom) >= 50 ? 'warning' : 'danger'}
                             style={{ height: '10px' }}
                           />
                           <small className="text-muted">
@@ -429,7 +433,7 @@ const TeacherDashboard: React.FC = () => {
                   return (
                     <ListGroupItem key={index} className="px-0">
                       <small className="text-muted">
-                        {student ? `${student.firstName} ${student.lastName}` : 'Estudiante'} - 
+                        {student ? `${student.firstName} ${student.lastName}` : 'Estudiante'} -
                         {evaluation.status === 'evaluated' ? ' Evaluado' : ' En progreso'}
                       </small>
                     </ListGroupItem>

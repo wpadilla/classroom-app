@@ -24,6 +24,7 @@ interface ClassroomFormProps {
   onClose: () => void;
   onSave: (formData: ClassroomFormData) => Promise<void>;
   classroom?: IClassroom | null; // null for create, IClassroom for edit
+  initialData?: IClassroom | null; // for duplication
   program: IProgram | null;
   teachers: IUser[];
 }
@@ -54,33 +55,35 @@ export interface ClassroomFormData {
 }
 
 // Initial form state factory - Factory Pattern
-const createInitialFormState = (classroom?: IClassroom | null): ClassroomFormData => {
-  if (classroom) {
+const createInitialFormState = (classroom?: IClassroom | null, initialData?: IClassroom | null): ClassroomFormData => {
+  const sourceData = classroom || initialData;
+
+  if (sourceData) {
     return {
-      name: classroom.name,
-      subject: classroom.subject,
-      description: classroom.description || '',
-      teacherId: classroom.teacherId,
-      isActive: classroom.isActive,
-      materialPrice: classroom.materialPrice || 0,
-      room: classroom.room || '',
+      name: classroom ? sourceData.name : `${sourceData.name} (Copia)`,
+      subject: sourceData.subject,
+      description: sourceData.description || '',
+      teacherId: sourceData.teacherId,
+      isActive: true, // Always active for new/duplicated classes
+      materialPrice: sourceData.materialPrice || 0,
+      room: sourceData.room || '',
       schedule: {
-        dayOfWeek: classroom.schedule?.dayOfWeek || 'Monday',
-        time: classroom.schedule?.time || '18:00',
-        duration: classroom.schedule?.duration || 120
+        dayOfWeek: sourceData.schedule?.dayOfWeek || 'Monday',
+        time: sourceData.schedule?.time || '18:00',
+        duration: sourceData.schedule?.duration || 120
       },
       evaluationCriteria: {
-        questionnaires: classroom.evaluationCriteria?.questionnaires || 25,
-        attendance: classroom.evaluationCriteria?.attendance || 25,
-        participation: classroom.evaluationCriteria?.participation || 25,
-        participationPointsPerModule: classroom.evaluationCriteria?.participationPointsPerModule || 1,
-        finalExam: classroom.evaluationCriteria?.finalExam || 25,
-        customCriteria: classroom.evaluationCriteria?.customCriteria || [],
-        participationRecords: classroom.evaluationCriteria?.participationRecords || []
+        questionnaires: sourceData.evaluationCriteria?.questionnaires || 25,
+        attendance: sourceData.evaluationCriteria?.attendance || 25,
+        participation: sourceData.evaluationCriteria?.participation || 25,
+        participationPointsPerModule: sourceData.evaluationCriteria?.participationPointsPerModule || 1,
+        finalExam: sourceData.evaluationCriteria?.finalExam || 25,
+        customCriteria: sourceData.evaluationCriteria?.customCriteria || [],
+        participationRecords: [] // Reset records for new/duplicated classes
       }
     };
   }
-  
+
   // Default values for new classroom
   return {
     name: '',
@@ -112,20 +115,21 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
   onClose,
   onSave,
   classroom,
+  initialData,
   program,
   teachers
 }) => {
   const [formData, setFormData] = React.useState<ClassroomFormData>(
-    createInitialFormState(classroom)
+    createInitialFormState(classroom, initialData)
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Update form when classroom prop changes - Reactive Pattern
   React.useEffect(() => {
     if (isOpen) {
-      setFormData(createInitialFormState(classroom));
+      setFormData(createInitialFormState(classroom, initialData));
     }
-  }, [classroom, isOpen]);
+  }, [classroom, initialData, isOpen]);
 
   // Form field update handler - reduces boilerplate
   const updateField = (field: keyof ClassroomFormData, value: any) => {
@@ -154,17 +158,17 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
     if (!formData.name.trim()) return 'El nombre de la clase es requerido';
     if (!formData.subject.trim()) return 'La materia es requerida';
     if (!formData.teacherId) return 'Debe seleccionar un profesor';
-    
-    const totalPoints = 
+
+    const totalPoints =
       formData.evaluationCriteria.questionnaires +
       formData.evaluationCriteria.attendance +
       formData.evaluationCriteria.participation +
       formData.evaluationCriteria.finalExam;
-    
+
     if (totalPoints !== 100) {
       return 'Los criterios de evaluación deben sumar exactamente 100 puntos';
     }
-    
+
     return null;
   };
 
@@ -193,7 +197,7 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
   };
 
   // Calculate evaluation total
-  const evaluationTotal = 
+  const evaluationTotal =
     formData.evaluationCriteria.questionnaires +
     formData.evaluationCriteria.attendance +
     formData.evaluationCriteria.participation +
@@ -300,7 +304,7 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
               <hr />
               <h6 className="mb-3">Horario</h6>
             </Col>
-            
+
             <Col md={4}>
               <FormGroup>
                 <Label for="dayOfWeek">Día de la Semana</Label>
@@ -350,7 +354,7 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
               <hr />
               <h6 className="mb-3">Criterios de Evaluación (Total: 100 puntos)</h6>
             </Col>
-            
+
             <Col md={3}>
               <FormGroup>
                 <Label for="questionnaires">Cuestionarios</Label>
@@ -424,8 +428,8 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
         <Button color="secondary" onClick={handleClose} disabled={isSubmitting}>
           Cancelar
         </Button>
-        <Button 
-          color="primary" 
+        <Button
+          color="primary"
           onClick={handleSubmit}
           disabled={isSubmitting || evaluationTotal !== 100}
         >

@@ -44,7 +44,7 @@ const ProgramManagement: React.FC = () => {
   const [teachers, setTeachers] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
-  
+
   // Modal states
   const [programModal, setProgramModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<IProgram | null>(null);
@@ -62,7 +62,8 @@ const ProgramManagement: React.FC = () => {
   const [classroomRuns, setClassroomRuns] = useState<any[]>([]);
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [runDetailsModal, setRunDetailsModal] = useState(false);
-  
+  const [duplicationSourceClassroom, setDuplicationSourceClassroom] = useState<IClassroom | null>(null);
+
   // Form state for program
   const [programForm, setProgramForm] = useState({
     name: '',
@@ -82,7 +83,7 @@ const ProgramManagement: React.FC = () => {
       cost: 0
     }
   });
-  
+
 
   useEffect(() => {
     loadData();
@@ -154,7 +155,7 @@ const ProgramManagement: React.FC = () => {
       toast.error('Por favor complete todos los campos requeridos');
       return;
     }
-    
+
     try {
       if (editingProgram) {
         // Update existing program
@@ -168,7 +169,7 @@ const ProgramManagement: React.FC = () => {
         });
         toast.success('Programa creado exitosamente');
       }
-      
+
       setProgramModal(false);
       await loadData();
     } catch (error: any) {
@@ -179,7 +180,7 @@ const ProgramManagement: React.FC = () => {
 
   const handleDeleteProgram = async () => {
     if (!programToDelete) return;
-    
+
     try {
       await ProgramService.deleteProgram(programToDelete.id);
       toast.success('Programa eliminado exitosamente');
@@ -206,6 +207,14 @@ const ProgramManagement: React.FC = () => {
   const handleOpenClassroomModal = (program: IProgram, classroom?: IClassroom) => {
     setSelectedProgram(program);
     setEditingClassroom(classroom || null);
+    setDuplicationSourceClassroom(null);
+    setClassroomModal(true);
+  };
+
+  const handleDuplicateClassroom = (program: IProgram, classroom: IClassroom) => {
+    setSelectedProgram(program);
+    setEditingClassroom(null);
+    setDuplicationSourceClassroom(classroom);
     setClassroomModal(true);
   };
 
@@ -213,7 +222,7 @@ const ProgramManagement: React.FC = () => {
     if (!selectedProgram) {
       throw new Error('No se ha seleccionado un programa');
     }
-    
+
     try {
       if (editingClassroom) {
         // Update existing classroom
@@ -221,7 +230,7 @@ const ProgramManagement: React.FC = () => {
           ...formData,
           programId: selectedProgram.id
         });
-        
+
         // Update teacher assignment if changed
         if (formData.teacherId !== editingClassroom.teacherId) {
           // Remove old teacher
@@ -229,7 +238,7 @@ const ProgramManagement: React.FC = () => {
           // Assign new teacher
           await UserService.assignTeacherToClassroom(formData.teacherId, editingClassroom.id);
         }
-        
+
         toast.success('Clase actualizada exitosamente');
       } else {
         // Create new classroom
@@ -246,18 +255,19 @@ const ProgramManagement: React.FC = () => {
             isCompleted: false
           }))
         });
-        
+
         // Add classroom to program
         await ProgramService.addClassroomToProgram(selectedProgram.id, classroomId);
-        
+
         // Assign teacher to classroom
         await UserService.assignTeacherToClassroom(formData.teacherId, classroomId);
-        
+
         toast.success('Clase creada exitosamente');
       }
-      
+
       setClassroomModal(false);
       setEditingClassroom(null);
+      setDuplicationSourceClassroom(null);
       await loadData();
     } catch (error: any) {
       console.error('Error saving classroom:', error);
@@ -269,6 +279,7 @@ const ProgramManagement: React.FC = () => {
     setClassroomModal(false);
     setEditingClassroom(null);
     setSelectedProgram(null);
+    setDuplicationSourceClassroom(null);
   };
 
   const handleToggleClassroomStatus = async (classroomId: string, currentStatus: boolean) => {
@@ -423,12 +434,12 @@ const ProgramManagement: React.FC = () => {
         programs.map(program => {
           const programClassrooms = getProgramClassrooms(program.id);
           const isExpanded = expandedProgram === program.id;
-          
+
           return (
             <Card key={program.id} className="mb-3">
               <CardHeader>
                 <div className="d-flex justify-content-between align-items-center">
-                  <div 
+                  <div
                     className="flex-grow-1"
                     style={{ cursor: 'pointer' }}
                     onClick={() => setExpandedProgram(isExpanded ? null : program.id)}
@@ -440,19 +451,19 @@ const ProgramManagement: React.FC = () => {
                         {program.category || 'General'}
                       </Badge>
                       <Badge color={getLevelBadge(program.level || 'basic')} className="ms-2">
-                        {program.level === 'basic' ? 'Básico' : 
-                         program.level === 'intermediate' ? 'Intermedio' : 'Avanzado'}
+                        {program.level === 'basic' ? 'Básico' :
+                          program.level === 'intermediate' ? 'Intermedio' : 'Avanzado'}
                       </Badge>
                       {!program.isActive && (
                         <Badge color="danger" className="ms-2">Inactivo</Badge>
                       )}
                     </h5>
                     <p className="text-muted mb-0">
-                      Código: {program.code} • {programClassrooms.length} clases • 
+                      Código: {program.code} • {programClassrooms.length} clases •
                       {program.duration && ` Duración: ${program.duration}`}
                     </p>
                   </div>
-                  
+
                   <UncontrolledDropdown>
                     <DropdownToggle color="link" className="text-dark p-0">
                       <i className="bi bi-three-dots-vertical"></i>
@@ -475,7 +486,7 @@ const ProgramManagement: React.FC = () => {
                         {program.isActive ? 'Desactivar' : 'Activar'}
                       </DropdownItem>
                       <DropdownItem divider />
-                      <DropdownItem 
+                      <DropdownItem
                         className="text-danger"
                         onClick={() => {
                           setProgramToDelete(program);
@@ -490,13 +501,13 @@ const ProgramManagement: React.FC = () => {
                   </UncontrolledDropdown>
                 </div>
               </CardHeader>
-              
+
               {isExpanded && (
                 <CardBody>
                   <Row>
                     <Col md={8}>
                       <p>{program.description}</p>
-                      
+
                       {program.requirements && program.requirements.length > 0 && (
                         <div className="mb-3">
                           <h6>Requisitos:</h6>
@@ -507,7 +518,7 @@ const ProgramManagement: React.FC = () => {
                           </ul>
                         </div>
                       )}
-                      
+
                       <h6>Clases del Programa:</h6>
                       {programClassrooms.length === 0 ? (
                         <Alert color="warning">
@@ -519,7 +530,7 @@ const ProgramManagement: React.FC = () => {
                             const teacher = teachers.find(t => t.id === classroom.teacherId);
                             const completedModules = classroom.modules?.filter(m => m.isCompleted).length || 0;
                             const totalModules = classroom.modules?.length || 0;
-                            
+
                             return (
                               <ListGroupItem key={classroom.id}>
                                 <div className="d-flex justify-content-between align-items-center">
@@ -552,7 +563,7 @@ const ProgramManagement: React.FC = () => {
                                         Finalizada
                                       </Badge>
                                     )}
-                                    
+
                                     {/* View History Button - Show for all classes */}
                                     <Button
                                       color="info"
@@ -563,7 +574,7 @@ const ProgramManagement: React.FC = () => {
                                     >
                                       <i className="bi bi-archive"></i>
                                     </Button>
-                                    
+
                                     {/* Restart Button - Only show for finalized classes */}
                                     {!classroom.isActive && classroom.endDate && (
                                       <Button
@@ -576,7 +587,7 @@ const ProgramManagement: React.FC = () => {
                                         <i className="bi bi-arrow-clockwise"></i>
                                       </Button>
                                     )}
-                                    
+
                                     {/* Status Switch */}
                                     <div className="form-check form-switch">
                                       <input
@@ -588,15 +599,15 @@ const ProgramManagement: React.FC = () => {
                                         onChange={() => handleToggleClassroomStatus(classroom.id, classroom.isActive)}
                                         style={{ cursor: 'pointer' }}
                                       />
-                                      <label 
-                                        className="form-check-label text-muted small" 
+                                      <label
+                                        className="form-check-label text-muted small"
                                         htmlFor={`switch-${classroom.id}`}
                                         style={{ cursor: 'pointer' }}
                                       >
                                         {classroom.isActive ? 'Activa' : 'Inactiva'}
                                       </label>
                                     </div>
-                                    
+
                                     {/* Edit Button */}
                                     <Button
                                       color="primary"
@@ -607,6 +618,17 @@ const ProgramManagement: React.FC = () => {
                                     >
                                       <i className="bi bi-pencil"></i>
                                     </Button>
+
+                                    {/* Duplicate Button */}
+                                    <Button
+                                      color="secondary"
+                                      size="sm"
+                                      outline
+                                      onClick={() => handleDuplicateClassroom(program, classroom)}
+                                      title="Duplicar clase"
+                                    >
+                                      <i className="bi bi-files"></i>
+                                    </Button>
                                   </div>
                                 </div>
                               </ListGroupItem>
@@ -615,7 +637,7 @@ const ProgramManagement: React.FC = () => {
                         </ListGroup>
                       )}
                     </Col>
-                    
+
                     <Col md={4}>
                       <Card className="bg-light">
                         <CardBody>
@@ -807,6 +829,7 @@ const ProgramManagement: React.FC = () => {
         onClose={handleCloseClassroomModal}
         onSave={handleSaveClassroom}
         classroom={editingClassroom}
+        initialData={duplicationSourceClassroom}
         program={selectedProgram}
         teachers={teachers}
       />
@@ -908,11 +931,11 @@ const ProgramManagement: React.FC = () => {
                     </thead>
                     <tbody>
                       {classroomRuns.map((run: IClassroomRun) => {
-                        const passedStudents = 
+                        const passedStudents =
                           run.statistics.distribution.excellent +
                           run.statistics.distribution.good +
                           run.statistics.distribution.regular;
-                        
+
                         return (
                           <tr key={run.id}>
                             <td>
@@ -1241,11 +1264,11 @@ const ProgramManagement: React.FC = () => {
               {selectedProgramStats.stats.averageGrade > 0 && (
                 <div className="text-center">
                   <h4>Promedio General</h4>
-                  <Progress 
-                    value={selectedProgramStats.stats.averageGrade} 
+                  <Progress
+                    value={selectedProgramStats.stats.averageGrade}
                     color={
                       selectedProgramStats.stats.averageGrade >= 90 ? 'success' :
-                      selectedProgramStats.stats.averageGrade >= 70 ? 'warning' : 'danger'
+                        selectedProgramStats.stats.averageGrade >= 70 ? 'warning' : 'danger'
                     }
                   >
                     {selectedProgramStats.stats.averageGrade.toFixed(1)}%

@@ -51,6 +51,7 @@ export interface IStudentEvaluation {
   evaluatedBy?: string; // Teacher ID who evaluated
   evaluatedAt?: Date;
   comments?: string;
+  isActive?: boolean; // Active status in the classroom
   createdAt: Date;
   updatedAt: Date;
 }
@@ -83,7 +84,7 @@ export const DEFAULT_GRADE_SCALE: IGradeScale[] = [
 ];
 
 // Helper types
-export type IEvaluationCreate = Omit<IStudentEvaluation, 'id' | 'createdAt' | 'updatedAt'>;
+export type IEvaluationCreate = Omit<IStudentEvaluation, 'id' | 'createdAt' | 'updatedAt'> & { isActive?: boolean };
 export type IEvaluationUpdate = Partial<Omit<IStudentEvaluation, 'id' | 'createdAt'>>;
 
 // Summary type for displaying evaluations

@@ -8,7 +8,7 @@ import {
   DEFAULT_GRADE_SCALE,
   IEvaluationCreate
 } from '../../models';
-import { where, orderBy } from 'firebase/firestore';
+import { where, orderBy, increment } from 'firebase/firestore';
 
 export class EvaluationService {
   /**
@@ -250,14 +250,12 @@ export class EvaluationService {
         
         await this.saveEvaluation(newEvaluation);
       } else {
-        // Simply add/subtract points to the total
-        const newTotal = (evaluation.participationPoints || 0) + points;
-        
+        // Simply add/subtract points to the total using atomic increment
         await FirebaseService.updateDocument(
           COLLECTIONS.EVALUATIONS,
           evaluation.id,
           {
-            participationPoints: newTotal,
+            participationPoints: increment(points),
             updatedAt: new Date()
           }
         );
@@ -515,6 +513,55 @@ export class EvaluationService {
         passRate: 0,
         attendanceRate: 0
       };
+    }
+  }
+  /**
+   * Update student active status in a classroom
+   */
+  static async updateStudentStatus(
+    studentId: string,
+    classroomId: string,
+    isActive: boolean
+  ): Promise<void> {
+    try {
+      const evaluation = await this.getStudentClassroomEvaluation(studentId, classroomId);
+      
+      if (evaluation) {
+        await FirebaseService.updateDocument(
+          COLLECTIONS.EVALUATIONS,
+          evaluation.id,
+          {
+            isActive,
+            updatedAt: new Date()
+          }
+        );
+      } else {
+        // Create new evaluation with status
+        const newEvaluation: IEvaluationCreate = {
+          studentId,
+          classroomId,
+          moduleId: '',
+          participationRecords: [],
+          scores: {
+            questionnaires: 0,
+            attendance: 0,
+            participation: 0,
+            finalExam: 0,
+            customScores: []
+          },
+          attendanceRecords: [],
+          participationPoints: 0,
+          totalScore: 0,
+          percentage: 0,
+          status: 'in-progress',
+          isActive
+        };
+        
+        await this.saveEvaluation(newEvaluation);
+      }
+    } catch (error) {
+      console.error('Error updating student status:', error);
+      throw error;
     }
   }
 }

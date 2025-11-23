@@ -74,6 +74,9 @@ export class AuthService {
 
       // Store session in localStorage
       this.storeSession(session);
+      
+      // Store user data in localStorage as fallback for offline
+      localStorage.setItem('classroom_app_user', JSON.stringify(user));
 
       const authUser: IAuthUser = {
         id: user.id,
@@ -216,10 +219,12 @@ export class AuthService {
       }
       // Clear local storage
       localStorage.removeItem(this.SESSION_KEY);
+      localStorage.removeItem('classroom_app_user');
     } catch (error) {
       console.error('Logout error:', error);
       // Still clear local storage even if database update fails
       localStorage.removeItem(this.SESSION_KEY);
+      localStorage.removeItem('classroom_app_user');
     }
   }
 
@@ -261,6 +266,43 @@ export class AuthService {
       };
     } catch (error) {
       console.error('Get current user error:', error);
+      
+      // If Firebase fails (offline and not in cache), try localStorage as fallback
+      const session = this.getStoredSession();
+      if (!session) return null;
+      
+      // Check if session is still valid
+      if (new Date() > new Date(session.expiresAt)) {
+        await this.logout();
+        return null;
+      }
+      
+      // Try to get user from localStorage backup
+      const cachedUserStr = localStorage.getItem('classroom_app_user');
+      if (cachedUserStr) {
+        try {
+          const cachedUser: IUser = JSON.parse(cachedUserStr);
+          
+          // Verify it's the same user as in the session
+          if (cachedUser.id === session.userId && cachedUser.isActive) {
+            console.log('Using cached user from localStorage (offline mode)');
+            return {
+              id: cachedUser.id,
+              firstName: cachedUser.firstName,
+              lastName: cachedUser.lastName,
+              email: cachedUser.email,
+              phone: cachedUser.phone,
+              role: cachedUser.role,
+              isTeacher: cachedUser.isTeacher,
+              profilePhoto: cachedUser.profilePhoto,
+              lastLogin: cachedUser.lastLogin || new Date()
+            };
+          }
+        } catch (parseError) {
+          console.error('Error parsing cached user:', parseError);
+        }
+      }
+      
       return null;
     }
   }

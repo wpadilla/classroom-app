@@ -25,11 +25,12 @@ import { ProgramService } from '../../services/program/program.service';
 import { UserService } from '../../services/user/user.service';
 import { IClassroom, IStudentEvaluation, IProgram, IUser } from '../../models';
 import { toast } from 'react-toastify';
+import PWAInstallPrompt from '../../components/common/PWAInstallPrompt';
 
 const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const [profile, setProfile] = useState<IUser | null>(null);
   const [enrolledClassrooms, setEnrolledClassrooms] = useState<IClassroom[]>([]);
   const [evaluations, setEvaluations] = useState<IStudentEvaluation[]>([]);
@@ -53,16 +54,16 @@ const StudentDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Load full user profile
       const userProfile = await UserService.getUserById(user.id);
       if (!userProfile) return;
-      
+
       setProfile(userProfile);
-      
+
       // Load enrolled classrooms
       if (userProfile.enrolledClassrooms && userProfile.enrolledClassrooms.length > 0) {
         const classrooms = await Promise.all(
@@ -70,13 +71,13 @@ const StudentDashboard: React.FC = () => {
         );
         const validClassrooms = classrooms.filter(c => c !== null) as IClassroom[];
         setEnrolledClassrooms(validClassrooms);
-        
+
         // Load programs for these classrooms
         const programIds = new Set(validClassrooms.map(c => c.programId));
         const programPromises = Array.from(programIds).map(id => ProgramService.getProgramById(id));
         const programResults = await Promise.all(programPromises);
         setPrograms(programResults.filter(p => p !== null) as IProgram[]);
-        
+
         // Load evaluations
         const evaluationPromises = validClassrooms.map(classroom =>
           EvaluationService.getStudentClassroomEvaluation(user.id, classroom.id)
@@ -84,10 +85,10 @@ const StudentDashboard: React.FC = () => {
         const evaluationResults = await Promise.all(evaluationPromises);
         const validEvaluations = evaluationResults.filter(e => e !== null) as IStudentEvaluation[];
         setEvaluations(validEvaluations);
-        
+
         // Calculate statistics
         calculateStatistics(validClassrooms, validEvaluations, userProfile);
-        
+
         // Find next class
         findNextClass(validClassrooms);
       }
@@ -100,7 +101,7 @@ const StudentDashboard: React.FC = () => {
   };
 
   const calculateStatistics = (
-    classrooms: IClassroom[], 
+    classrooms: IClassroom[],
     evaluations: IStudentEvaluation[],
     profile: IUser
   ) => {
@@ -109,7 +110,7 @@ const StudentDashboard: React.FC = () => {
     const averageGrade = evaluatedOnes.length > 0
       ? evaluatedOnes.reduce((sum, e) => sum + (e.percentage || 0), 0) / evaluatedOnes.length
       : 0;
-    
+
     // Calculate attendance rate
     let totalPresent = 0;
     let totalRecords = 0;
@@ -120,7 +121,7 @@ const StudentDashboard: React.FC = () => {
       }
     });
     const attendanceRate = totalRecords > 0 ? (totalPresent / totalRecords) * 100 : 0;
-    
+
     // Calculate total participation
     const totalParticipation = evaluations.reduce((sum, evaluation) => {
       if (evaluation.participationRecords) {
@@ -128,15 +129,15 @@ const StudentDashboard: React.FC = () => {
       }
       return sum;
     }, 0);
-    
+
     // Count pending assignments (evaluations not completed)
-    const pendingAssignments = evaluations.filter(e => 
+    const pendingAssignments = evaluations.filter(e =>
       e.status !== 'evaluated' && e.scores.questionnaires === 0
     ).length;
-    
+
     // Count completed classes
     const completedClasses = profile.completedClassrooms?.length || 0;
-    
+
     setStats({
       totalClasses: classrooms.length,
       completedClasses,
@@ -151,12 +152,12 @@ const StudentDashboard: React.FC = () => {
     const now = new Date();
     const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' });
     const currentTime = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     // Find today's classes
-    const todayClasses = classrooms.filter(c => 
+    const todayClasses = classrooms.filter(c =>
       c.schedule?.dayOfWeek === currentDay && c.isActive
     );
-    
+
     // Find next class
     const next = todayClasses.find(c => {
       if (c.schedule?.time) {
@@ -164,7 +165,7 @@ const StudentDashboard: React.FC = () => {
       }
       return false;
     });
-    
+
     setNextClass(next || null);
   };
 
@@ -219,7 +220,7 @@ const StudentDashboard: React.FC = () => {
                 Este es tu panel de estudiante. Aquí puedes ver tu progreso académico.
               </p>
             </div>
-            <Button 
+            <Button
               color="primary"
               onClick={() => navigate('/student/profile')}
             >
@@ -237,12 +238,12 @@ const StudentDashboard: React.FC = () => {
             <Alert color="info" className="d-flex justify-content-between align-items-center">
               <div>
                 <i className="bi bi-clock me-2"></i>
-                <strong>Próxima clase:</strong> {nextClass.subject} - {nextClass.name} 
+                <strong>Próxima clase:</strong> {nextClass.subject} - {nextClass.name}
                 {' '}a las {nextClass.schedule?.time}
                 {nextClass.location && ` en ${nextClass.location}`}
               </div>
-              <Button 
-                color="info" 
+              <Button
+                color="info"
                 size="sm"
                 onClick={() => navigate(`/student/classroom/${nextClass.id}`)}
               >
@@ -266,7 +267,7 @@ const StudentDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={2}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -278,7 +279,7 @@ const StudentDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={2}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -290,7 +291,7 @@ const StudentDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={2}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -302,7 +303,7 @@ const StudentDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={2}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -314,7 +315,7 @@ const StudentDashboard: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        
+
         <Col md={2}>
           <Card className="border-0 shadow-sm">
             <CardBody className="text-center">
@@ -360,7 +361,7 @@ const StudentDashboard: React.FC = () => {
                       {enrolledClassrooms.map(classroom => {
                         const progress = getClassroomProgress(classroom);
                         const grade = getClassroomGrade(classroom.id);
-                        
+
                         return (
                           <tr key={classroom.id}>
                             <td>
@@ -379,7 +380,7 @@ const StudentDashboard: React.FC = () => {
                             <td>
                               <Progress
                                 value={progress}
-                                color={progress >= 75 ? 'success' : 
+                                color={progress >= 75 ? 'success' :
                                        progress >= 50 ? 'warning' : 'danger'}
                                 style={{ height: '10px' }}
                               />
@@ -516,6 +517,7 @@ const StudentDashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+      <PWAInstallPrompt />
     </Container>
   );
 };

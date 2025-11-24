@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/user/user.service';
 import { ProgramService } from '../../services/program/program.service';
+import PWAInstallPrompt from '../../components/common/PWAInstallPrompt';
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -173,24 +174,24 @@ const AdminDashboard: React.FC = () => {
                 WhatsApp
               </h5>
               <div className="d-grid gap-2">
-                <Button 
-                  tag={Link} 
+                <Button
+                  tag={Link}
                   to="/admin/whatsapp"
                   color="outline-success"
                 >
                   <i className="bi bi-qr-code me-2"></i>
                   Gestionar WhatsApp
                 </Button>
-                <Button 
-                  tag={Link} 
+                <Button
+                  tag={Link}
                   to="/admin/whatsapp/groups"
                   color="outline-success"
                 >
                   <i className="bi bi-people me-2"></i>
                   Administrar Grupos
                 </Button>
-                <Button 
-                  tag={Link} 
+                <Button
+                  tag={Link}
                   to="/admin/whatsapp/bulk-messaging"
                   color="outline-success"
                 >
@@ -202,6 +203,7 @@ const AdminDashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+      <PWAInstallPrompt />
     </Container>
   );
 };

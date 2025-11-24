@@ -25,6 +25,7 @@ import { EvaluationService } from '../../services/evaluation/evaluation.service'
 import { IClassroom, IUser, IStudentEvaluation } from '../../models';
 import { toast } from 'react-toastify';
 import { useOffline } from '../../contexts/OfflineContext';
+import PWAInstallPrompt from '../../components/common/PWAInstallPrompt';
 
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -69,7 +70,7 @@ const TeacherDashboard: React.FC = () => {
 
       let studentsData: IUser[] = [];
       if (allStudentIds.size > 0) {
-        // We can use Promise.all to fetch users if we don't have a bulk method, 
+        // We can use Promise.all to fetch users if we don't have a bulk method,
         // or use UserService.getUsersByIds if implemented (it was added in previous steps)
         studentsData = await UserService.getUsersByIds(Array.from(allStudentIds));
       }
@@ -449,6 +450,7 @@ const TeacherDashboard: React.FC = () => {
           </Card>
         </Col>
       </Row>
+      <PWAInstallPrompt />
     </Container>
   );
 };

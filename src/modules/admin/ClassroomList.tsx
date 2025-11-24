@@ -22,9 +22,11 @@ import { UserService } from '../../services/user/user.service';
 import { IClassroom, IProgram, IUser } from '../../models';
 import { toast } from 'react-toastify';
 
+import StudentImporter from './components/StudentImporter';
+
 const ClassroomList: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
   const [programs, setPrograms] = useState<Map<string, IProgram>>(new Map());
   const [teachers, setTeachers] = useState<Map<string, IUser>>(new Map());
@@ -32,6 +34,7 @@ const ClassroomList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProgram, setFilterProgram] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [showImporter, setShowImporter] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -40,11 +43,11 @@ const ClassroomList: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load all classrooms
       const classroomsData = await ClassroomService.getAllClassrooms();
       setClassrooms(classroomsData);
-      
+
       // Load programs
       const programsData = await ProgramService.getAllPrograms();
       const programsMap = new Map<string, IProgram>();
@@ -52,7 +55,7 @@ const ClassroomList: React.FC = () => {
         programsMap.set(program.id, program);
       });
       setPrograms(programsMap);
-      
+
       // Load teachers
       const teachersData = await UserService.getUsersByRole('teacher');
       const teachersMap = new Map<string, IUser>();
@@ -60,7 +63,7 @@ const ClassroomList: React.FC = () => {
         teachersMap.set(teacher.id, teacher);
       });
       setTeachers(teachersMap);
-      
+
     } catch (error) {
       console.error('Error loading classrooms:', error);
       toast.error('Error al cargar las clases');
@@ -72,21 +75,21 @@ const ClassroomList: React.FC = () => {
   const filteredClassrooms = classrooms.filter(classroom => {
     // Search filter
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       classroom.name.toLowerCase().includes(searchLower) ||
       classroom.subject.toLowerCase().includes(searchLower) ||
       teachers.get(classroom.teacherId)?.firstName.toLowerCase().includes(searchLower) ||
       teachers.get(classroom.teacherId)?.lastName.toLowerCase().includes(searchLower);
-    
+
     // Program filter
     const matchesProgram = filterProgram === 'all' || classroom.programId === filterProgram;
-    
+
     // Status filter
-    const matchesStatus = 
+    const matchesStatus =
       filterStatus === 'all' ||
       (filterStatus === 'active' && classroom.isActive) ||
       (filterStatus === 'inactive' && !classroom.isActive);
-    
+
     return matchesSearch && matchesProgram && matchesStatus;
   });
 
@@ -99,6 +102,8 @@ const ClassroomList: React.FC = () => {
     );
   }
 
+  console.log("classrooms", filteredClassrooms);
+
   return (
     <Container fluid className="py-3 px-2 px-sm-3">
       {/* Header */}
@@ -106,14 +111,25 @@ const ClassroomList: React.FC = () => {
         <Col>
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="mb-0">Gestión de Clases</h4>
-            <Button
-              color="primary"
-              size="sm"
-              onClick={() => navigate('/admin/programs')}
-            >
-              <i className="bi bi-plus-circle me-1"></i>
-              <span className="d-none d-sm-inline">Nueva Clase</span>
-            </Button>
+            <div>
+              {/* <Button
+                color="info"
+                size="sm"
+                className="me-2 text-white"
+                onClick={() => setShowImporter(true)}
+              >
+                <i className="bi bi-upload me-1"></i>
+                <span className="d-none d-sm-inline">Importar Estudiantes</span>
+              </Button> */}
+              <Button
+                color="primary"
+                size="sm"
+                onClick={() => navigate('/admin/programs')}
+              >
+                <i className="bi bi-plus-circle me-1"></i>
+                <span className="d-none d-sm-inline">Nueva Clase</span>
+              </Button>
+            </div>
           </div>
         </Col>
       </Row>
@@ -205,10 +221,10 @@ const ClassroomList: React.FC = () => {
           {filteredClassrooms.map(classroom => {
             const program = programs.get(classroom.programId);
             const teacher = teachers.get(classroom.teacherId);
-            
+
             return (
               <Col key={classroom.id} xs="12" md="6" lg="4" className="mb-3">
-                <Card 
+                <Card
                   className="h-100 border-0 shadow-sm"
                   style={{ cursor: 'pointer' }}
                   onClick={() => navigate(`/admin/classroom/${classroom.id}`)}
@@ -223,7 +239,7 @@ const ClassroomList: React.FC = () => {
                         {classroom.isActive ? 'Activa' : 'Inactiva'}
                       </Badge>
                     </div>
-                    
+
                     <div className="mb-2">
                       <small className="text-muted d-block">
                         <i className="bi bi-folder me-1"></i>
@@ -234,7 +250,7 @@ const ClassroomList: React.FC = () => {
                         {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Sin profesor'}
                       </small>
                     </div>
-                    
+
                     <div className="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
                       <small className="text-muted">
                         <i className="bi bi-people me-1"></i>
@@ -257,6 +273,8 @@ const ClassroomList: React.FC = () => {
           })}
         </Row>
       )}
+
+      <StudentImporter isOpen={showImporter} toggle={() => setShowImporter(!showImporter)} />
     </Container>
   );
 };

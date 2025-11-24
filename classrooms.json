@@ -1,0 +1,1016 @@
+[
+    {
+        "id": "MwrLpEpz9ad4hmZPZpi7",
+        "schedule": {
+            "duration": 120,
+            "time": "19:00",
+            "dayOfWeek": "Monday"
+        },
+        "teacherId": "n3Ji9CrDaSyK0t32gHDE",
+        "subject": "Taller de Sanidad Interior",
+        "name": "Taller de Sanidad Interior",
+        "materialPrice": 250,
+        "description": "Espacio diseñado para guiar a cada persona hacia la restauración emocional y espiritual a través de la verdad de la Palabra y la obra del Espíritu Santo. En esta clase aprenderás a identificar heridas del pasado, romper patrones que afectan tu caminar con Dios y recibir liberación, paz y renovación interior. Un tiempo seguro, bíblico y práctico para experimentar la sanidad que Cristo ofrece.",
+        "updatedAt": "2025-11-24T16:27:27.115Z",
+        "modules": [
+            {
+                "weekNumber": 1,
+                "id": "module-1764001553712-0",
+                "name": "Semana 1",
+                "date": "2025-11-24T16:25:53.712Z",
+                "isCompleted": false
+            },
+            {
+                "id": "module-1764001553712-1",
+                "date": "2025-11-24T16:25:53.712Z",
+                "name": "Semana 2",
+                "weekNumber": 2,
+                "isCompleted": false
+            },
+            {
+                "id": "module-1764001553712-2",
+                "weekNumber": 3,
+                "name": "Semana 3",
+                "isCompleted": false,
+                "date": "2025-11-24T16:25:53.712Z"
+            },
+            {
+                "id": "module-1764001553712-3",
+                "isCompleted": false,
+                "name": "Semana 4",
+                "weekNumber": 4,
+                "date": "2025-11-24T16:25:53.712Z"
+            },
+            {
+                "isCompleted": false,
+                "date": "2025-11-24T16:25:53.712Z",
+                "name": "Semana 5",
+                "weekNumber": 5,
+                "id": "module-1764001553712-4"
+            },
+            {
+                "isCompleted": false,
+                "id": "module-1764001553712-5",
+                "name": "Semana 6",
+                "date": "2025-11-24T16:25:53.712Z",
+                "weekNumber": 6
+            },
+            {
+                "date": "2025-11-24T16:25:53.712Z",
+                "weekNumber": 7,
+                "id": "module-1764001553712-6",
+                "isCompleted": false,
+                "name": "Semana 7"
+            },
+            {
+                "date": "2025-11-24T16:25:53.712Z",
+                "name": "Semana 8",
+                "id": "module-1764001553712-7",
+                "weekNumber": 8,
+                "isCompleted": false
+            }
+        ],
+        "createdAt": "2025-11-24T16:25:53.713Z",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "studentIds": [],
+        "evaluationCriteria": {
+            "participation": 25,
+            "attendance": 25,
+            "finalExam": 25,
+            "customCriteria": [],
+            "participationRecords": [],
+            "questionnaires": 25,
+            "participationPointsPerModule": 2
+        },
+        "startDate": "2025-11-24T16:25:53.712Z",
+        "isActive": true,
+        "room": "2do de Primaria | En el primer nivel, en el pasillo de la oficina al fondo."
+    },
+    {
+        "id": "iF6aUkPXVOpbR5WrZCN6",
+        "name": "Discipulado",
+        "currentModule": {
+            "date": "2025-11-24T16:20:31.248Z",
+            "isCompleted": true,
+            "name": "Semana 1",
+            "id": "module-1764001231248-0",
+            "weekNumber": 1
+        },
+        "modules": [
+            {
+                "weekNumber": 1,
+                "date": "2025-11-24T16:20:31.248Z",
+                "id": "module-1764001231248-0",
+                "name": "Semana 1",
+                "isCompleted": false
+            },
+            {
+                "name": "Semana 2",
+                "isCompleted": false,
+                "date": "2025-11-24T16:20:31.248Z",
+                "id": "module-1764001231248-1",
+                "weekNumber": 2
+            },
+            {
+                "name": "Semana 3",
+                "date": "2025-11-24T16:20:31.248Z",
+                "isCompleted": false,
+                "id": "module-1764001231248-2",
+                "weekNumber": 3
+            },
+            {
+                "date": "2025-11-24T16:20:31.248Z",
+                "isCompleted": false,
+                "name": "Semana 4",
+                "weekNumber": 4,
+                "id": "module-1764001231248-3"
+            },
+            {
+                "date": "2025-11-24T16:20:31.248Z",
+                "name": "Semana 5",
+                "id": "module-1764001231248-4",
+                "weekNumber": 5,
+                "isCompleted": false
+            },
+            {
+                "isCompleted": false,
+                "weekNumber": 6,
+                "date": "2025-11-24T16:20:31.248Z",
+                "name": "Semana 6",
+                "id": "module-1764001231248-5"
+            },
+            {
+                "weekNumber": 7,
+                "name": "Semana 7",
+                "date": "2025-11-24T16:20:31.248Z",
+                "id": "module-1764001231248-6",
+                "isCompleted": false
+            },
+            {
+                "name": "Semana 8",
+                "date": "2025-11-24T16:20:31.248Z",
+                "isCompleted": false,
+                "id": "module-1764001231248-7",
+                "weekNumber": 8
+            }
+        ],
+        "updatedAt": "2025-11-24T16:36:43.237Z",
+        "materialPrice": 250,
+        "startDate": "2025-11-24T16:20:31.248Z",
+        "room": "En la Iglesia | Segunda Planta",
+        "studentIds": [],
+        "schedule": {
+            "duration": 120,
+            "dayOfWeek": "Monday",
+            "time": "19:00"
+        },
+        "createdAt": "2025-11-24T16:20:31.248Z",
+        "subject": "Discipulado",
+        "evaluationCriteria": {
+            "customCriteria": [],
+            "finalExam": 25,
+            "participationPointsPerModule": 2,
+            "participation": 25,
+            "participationRecords": [],
+            "attendance": 25,
+            "questionnaires": 25
+        },
+        "teacherId": "G8E3hHfpLvep3GF5TXnd",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "description": "Proceso formativo diseñado para ayudar a cada creyente a crecer en su fe, fortalecer su carácter cristiano y aprender a vivir de acuerdo con las enseñanzas de Jesús. En esta clase conocerás principios esenciales de la vida cristiana, desarrollarás hábitos espirituales sólidos y aprenderás a caminar junto a otros en obediencia y madurez.",
+        "isActive": true
+    },
+    {
+        "id": "uRwrOfNf139LftzigHN7",
+        "updatedAt": "2025-11-24T16:19:35.782Z",
+        "studentIds": [],
+        "name": "Libro Especial",
+        "createdAt": "2025-11-24T16:19:28.240Z",
+        "modules": [
+            {
+                "weekNumber": 1,
+                "date": "2025-11-24T16:19:28.240Z",
+                "name": "Semana 1",
+                "id": "module-1764001168240-0",
+                "isCompleted": false
+            },
+            {
+                "id": "module-1764001168240-1",
+                "date": "2025-11-24T16:19:28.240Z",
+                "isCompleted": false,
+                "name": "Semana 2",
+                "weekNumber": 2
+            },
+            {
+                "date": "2025-11-24T16:19:28.240Z",
+                "id": "module-1764001168240-2",
+                "isCompleted": false,
+                "name": "Semana 3",
+                "weekNumber": 3
+            },
+            {
+                "id": "module-1764001168240-3",
+                "name": "Semana 4",
+                "date": "2025-11-24T16:19:28.240Z",
+                "isCompleted": false,
+                "weekNumber": 4
+            },
+            {
+                "isCompleted": false,
+                "date": "2025-11-24T16:19:28.240Z",
+                "weekNumber": 5,
+                "id": "module-1764001168240-4",
+                "name": "Semana 5"
+            },
+            {
+                "name": "Semana 6",
+                "id": "module-1764001168240-5",
+                "isCompleted": false,
+                "weekNumber": 6,
+                "date": "2025-11-24T16:19:28.240Z"
+            },
+            {
+                "id": "module-1764001168240-6",
+                "isCompleted": false,
+                "date": "2025-11-24T16:19:28.240Z",
+                "weekNumber": 7,
+                "name": "Semana 7"
+            },
+            {
+                "isCompleted": false,
+                "name": "Semana 8",
+                "id": "module-1764001168240-7",
+                "date": "2025-11-24T16:19:28.240Z",
+                "weekNumber": 8
+            }
+        ],
+        "schedule": {
+            "time": "19:00",
+            "duration": 120,
+            "dayOfWeek": "Monday"
+        },
+        "room": "4to de Secundaria | En la tercera planta, la primera aula a la derecha. ",
+        "subject": "Libro Especial",
+        "startDate": "2025-11-24T16:19:28.240Z",
+        "description": "",
+        "teacherId": "YeuBc6IiyIGdkQkWbL2A",
+        "materialPrice": 250,
+        "evaluationCriteria": {
+            "attendance": 25,
+            "customCriteria": [],
+            "finalExam": 25,
+            "participationRecords": [],
+            "participation": 25,
+            "participationPointsPerModule": 2,
+            "questionnaires": 25
+        },
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "isActive": true
+    },
+    {
+        "id": "wu4hsyQFQCCAMuZPpiRe",
+        "studentIds": [],
+        "createdAt": "2025-11-24T16:18:28.527Z",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "isActive": true,
+        "name": "Taller de Predicación",
+        "evaluationCriteria": {
+            "participationPointsPerModule": 2,
+            "participationRecords": [],
+            "attendance": 25,
+            "participation": 25,
+            "customCriteria": [],
+            "questionnaires": 25,
+            "finalExam": 25
+        },
+        "room": "Salon de eventos Francisco Ferrer | En la segunda planta el primer salon a la izquierda",
+        "subject": "Taller de Predicación",
+        "teacherId": "udNYAIPycA3JNL4zW0ox",
+        "description": "Espacio práctico diseñado para formar predicadores que manejen con fidelidad la Palabra de Dios. En esta clase aprenderás a estudiar el texto bíblico, estructurar un sermón claro y relevante, y comunicar el mensaje con pasión, claridad y dependencia del Espíritu Santo. Ideal para líderes, maestros y todo creyente llamado a compartir el mensaje de Cristo.\n",
+        "startDate": "2025-11-24T16:18:28.527Z",
+        "schedule": {
+            "time": "19:00",
+            "duration": 120,
+            "dayOfWeek": "Monday"
+        },
+        "materialPrice": 350,
+        "modules": [
+            {
+                "isCompleted": false,
+                "id": "module-1764001108527-0",
+                "weekNumber": 1,
+                "name": "Semana 1",
+                "date": "2025-11-24T16:18:28.527Z"
+            },
+            {
+                "name": "Semana 2",
+                "date": "2025-11-24T16:18:28.527Z",
+                "weekNumber": 2,
+                "id": "module-1764001108527-1",
+                "isCompleted": false
+            },
+            {
+                "weekNumber": 3,
+                "date": "2025-11-24T16:18:28.527Z",
+                "isCompleted": false,
+                "id": "module-1764001108527-2",
+                "name": "Semana 3"
+            },
+            {
+                "date": "2025-11-24T16:18:28.527Z",
+                "name": "Semana 4",
+                "isCompleted": false,
+                "id": "module-1764001108527-3",
+                "weekNumber": 4
+            },
+            {
+                "name": "Semana 5",
+                "date": "2025-11-24T16:18:28.527Z",
+                "isCompleted": false,
+                "id": "module-1764001108527-4",
+                "weekNumber": 5
+            },
+            {
+                "id": "module-1764001108527-5",
+                "name": "Semana 6",
+                "weekNumber": 6,
+                "date": "2025-11-24T16:18:28.527Z",
+                "isCompleted": false
+            },
+            {
+                "isCompleted": false,
+                "name": "Semana 7",
+                "weekNumber": 7,
+                "id": "module-1764001108527-6",
+                "date": "2025-11-24T16:18:28.527Z"
+            },
+            {
+                "isCompleted": false,
+                "name": "Semana 8",
+                "weekNumber": 8,
+                "date": "2025-11-24T16:18:28.527Z",
+                "id": "module-1764001108527-7"
+            }
+        ],
+        "updatedAt": "2025-11-24T16:18:28.527Z"
+    },
+    {
+        "id": "IWlmb8sqePJ3JyRioHZ9",
+        "studentIds": [],
+        "schedule": {
+            "dayOfWeek": "Monday",
+            "time": "19:00",
+            "duration": 120
+        },
+        "startDate": "2025-11-24T16:16:45.307Z",
+        "room": "2do de Secundaria | En la tercera planta la ultima aula a la izquierda.",
+        "isActive": true,
+        "modules": [
+            {
+                "name": "Semana 1",
+                "id": "module-1764001005307-0",
+                "date": "2025-11-24T16:16:45.307Z",
+                "weekNumber": 1,
+                "isCompleted": false
+            },
+            {
+                "date": "2025-11-24T16:16:45.307Z",
+                "id": "module-1764001005307-1",
+                "weekNumber": 2,
+                "isCompleted": false,
+                "name": "Semana 2"
+            },
+            {
+                "isCompleted": false,
+                "id": "module-1764001005307-2",
+                "name": "Semana 3",
+                "date": "2025-11-24T16:16:45.307Z",
+                "weekNumber": 3
+            },
+            {
+                "isCompleted": false,
+                "name": "Semana 4",
+                "date": "2025-11-24T16:16:45.307Z",
+                "weekNumber": 4,
+                "id": "module-1764001005307-3"
+            },
+            {
+                "isCompleted": false,
+                "name": "Semana 5",
+                "weekNumber": 5,
+                "id": "module-1764001005307-4",
+                "date": "2025-11-24T16:16:45.307Z"
+            },
+            {
+                "id": "module-1764001005307-5",
+                "weekNumber": 6,
+                "date": "2025-11-24T16:16:45.307Z",
+                "isCompleted": false,
+                "name": "Semana 6"
+            },
+            {
+                "name": "Semana 7",
+                "isCompleted": false,
+                "date": "2025-11-24T16:16:45.307Z",
+                "id": "module-1764001005307-6",
+                "weekNumber": 7
+            },
+            {
+                "name": "Semana 8",
+                "id": "module-1764001005307-7",
+                "isCompleted": false,
+                "date": "2025-11-24T16:16:45.307Z",
+                "weekNumber": 8
+            }
+        ],
+        "name": "Educación Financiera",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "teacherId": "PO9LYAUaL2IMiAbDuC5Y",
+        "updatedAt": "2025-11-24T16:16:45.307Z",
+        "description": "Educacion financiera para hacernos mejore mayordomos de los bienes que el Señor nos ha delegado.",
+        "materialPrice": 200,
+        "subject": "Educación Financiera",
+        "evaluationCriteria": {
+            "participationPointsPerModule": 2,
+            "customCriteria": [],
+            "participationRecords": [],
+            "participation": 25,
+            "attendance": 25,
+            "questionnaires": 25,
+            "finalExam": 25
+        },
+        "createdAt": "2025-11-24T16:16:45.307Z"
+    },
+    {
+        "id": "JcbuljZLGL7ZBLUBcPxW",
+        "materialPrice": 350,
+        "description": "Este nivel profundiza en las áreas prácticas del ministerio pastoral, abordando temas como el liderazgo bíblico, el manejo de conflictos, la consejería cristiana y la administración de la iglesia. El estudiante desarrolla habilidades para servir con mayor madurez, discernimiento y efectividad dentro del contexto ministerial.",
+        "startDate": "2025-11-24T16:09:19.576Z",
+        "subject": "Compendio de Teologia Pastoral Nivel 6",
+        "evaluationCriteria": {
+            "participationRecords": [],
+            "participation": 25,
+            "attendance": 25,
+            "questionnaires": 25,
+            "customCriteria": [],
+            "finalExam": 25,
+            "participationPointsPerModule": 2
+        },
+        "modules": [
+            {
+                "weekNumber": 1,
+                "date": "2025-11-24T16:09:19.576Z",
+                "isCompleted": false,
+                "id": "module-1764000559576-0",
+                "name": "Semana 1"
+            },
+            {
+                "weekNumber": 2,
+                "id": "module-1764000559576-1",
+                "name": "Semana 2",
+                "isCompleted": false,
+                "date": "2025-11-24T16:09:19.576Z"
+            },
+            {
+                "name": "Semana 3",
+                "weekNumber": 3,
+                "id": "module-1764000559576-2",
+                "isCompleted": false,
+                "date": "2025-11-24T16:09:19.576Z"
+            },
+            {
+                "weekNumber": 4,
+                "isCompleted": false,
+                "name": "Semana 4",
+                "id": "module-1764000559576-3",
+                "date": "2025-11-24T16:09:19.576Z"
+            },
+            {
+                "isCompleted": false,
+                "id": "module-1764000559576-4",
+                "weekNumber": 5,
+                "name": "Semana 5",
+                "date": "2025-11-24T16:09:19.576Z"
+            },
+            {
+                "id": "module-1764000559576-5",
+                "isCompleted": false,
+                "weekNumber": 6,
+                "date": "2025-11-24T16:09:19.576Z",
+                "name": "Semana 6"
+            },
+            {
+                "date": "2025-11-24T16:09:19.576Z",
+                "weekNumber": 7,
+                "isCompleted": false,
+                "name": "Semana 7",
+                "id": "module-1764000559576-6"
+            },
+            {
+                "date": "2025-11-24T16:09:19.576Z",
+                "name": "Semana 8",
+                "weekNumber": 8,
+                "id": "module-1764000559576-7",
+                "isCompleted": false
+            }
+        ],
+        "createdAt": "2025-11-24T16:09:19.577Z",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "name": "Compendio de Teologia pastoral SEAN Nivel 6",
+        "teacherId": "CTE0xHgZ9OXnkAiuYJBy",
+        "schedule": {
+            "dayOfWeek": "Monday",
+            "duration": 120,
+            "time": "19:00"
+        },
+        "room": "5to de secundaria | En la segunda planta como quien sube a la tercera al fondo",
+        "updatedAt": "2025-11-24T16:11:30.131Z",
+        "studentIds": [],
+        "isActive": true
+    },
+    {
+        "id": "nTCp8GNtq4UIp0ht1YH3",
+        "name": "Compendio de Teologia pastoral SEAN Nivel 5",
+        "updatedAt": "2025-11-24T16:07:44.101Z",
+        "createdAt": "2025-11-24T16:07:44.101Z",
+        "room": "3ro de Primaria | Segundo nivel al fondo a la izquierda el ultimo curso",
+        "isActive": true,
+        "startDate": "2025-11-24T16:07:44.101Z",
+        "description": "Este nivel profundiza en las áreas prácticas del ministerio pastoral, abordando temas como el liderazgo bíblico, el manejo de conflictos, la consejería cristiana y la administración de la iglesia. El estudiante desarrolla habilidades para servir con mayor madurez, discernimiento y efectividad dentro del contexto ministerial.",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "schedule": {
+            "time": "19:00",
+            "dayOfWeek": "Monday",
+            "duration": 120
+        },
+        "materialPrice": 350,
+        "modules": [
+            {
+                "date": "2025-11-24T16:07:44.101Z",
+                "isCompleted": false,
+                "weekNumber": 1,
+                "id": "module-1764000464101-0",
+                "name": "Semana 1"
+            },
+            {
+                "isCompleted": false,
+                "weekNumber": 2,
+                "name": "Semana 2",
+                "date": "2025-11-24T16:07:44.101Z",
+                "id": "module-1764000464101-1"
+            },
+            {
+                "name": "Semana 3",
+                "date": "2025-11-24T16:07:44.101Z",
+                "weekNumber": 3,
+                "id": "module-1764000464101-2",
+                "isCompleted": false
+            },
+            {
+                "date": "2025-11-24T16:07:44.101Z",
+                "name": "Semana 4",
+                "isCompleted": false,
+                "weekNumber": 4,
+                "id": "module-1764000464101-3"
+            },
+            {
+                "weekNumber": 5,
+                "date": "2025-11-24T16:07:44.101Z",
+                "name": "Semana 5",
+                "isCompleted": false,
+                "id": "module-1764000464101-4"
+            },
+            {
+                "weekNumber": 6,
+                "date": "2025-11-24T16:07:44.101Z",
+                "id": "module-1764000464101-5",
+                "name": "Semana 6",
+                "isCompleted": false
+            },
+            {
+                "date": "2025-11-24T16:07:44.101Z",
+                "name": "Semana 7",
+                "id": "module-1764000464101-6",
+                "weekNumber": 7,
+                "isCompleted": false
+            },
+            {
+                "isCompleted": false,
+                "date": "2025-11-24T16:07:44.101Z",
+                "name": "Semana 8",
+                "id": "module-1764000464101-7",
+                "weekNumber": 8
+            }
+        ],
+        "teacherId": "lOVyLW8QVyTMJcn9HJAK",
+        "studentIds": [],
+        "evaluationCriteria": {
+            "finalExam": 25,
+            "participationPointsPerModule": 2,
+            "participationRecords": [],
+            "participation": 25,
+            "attendance": 25,
+            "questionnaires": 25,
+            "customCriteria": []
+        },
+        "subject": "Compendio de Teologia Pastoral Nivel 5"
+    },
+    {
+        "id": "AtHLleJs1XXxfnI717Pz",
+        "schedule": {
+            "dayOfWeek": "Monday",
+            "duration": 120,
+            "time": "19:00"
+        },
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "studentIds": [],
+        "startDate": "2025-11-24T16:06:07.974Z",
+        "teacherId": "m2EoytRIRvDQh3okk56C",
+        "subject": "Compendio de Teologia Pastoral Nivel 4",
+        "modules": [
+            {
+                "weekNumber": 1,
+                "name": "Semana 1",
+                "date": "2025-11-24T16:06:07.974Z",
+                "isCompleted": false,
+                "id": "module-1764000367974-0"
+            },
+            {
+                "weekNumber": 2,
+                "name": "Semana 2",
+                "isCompleted": false,
+                "date": "2025-11-24T16:06:07.974Z",
+                "id": "module-1764000367974-1"
+            },
+            {
+                "name": "Semana 3",
+                "isCompleted": false,
+                "date": "2025-11-24T16:06:07.974Z",
+                "weekNumber": 3,
+                "id": "module-1764000367974-2"
+            },
+            {
+                "isCompleted": false,
+                "date": "2025-11-24T16:06:07.974Z",
+                "id": "module-1764000367974-3",
+                "name": "Semana 4",
+                "weekNumber": 4
+            },
+            {
+                "date": "2025-11-24T16:06:07.974Z",
+                "weekNumber": 5,
+                "name": "Semana 5",
+                "id": "module-1764000367974-4",
+                "isCompleted": false
+            },
+            {
+                "isCompleted": false,
+                "weekNumber": 6,
+                "date": "2025-11-24T16:06:07.974Z",
+                "id": "module-1764000367974-5",
+                "name": "Semana 6"
+            },
+            {
+                "date": "2025-11-24T16:06:07.974Z",
+                "name": "Semana 7",
+                "weekNumber": 7,
+                "id": "module-1764000367974-6",
+                "isCompleted": false
+            },
+            {
+                "date": "2025-11-24T16:06:07.974Z",
+                "weekNumber": 8,
+                "id": "module-1764000367974-7",
+                "isCompleted": false,
+                "name": "Semana 8"
+            }
+        ],
+        "evaluationCriteria": {
+            "finalExam": 25,
+            "questionnaires": 25,
+            "participation": 25,
+            "participationPointsPerModule": 2,
+            "participationRecords": [],
+            "customCriteria": [],
+            "attendance": 25
+        },
+        "description": "Este nivel profundiza en las áreas prácticas del ministerio pastoral, abordando temas como el liderazgo bíblico, el manejo de conflictos, la consejería cristiana y la administración de la iglesia. El estudiante desarrolla habilidades para servir con mayor madurez, discernimiento y efectividad dentro del contexto ministerial.",
+        "updatedAt": "2025-11-24T16:06:07.975Z",
+        "createdAt": "2025-11-24T16:06:07.975Z",
+        "room": "6to de Primaria | Tercera planta la primera aula a la izquierda",
+        "materialPrice": 350,
+        "isActive": true,
+        "name": "Compendio de Teologia pastoral SEAN Nivel 4"
+    },
+    {
+        "id": "CYgv3Ishc6T6rC7jsFbU",
+        "description": "Este nivel profundiza en las áreas prácticas del ministerio pastoral, abordando temas como el liderazgo bíblico, el manejo de conflictos, la consejería cristiana y la administración de la iglesia. El estudiante desarrolla habilidades para servir con mayor madurez, discernimiento y efectividad dentro del contexto ministerial.",
+        "createdAt": "2025-11-24T16:05:25.646Z",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "isActive": true,
+        "modules": [
+            {
+                "date": "2025-11-24T16:05:25.646Z",
+                "weekNumber": 1,
+                "name": "Semana 1",
+                "isCompleted": false,
+                "id": "module-1764000325646-0"
+            },
+            {
+                "weekNumber": 2,
+                "id": "module-1764000325646-1",
+                "name": "Semana 2",
+                "isCompleted": false,
+                "date": "2025-11-24T16:05:25.646Z"
+            },
+            {
+                "name": "Semana 3",
+                "id": "module-1764000325646-2",
+                "weekNumber": 3,
+                "date": "2025-11-24T16:05:25.646Z",
+                "isCompleted": false
+            },
+            {
+                "weekNumber": 4,
+                "date": "2025-11-24T16:05:25.646Z",
+                "name": "Semana 4",
+                "isCompleted": false,
+                "id": "module-1764000325646-3"
+            },
+            {
+                "name": "Semana 5",
+                "date": "2025-11-24T16:05:25.646Z",
+                "id": "module-1764000325646-4",
+                "weekNumber": 5,
+                "isCompleted": false
+            },
+            {
+                "isCompleted": false,
+                "weekNumber": 6,
+                "id": "module-1764000325646-5",
+                "name": "Semana 6",
+                "date": "2025-11-24T16:05:25.646Z"
+            },
+            {
+                "date": "2025-11-24T16:05:25.646Z",
+                "name": "Semana 7",
+                "isCompleted": false,
+                "id": "module-1764000325646-6",
+                "weekNumber": 7
+            },
+            {
+                "weekNumber": 8,
+                "date": "2025-11-24T16:05:25.646Z",
+                "name": "Semana 8",
+                "isCompleted": false,
+                "id": "module-1764000325646-7"
+            }
+        ],
+        "materialPrice": 350,
+        "evaluationCriteria": {
+            "customCriteria": [],
+            "participationPointsPerModule": 2,
+            "finalExam": 25,
+            "attendance": 25,
+            "participation": 25,
+            "participationRecords": [],
+            "questionnaires": 25
+        },
+        "subject": "Compendio de Teologia Pastoral Nivel 3",
+        "room": "3ro de secundaria (adentro) | En el segundo piso entrando por tercero de secundaria",
+        "studentIds": [],
+        "startDate": "2025-11-24T16:05:25.646Z",
+        "schedule": {
+            "time": "19:00",
+            "duration": 120,
+            "dayOfWeek": "Monday"
+        },
+        "name": "Compendio de Teologia pastoral SEAN Nivel 3",
+        "updatedAt": "2025-11-24T16:07:08.758Z",
+        "teacherId": "ljXecjDHYFyB5qqfWEnv"
+    },
+    {
+        "id": "De1q0QxwJa3dguelp5LE",
+        "startDate": "2025-11-23T13:25:19.521Z",
+        "currentModule": {
+            "isCompleted": true,
+            "date": "2025-11-23T13:25:19.521Z",
+            "name": "Semana 2",
+            "weekNumber": 2,
+            "id": "module-1763904319521-1"
+        },
+        "room": "3ro de Secundaria | En la segunda planta la primera aula a la izquierda",
+        "teacherId": "Nc7oRfBzee4MtYM7yXrA",
+        "description": "Este nivel profundiza en las áreas prácticas del ministerio pastoral, abordando temas como el liderazgo bíblico, el manejo de conflictos, la consejería cristiana y la administración de la iglesia. El estudiante desarrolla habilidades para servir con mayor madurez, discernimiento y efectividad dentro del contexto ministerial.",
+        "studentIds": [],
+        "resources": [
+            {
+                "size": 2699760,
+                "uploadedBy": "CeHXpjfQE1rIf98KENi1",
+                "uploadedAt": "2025-11-24T15:16:16.795Z",
+                "name": "LIBRO 2.pdf",
+                "type": "application/pdf",
+                "id": "resource-1763997376795",
+                "url": "https://storage.googleapis.com/betuel-tech-photos/classroom-De1q0QxwJa3dguelp5LE-1763997376063-dfngs10.pdf"
+            }
+        ],
+        "subject": "Compendio de Teologia Pastoral Nivel 2",
+        "name": "Compendio de Teologia pastoral SEAN Nivel 2",
+        "materialPrice": 350,
+        "schedule": {
+            "dayOfWeek": "Monday",
+            "duration": 120,
+            "time": "19:00"
+        },
+        "evaluationCriteria": {
+            "participationPointsPerModule": 2,
+            "attendance": 25,
+            "customCriteria": [],
+            "finalExam": 25,
+            "questionnaires": 25,
+            "participationRecords": [],
+            "participation": 25
+        },
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "modules": [
+            {
+                "date": "2025-11-23T13:25:19.521Z",
+                "id": "module-1763904319521-0",
+                "name": "Semana 1",
+                "isCompleted": true,
+                "weekNumber": 1
+            },
+            {
+                "weekNumber": 2,
+                "isCompleted": true,
+                "name": "Semana 2",
+                "date": "2025-11-23T13:25:19.521Z",
+                "id": "module-1763904319521-1"
+            },
+            {
+                "isCompleted": false,
+                "name": "Semana 3",
+                "weekNumber": 3,
+                "date": "2025-11-23T13:25:19.521Z",
+                "id": "module-1763904319521-2"
+            },
+            {
+                "weekNumber": 4,
+                "date": "2025-11-23T13:25:19.521Z",
+                "id": "module-1763904319521-3",
+                "isCompleted": false,
+                "name": "Semana 4"
+            },
+            {
+                "date": "2025-11-23T13:25:19.521Z",
+                "weekNumber": 5,
+                "id": "module-1763904319521-4",
+                "name": "Semana 5",
+                "isCompleted": false
+            },
+            {
+                "name": "Semana 6",
+                "isCompleted": false,
+                "date": "2025-11-23T13:25:19.521Z",
+                "id": "module-1763904319521-5",
+                "weekNumber": 6
+            },
+            {
+                "date": "2025-11-23T13:25:19.521Z",
+                "id": "module-1763904319521-6",
+                "name": "Semana 7",
+                "isCompleted": false,
+                "weekNumber": 7
+            },
+            {
+                "date": "2025-11-23T13:25:19.521Z",
+                "id": "module-1763904319521-7",
+                "isCompleted": false,
+                "weekNumber": 8,
+                "name": "Semana 8"
+            }
+        ],
+        "isActive": true,
+        "createdAt": "2025-11-23T13:25:19.521Z",
+        "updatedAt": "2025-11-24T16:04:20.541Z"
+    },
+    {
+        "id": "m7K6M0QusADHQeAYjCih",
+        "room": "1ro de secundaria | En la tercera planta la ultima aula a la derecha",
+        "isActive": true,
+        "startDate": "2025-11-01T16:37:58.611Z",
+        "maxStudents": 30,
+        "schedule": {
+            "time": "19:00",
+            "duration": 120,
+            "dayOfWeek": "Monday"
+        },
+        "location": "1ro de Bachiller",
+        "modules": [
+            {
+                "name": "Semana 1",
+                "isCompleted": false,
+                "id": "module-1761530708819-0",
+                "date": "2025-10-27T02:05:08.819Z",
+                "weekNumber": 1
+            },
+            {
+                "name": "Semana 2",
+                "isCompleted": false,
+                "id": "module-1761530708819-1",
+                "date": "2025-10-27T02:05:08.819Z",
+                "weekNumber": 2
+            },
+            {
+                "isCompleted": false,
+                "id": "module-1761530708819-2",
+                "date": "2025-10-27T02:05:08.819Z",
+                "weekNumber": 3,
+                "name": "Semana 3"
+            },
+            {
+                "name": "Semana 4",
+                "id": "module-1761530708819-3",
+                "date": "2025-10-27T02:05:08.819Z",
+                "weekNumber": 4,
+                "isCompleted": false
+            },
+            {
+                "date": "2025-10-27T02:05:08.819Z",
+                "id": "module-1761530708819-4",
+                "weekNumber": 5,
+                "name": "Semana 5",
+                "isCompleted": false
+            },
+            {
+                "weekNumber": 6,
+                "id": "module-1761530708819-5",
+                "date": "2025-10-27T02:05:08.819Z",
+                "isCompleted": false,
+                "name": "Semana 6"
+            },
+            {
+                "name": "Semana 7",
+                "id": "module-1761530708819-6",
+                "weekNumber": 7,
+                "date": "2025-10-27T02:05:08.819Z",
+                "isCompleted": false
+            },
+            {
+                "id": "module-1761530708819-7",
+                "date": "2025-10-27T02:05:08.819Z",
+                "isCompleted": false,
+                "name": "Semana 8",
+                "weekNumber": 8
+            }
+        ],
+        "subject": "Compendio de Teologia Pastoral Nivel 1",
+        "name": "Compendio de Teologia pastoral SEAN Nivel 1",
+        "whatsappGroup": {
+            "participants": [
+                "18492189919@s.whatsapp.net",
+                "18094055531@s.whatsapp.net"
+            ],
+            "title": "Compendio de Teologia Pastoral Nivel 4 - Compendio de Teologia pastoral",
+            "description": "Grupo de la clase Compendio de Teologia Pastoral Nivel 4",
+            "id": "120363406297538892@g.us"
+        },
+        "evaluationCriteria": {
+            "participationPointsPerModule": 2,
+            "attendance": 25,
+            "participation": 25,
+            "customCriteria": [],
+            "participationRecords": [],
+            "questionnaires": 25,
+            "finalExam": 25
+        },
+        "materialPrice": 350,
+        "updatedAt": "2025-11-24T16:08:15.277Z",
+        "studentIds": [
+            "lOVyLW8QVyTMJcn9HJAK"
+        ],
+        "teacherId": "gt8luF0GILLYgsAwtN3a",
+        "resources": [
+            {
+                "name": "LIBRO 1.pdf",
+                "uploadedBy": "m2EoytRIRvDQh3okk56C",
+                "uploadedAt": "2025-11-24T15:02:51.568Z",
+                "id": "resource-1763996571568",
+                "url": "https://storage.googleapis.com/betuel-tech-photos/classroom-m7K6M0QusADHQeAYjCih-1763996568578-zk5e7ba.pdf",
+                "type": "application/pdf",
+                "size": 37024339
+            }
+        ],
+        "currentModule": {
+            "date": "2025-10-27T02:05:08.819Z",
+            "weekNumber": 1,
+            "isCompleted": true,
+            "name": "Semana 1",
+            "id": "module-1761530708819-0"
+        },
+        "description": "Materia introductoria que presenta los fundamentos bíblicos y prácticos del cuidado pastoral. El estudiante aprende el rol del pastor, la ética ministerial, el acompañamiento espiritual y la aplicación de la Palabra en situaciones reales, desarrollando una visión clara y equilibrada del servicio cristiano.",
+        "programId": "wSKFKPVA4ZhngwONYquQ",
+        "endDate": "2025-11-01T16:36:58.313Z",
+        "createdAt": "2025-10-27T02:05:08.819Z"
+    }
+]

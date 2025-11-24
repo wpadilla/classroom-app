@@ -59,7 +59,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalCla
     const [searchQueries, setSearchQueries] = useState<{ [classroomId: string]: string }>({});
 
     useEffect(() => {
-        
+
         const incoming = structuredClone(classrooms);
         const incoming2 = structuredClone(originalClassrooms || classrooms);
         // Avoid resetting local state if content didn't change
@@ -481,9 +481,9 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalCla
 
     const addNewStudent = async () => {
         if (!addNewStudentClassroomId || addingStudent) return;
-        
+
         setAddingStudent(true);
-        
+
         const newStudentData: IStudent = {
             ...newStudent,
             id: generateCustomID(),
@@ -513,10 +513,10 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalCla
         try {
             // Optimistic UI: update local state immediately
             setClassroomData(prev => prev.map(c => c.id === addNewStudentClassroomId ? updatedClassroom : c));
-            
+
             setNewStudent({ firstName: '', lastName: '', phone: '' });
             setAddNewStudentClassroomId(null);
-            
+
             toast.success('Estudiante agregado exitosamente');
         } catch (error) {
             console.error('Error adding student:', error);
@@ -566,14 +566,16 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalCla
     const getFilteredStudents = (classroom: IClassroom) => {
         const localQuery = searchQueries[classroom.id] || '';
         const globalQuery = globalSearchQuery || '';
-        
+
         // If there's a local search query, use it; otherwise use global search
         const query = localQuery || globalQuery;
-        
+
         const latest = classroomData.find(c => c.id === classroom.id) || classroom;
         return filterBySearch(latest.students, query);
     };
 
+    console.log("classrooms =>", classrooms)
+    console.log("classroomData =>", classroomData)
 
     return (
         <Container style={{ width: '100%', minHeight: '100dvh' }}
@@ -662,7 +664,7 @@ const ClassroomsList: React.FC<ClassroomsListProps> = ({ classrooms, originalCla
                                 Profesor/a: {`${latestClassroom.teacher.firstName} ${latestClassroom.teacher.lastName}`}
                             </h3>
                             <span className="text-secondary">{getFilteredStudents(latestClassroom).length} de {latestClassroom.students.length} Estudiantes</span>
-                            
+
                             {/* Search input for this classroom */}
                             <div className="my-3">
                                 <Input

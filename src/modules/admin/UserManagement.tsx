@@ -47,7 +47,7 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<UserRole | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Modal states
   const [userModal, setUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<IUser | null>(null);
@@ -56,7 +56,7 @@ const UserManagement: React.FC = () => {
   const [enrollModal, setEnrollModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const [selectedClassrooms, setSelectedClassrooms] = useState<string[]>([]);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     firstName: '',
@@ -96,7 +96,7 @@ const UserManagement: React.FC = () => {
 
   const filterUsers = () => {
     let filtered = [...users];
-    
+
     // Filter by role/tab
     if (activeTab !== 'all') {
       if (activeTab === 'teacher') {
@@ -105,7 +105,7 @@ const UserManagement: React.FC = () => {
         filtered = filtered.filter(u => u.role === activeTab);
       }
     }
-    
+
     // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -116,7 +116,7 @@ const UserManagement: React.FC = () => {
         return fullName.includes(query) || phone.includes(query) || email.includes(query);
       });
     }
-    
+
     setFilteredUsers(filtered);
   };
 
@@ -150,17 +150,20 @@ const UserManagement: React.FC = () => {
   };
 
   const handleSaveUser = async () => {
+    console.log("formData",formData);
+    console.log("editingUser", editingUser);
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.phone) {
       toast.error('Por favor complete todos los campos requeridos');
       return;
     }
-    
+
     if (!editingUser && !formData.password) {
       toast.error('La contraseña es requerida para nuevos usuarios');
       return;
     }
-    
+
+
     try {
       if (editingUser) {
         // Update existing user
@@ -173,11 +176,11 @@ const UserManagement: React.FC = () => {
           isTeacher: formData.isTeacher,
           isActive: formData.isActive
         };
-        
+
         if (formData.password) {
           updates.password = formData.password;
         }
-        
+
         await UserService.updateUser(editingUser.id, updates);
         toast.success('Usuario actualizado exitosamente');
       } else {
@@ -198,7 +201,7 @@ const UserManagement: React.FC = () => {
         });
         toast.success('Usuario creado exitosamente');
       }
-      
+
       setUserModal(false);
       await loadData();
     } catch (error: any) {
@@ -209,7 +212,7 @@ const UserManagement: React.FC = () => {
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
-    
+
     try {
       await UserService.deleteUser(userToDelete.id);
       toast.success('Usuario eliminado exitosamente');
@@ -252,24 +255,24 @@ const UserManagement: React.FC = () => {
 
   const handleSaveEnrollment = async () => {
     if (!selectedUser) return;
-    
+
     try {
       // Get current enrollments
       const currentEnrollments = selectedUser.enrolledClassrooms || [];
-      
+
       // Find classrooms to add and remove
       const toAdd = selectedClassrooms.filter(id => !currentEnrollments.includes(id));
       const toRemove = currentEnrollments.filter(id => !selectedClassrooms.includes(id));
-      
+
       // Process enrollments
       for (const classroomId of toAdd) {
         await ClassroomService.addStudentToClassroom(classroomId, selectedUser.id);
       }
-      
+
       for (const classroomId of toRemove) {
         await ClassroomService.removeStudentFromClassroom(classroomId, selectedUser.id);
       }
-      
+
       toast.success('Inscripciones actualizadas exitosamente');
       setEnrollModal(false);
       await loadData();
@@ -511,27 +514,27 @@ const UserManagement: React.FC = () => {
                             <i className="bi bi-pencil me-2"></i>
                             Editar
                           </DropdownItem>
-                          
+
                           {user.role === 'student' && (
                             <DropdownItem onClick={() => handleOpenEnrollModal(user)}>
                               <i className="bi bi-book me-2"></i>
                               Gestionar Clases
                             </DropdownItem>
                           )}
-                          
+
                           <DropdownItem onClick={() => handleToggleTeacherStatus(user)}>
                             <i className="bi bi-mortarboard me-2"></i>
                             {user.isTeacher ? 'Quitar Profesor' : 'Hacer Profesor'}
                           </DropdownItem>
-                          
+
                           <DropdownItem onClick={() => handleToggleUserStatus(user)}>
                             <i className={`bi bi-${user.isActive ? 'x-circle' : 'check-circle'} me-2`}></i>
                             {user.isActive ? 'Desactivar' : 'Activar'}
                           </DropdownItem>
-                          
+
                           <DropdownItem divider />
-                          
-                          <DropdownItem 
+
+                          <DropdownItem
                             className="text-danger"
                             onClick={() => {
                               setUserToDelete(user);

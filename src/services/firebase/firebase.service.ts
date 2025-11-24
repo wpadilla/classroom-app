@@ -76,7 +76,7 @@ export class FirebaseService {
   }
 
   // Generic CRUD operations
-  
+
   /**
    * Get a single document by ID
    */
@@ -84,11 +84,11 @@ export class FirebaseService {
     try {
       const docRef = doc(firebaseStoreDB, collectionName, docId);
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         const data = docSnap.data();
         const converted = this.convertTimestamps(data);
-        return { id: docSnap.id, ...converted } as T;
+        return { ...converted, id: docSnap.id } as T;
       }
       return null;
     } catch (error) {
@@ -106,19 +106,19 @@ export class FirebaseService {
   ): Promise<T[]> {
     try {
       const collectionRef = collection(firebaseStoreDB, collectionName);
-      const q = constraints.length > 0 
+      const q = constraints.length > 0
         ? query(collectionRef, ...constraints)
         : collectionRef;
-      
+
       const querySnapshot = await getDocs(q);
       const documents: T[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const converted = this.convertTimestamps(data);
-        documents.push({ id: doc.id, ...converted } as T);
+        documents.push({ ...converted, id: doc.id } as T);
       });
-      
+
       return documents;
     } catch (error) {
       console.error(`Error getting documents from ${collectionName}:`, error);
@@ -193,14 +193,14 @@ export class FirebaseService {
       const collectionRef = collection(firebaseStoreDB, collectionName);
       const q = query(collectionRef, where(field, operator, value));
       const querySnapshot = await getDocs(q);
-      
+
       const documents: T[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const converted = this.convertTimestamps(data);
-        documents.push({ id: doc.id, ...converted } as T);
+        documents.push({ ...converted, id: doc.id } as T);
       });
-      
+
       return documents;
     } catch (error) {
       console.error(`Error querying documents from ${collectionName}:`, error);
@@ -252,7 +252,7 @@ export class FirebaseService {
     try {
       const collectionRef = collection(firebaseStoreDB, collectionName);
       let q = query(collectionRef, ...constraints, limit(pageSize + 1));
-      
+
       if (lastDocId) {
         const lastDocRef = doc(firebaseStoreDB, collectionName, lastDocId);
         const lastDocSnap = await getDoc(lastDocRef);
@@ -260,21 +260,21 @@ export class FirebaseService {
           q = query(collectionRef, ...constraints, orderBy('createdAt'), limit(pageSize + 1));
         }
       }
-      
+
       const querySnapshot = await getDocs(q);
       const documents: T[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const converted = this.convertTimestamps(data);
-        documents.push({ id: doc.id, ...converted } as T);
+        documents.push({ ...converted, id: doc.id } as T);
       });
-      
+
       const hasMore = documents.length > pageSize;
       if (hasMore) {
         documents.pop(); // Remove the extra document
       }
-      
+
       return { documents, hasMore };
     } catch (error) {
       console.error(`Error getting paginated documents from ${collectionName}:`, error);

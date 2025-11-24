@@ -23,7 +23,7 @@ const Login: React.FC = () => {
   const { login, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [credentials, setCredentials] = useState<IAuthCredentials>({
     identifier: '',
     password: ''
@@ -74,7 +74,7 @@ const Login: React.FC = () => {
 
     // Attempt login
     const success = await login(credentials);
-    
+
     if (!success) {
       setError('Credenciales inválidas. Por favor intente nuevamente.');
     } else {
@@ -90,7 +90,7 @@ const Login: React.FC = () => {
           <Card className="shadow-lg">
             <CardBody className="p-5">
               <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary">Instituto Cristiano</h2>
+                <h2 className="fw-bold text-primary">Academia de Ministros Oasis de Amor</h2>
                 <p className="text-muted">Sistema de Gestión Académica</p>
               </div>
 
@@ -199,7 +199,7 @@ const Login: React.FC = () => {
 
           <div className="text-center mt-3">
             <small className="text-muted">
-              © 2024 Instituto Cristiano. Todos los derechos reservados.
+              © 2024 Academia de Ministros Oasis de Amor. Todos los derechos reservados.
             </small>
           </div>
         </Col>

@@ -25,7 +25,7 @@ const Register: React.FC = () => {
   const { register, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState<IRegistrationData>({
     firstName: '',
     lastName: '',
@@ -35,7 +35,7 @@ const Register: React.FC = () => {
     confirmPassword: '',
     role: 'student'
   });
-  
+
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [errors, setErrors] = useState<Partial<Record<keyof IRegistrationData, string>>>({});
@@ -69,7 +69,7 @@ const Register: React.FC = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear specific field error
     if (errors[name as keyof IRegistrationData]) {
       setErrors(prev => ({
@@ -103,7 +103,7 @@ const Register: React.FC = () => {
     }
 
     setProfilePhoto(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -122,52 +122,52 @@ const Register: React.FC = () => {
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof IRegistrationData, string>> = {};
-    
+
     // Required fields
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'El nombre es requerido';
     }
-    
+
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'El apellido es requerido';
     }
-    
+
     if (!formData.phone.trim()) {
       newErrors.phone = 'El teléfono es requerido';
     } else if (!/^\d{10,}$/.test(formData.phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Ingrese un número de teléfono válido';
     }
-    
+
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Ingrese un correo electrónico válido';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida';
     } else if (formData.password.length < 6) {
       newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setGeneralError('');
-    
+
     try {
       let photoUrl = '';
-      
+
       // Upload photo if provided
       if (profilePhoto) {
         setUploadingPhoto(true);
@@ -183,15 +183,15 @@ const Register: React.FC = () => {
           setUploadingPhoto(false);
         }
       }
-      
+
       // Register user
       const registrationData: IRegistrationData = {
         ...formData,
         profilePhoto: photoUrl
       };
-      
+
       const success = await register(registrationData);
-      
+
       if (!success) {
         setGeneralError('Error al registrar. Por favor intente nuevamente.');
       } else {
@@ -210,7 +210,7 @@ const Register: React.FC = () => {
           <Card className="shadow-lg">
             <CardBody className="p-5">
               <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary">Instituto Cristiano</h2>
+                <h2 className="fw-bold text-primary">Academia de Ministros Oasis de Amor</h2>
                 <p className="text-muted">Registro de Estudiante</p>
               </div>
 
@@ -240,7 +240,7 @@ const Register: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -248,7 +248,7 @@ const Register: React.FC = () => {
                     onChange={handlePhotoChange}
                     style={{ display: 'none' }}
                   />
-                  
+
                   <div className="d-flex gap-2 justify-content-center">
                     <Button
                       type="button"
@@ -417,7 +417,7 @@ const Register: React.FC = () => {
 
           <div className="text-center mt-3">
             <small className="text-muted">
-              © 2024 Instituto Cristiano. Todos los derechos reservados.
+              © 2024 Academia de Ministros Oasis de Amor. Todos los derechos reservados.
             </small>
           </div>
         </Col>

@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Container>
             <NavbarBrand tag={Link} to="/" className="fw-bold">
               <i className="bi bi-mortarboard-fill me-2"></i>
-              Instituto Cristiano
+              Academia de Ministros Oasis de Amor
             </NavbarBrand>
             <NavbarToggler onClick={toggle} />
             <Collapse isOpen={isOpen} navbar>
@@ -166,7 +166,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         {user.firstName} {user.lastName}
                       </span>
                       <Badge color="primary" pill className="ms-2">
-                        {user.role === 'admin' ? 'Admin' : 
+                        {user.role === 'admin' ? 'Admin' :
                          user.role === 'teacher' ? 'Profesor' : 'Estudiante'}
                       </Badge>
                     </DropdownToggle>

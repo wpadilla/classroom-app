@@ -101,7 +101,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
           <NavbarBrand tag={Link} to="/" className="fw-bold">
             <i className="bi bi-mortarboard-fill me-2"></i>
             <span className="d-none d-sm-inline">Academia de Ministros Oasis de Amor</span>
-            <span className="d-inline d-sm-none">FOA</span>
+            <span className="d-inline d-sm-none">AMOA</span>
           </NavbarBrand>
 
           <div className="d-flex align-items-center">

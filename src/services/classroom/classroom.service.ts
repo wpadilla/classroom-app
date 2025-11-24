@@ -1,7 +1,7 @@
 // Classroom Service - CRUD operations for classrooms
 
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
-import { IClassroom, IModule, IWhatsappGroup, IEvaluationCriteria } from '../../models';
+import { IClassroom, IModule, IWhatsappGroup, IEvaluationCriteria, IClassroomResource } from '../../models';
 import { orderBy, where } from 'firebase/firestore';
 import { UserService } from '../user/user.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -70,7 +70,7 @@ export class ClassroomService {
           [orderBy('createdAt', 'desc')]
         );
       }
-      
+
       return await FirebaseService.queryDocuments<IClassroom>(
         COLLECTIONS.CLASSROOMS,
         'teacherId',
@@ -103,17 +103,17 @@ export class ClassroomService {
   ): Promise<string> {
     try {
       // Validate evaluation criteria totals 100 points
-      const criteriaTotal = 
+      const criteriaTotal =
         classroomData.evaluationCriteria.questionnaires +
         classroomData.evaluationCriteria.attendance +
         classroomData.evaluationCriteria.participation +
         classroomData.evaluationCriteria.finalExam +
         classroomData.evaluationCriteria.customCriteria.reduce((sum, c) => sum + c.points, 0);
-      
+
       if (criteriaTotal !== 100) {
         throw new Error('Los criterios de evaluación deben sumar 100 puntos');
       }
-      
+
       return await FirebaseService.createDocument(COLLECTIONS.CLASSROOMS, classroomData);
     } catch (error) {
       console.error('Error creating classroom:', error);
@@ -131,18 +131,18 @@ export class ClassroomService {
     try {
       // If updating evaluation criteria, validate it totals 100
       if (updates.evaluationCriteria) {
-        const criteriaTotal = 
+        const criteriaTotal =
           updates.evaluationCriteria.questionnaires! +
           updates.evaluationCriteria.attendance! +
           updates.evaluationCriteria.participation! +
           updates.evaluationCriteria.finalExam! +
           updates.evaluationCriteria.customCriteria!.reduce((sum, c) => sum + c.points, 0);
-        
+
         if (criteriaTotal !== 100) {
           throw new Error('Los criterios de evaluación deben sumar 100 puntos');
         }
       }
-      
+
       await FirebaseService.updateDocument(COLLECTIONS.CLASSROOMS, classroomId, updates as any);
     } catch (error) {
       console.error(`Error updating classroom ${classroomId}:`, error);
@@ -157,12 +157,12 @@ export class ClassroomService {
     try {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
-      
+
       const studentIds = classroom.studentIds || [];
       if (!studentIds.includes(studentId)) {
         studentIds.push(studentId);
         await this.updateClassroom(classroomId, { studentIds });
-        
+
         // Also update user's enrolled classrooms
         await UserService.enrollInClassroom(studentId, classroomId);
       }
@@ -179,10 +179,10 @@ export class ClassroomService {
     try {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
-      
+
       const studentIds = (classroom.studentIds || []).filter(id => id !== studentId);
       await this.updateClassroom(classroomId, { studentIds });
-      
+
       // Also update user's enrolled classrooms
       await UserService.removeFromClassroom(studentId, classroomId);
     } catch (error) {
@@ -198,13 +198,13 @@ export class ClassroomService {
     try {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
-      
+
       // Get student phone numbers
       const students = await UserService.getUsersByClassroom(classroomId);
       const phoneNumbers = students
         .filter(s => s.phone)
         .map(s => WhatsappService.formatPhoneNumber(s.phone));
-      
+
       // Get teacher phone number and add to the group
       const teacher = await UserService.getUserById(classroom.teacherId);
       if (teacher && teacher.phone) {
@@ -212,7 +212,7 @@ export class ClassroomService {
         // Add teacher at the beginning of the list (will be admin by default)
         phoneNumbers.unshift(teacherPhone);
       }
-      
+
       // Create WhatsApp group
       const groupName = `${classroom.subject} - ${classroom.name}`;
       const groupResponse = await WhatsappService.createGroup(
@@ -220,16 +220,16 @@ export class ClassroomService {
         phoneNumbers,
         `Grupo de la clase ${classroom.subject}. Profesor: ${teacher ? `${teacher.firstName} ${teacher.lastName}` : 'N/A'}`
       );
-      
+
       if (!groupResponse.success || !groupResponse.data) {
         throw new Error(groupResponse.error || 'Error al crear grupo de WhatsApp');
       }
-      
+
       // Update classroom with WhatsApp group info
       await this.updateClassroom(classroomId, {
         whatsappGroup: groupResponse.data
       });
-      
+
       return groupResponse.data;
     } catch (error) {
       console.error(`Error creating WhatsApp group for classroom ${classroomId}:`, error);
@@ -245,13 +245,13 @@ export class ClassroomService {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
       if (!classroom.whatsappGroup) throw new Error('La clase no tiene un grupo de WhatsApp asociado');
-      
+
       // Get current students
       const students = await UserService.getUsersByClassroom(classroomId);
       const studentPhones = students
         .filter(s => s.phone)
         .map(s => WhatsappService.formatPhoneNumber(s.phone));
-      
+
       // Get teacher phone and add to participants
       const teacher = await UserService.getUserById(classroom.teacherId);
       const allPhones = [...studentPhones];
@@ -260,35 +260,35 @@ export class ClassroomService {
         // Add teacher at the beginning
         allPhones.unshift(teacherPhone);
       }
-      
+
       // Sync with WhatsApp group
       const response = await WhatsappService.syncGroupParticipants(
         classroom.whatsappGroup.id,
         classroomId,
         allPhones
       );
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Error al sincronizar grupo');
       }
-      
+
       // Get updated group participants
       const participants = await WhatsappService.getGroupParticipants(classroom.whatsappGroup.id);
-      
+
       // Add new participants as students if they're not in the classroom
       // Exclude teacher from being added as student
       const teacherPhone = teacher?.phone ? WhatsappService.formatPhoneNumber(teacher.phone) : null;
-      
+
       for (const participant of participants) {
         // Skip if it's the teacher
         if (teacherPhone && participant.phone === teacherPhone) {
           continue;
         }
-        
+
         const existingStudent = students.find(
           s => WhatsappService.formatPhoneNumber(s.phone) === participant.phone
         );
-        
+
         if (!existingStudent && participant.phone) {
           // Create a new student user
           const newStudent = await UserService.createUser({
@@ -301,7 +301,7 @@ export class ClassroomService {
             isActive: true,
             enrolledClassrooms: [classroomId]
           });
-          
+
           // Add to classroom
           await this.addStudentToClassroom(classroomId, newStudent);
         }
@@ -320,7 +320,7 @@ export class ClassroomService {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
       if (!classroom.whatsappGroup) throw new Error('La clase no tiene un grupo de WhatsApp asociado');
-      
+
       const response = await WhatsappService.sendMessage(
         [classroom.whatsappGroup.id],
         {
@@ -330,7 +330,7 @@ export class ClassroomService {
         5, // delay
         classroom.whatsappGroup.name || `${classroom.subject} - ${classroom.name}` // group title
       );
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Error al enviar mensaje');
       }
@@ -347,10 +347,10 @@ export class ClassroomService {
     try {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
-      
+
       const module = classroom.modules.find(m => m.id === moduleId);
       if (!module) throw new Error('Módulo no encontrado');
-      
+
       await this.updateClassroom(classroomId, { currentModule: module });
     } catch (error) {
       console.error(`Error updating current module for classroom ${classroomId}:`, error);
@@ -365,14 +365,14 @@ export class ClassroomService {
     try {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
-      
+
       const modules = classroom.modules.map(m => {
         if (m.id === moduleId) {
           return { ...m, isCompleted: true };
         }
         return m;
       });
-      
+
       await this.updateClassroom(classroomId, { modules });
     } catch (error) {
       console.error(`Error marking module ${moduleId} as completed:`, error);
@@ -387,7 +387,7 @@ export class ClassroomService {
     try {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
-      
+
       await this.updateClassroom(classroomId, { isActive: !classroom.isActive });
     } catch (error) {
       console.error(`Error toggling classroom ${classroomId} status:`, error);
@@ -405,13 +405,13 @@ export class ClassroomService {
       for (const student of students) {
         await UserService.removeFromClassroom(student.id, classroomId);
       }
-      
+
       // Remove classroom from teacher
       const classroom = await this.getClassroomById(classroomId);
       if (classroom && classroom.teacherId) {
         await UserService.removeTeacherFromClassroom(classroom.teacherId, classroomId);
       }
-      
+
       // Delete classroom
       await FirebaseService.deleteDocument(COLLECTIONS.CLASSROOMS, classroomId);
     } catch (error) {
@@ -441,9 +441,9 @@ export class ClassroomService {
           hasWhatsappGroup: false
         };
       }
-      
+
       const completedModules = classroom.modules.filter(m => m.isCompleted).length;
-      
+
       return {
         totalStudents: classroom.studentIds?.length || 0,
         completedModules,
@@ -521,4 +521,40 @@ export class ClassroomService {
   static async getAggregatedRunStats(classroomId: string) {
     return await ClassroomRestartService.getAggregatedStats(classroomId);
   }
+
+  /**
+   * Add resource to classroom
+   */
+  static async addResource(classroomId: string, resource: IClassroomResource): Promise<void> {
+    try {
+      const classroom = await this.getClassroomById(classroomId);
+      if (!classroom) throw new Error('Clase no encontrada');
+
+      const resources = classroom.resources || [];
+      resources.push(resource);
+
+      await this.updateClassroom(classroomId, { resources } as any);
+    } catch (error) {
+      console.error(`Error adding resource to classroom ${classroomId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete resource from classroom
+   */
+  static async deleteResource(classroomId: string, resourceId: string): Promise<void> {
+    try {
+      const classroom = await this.getClassroomById(classroomId);
+      if (!classroom) throw new Error('Clase no encontrada');
+
+      const resources = (classroom.resources || []).filter(r => r.id !== resourceId);
+
+      await this.updateClassroom(classroomId, { resources } as any);
+    } catch (error) {
+      console.error(`Error deleting resource ${resourceId} from classroom ${classroomId}:`, error);
+      throw error;
+    }
+  }
 }
+

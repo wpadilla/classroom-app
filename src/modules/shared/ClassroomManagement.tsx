@@ -43,9 +43,11 @@ import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
-import { IClassroom, IUser, IModule, IStudentEvaluation, IAttendanceRecord } from '../../models';
+import { IClassroom, IUser, IModule, IStudentEvaluation, IAttendanceRecord, IClassroomResource } from '../../models';
 
 import { useOffline } from '../../contexts/OfflineContext';
+import { GCloudService } from '../../services/gcloud/gcloud.service';
+import { getFileIcon, formatFileSize, getFileTypeColor } from '../../utils/fileUtils';
 
 const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -78,6 +80,13 @@ const ClassroomManagement: React.FC = () => {
 
   // Participation state - Track total participation including pending changes
   const [participationTotals, setParticipationTotals] = useState<Map<string, number>>(new Map());
+
+  // Resources state
+  const [uploadingResource, setUploadingResource] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [downloadingFileName, setDownloadingFileName] = useState('');
 
   useEffect(() => {
     if (id && user) { // Keep user in dependency for permission checks
@@ -419,6 +428,140 @@ const ClassroomManagement: React.FC = () => {
     }
   };
 
+  const handleFileUpload = async () => {
+    if (!id || !selectedFile || !user) return;
+
+    try {
+      setUploadingResource(true);
+
+      // Upload file to GCloud
+      const fileUrl = await GCloudService.uploadFile(selectedFile, `classroom-${id}`);
+
+      // Create resource object
+      const resource: Omit<IClassroomResource, 'id'> = {
+        name: selectedFile.name,
+        url: fileUrl,
+        type: selectedFile.type,
+        size: selectedFile.size,
+        uploadedBy: user.id,
+        uploadedAt: new Date()
+      };
+
+      // Add resource to classroom
+      const resourceWithId: IClassroomResource = {
+        ...resource,
+        id: `resource-${Date.now()}`
+      };
+
+      await ClassroomService.addResource(id, resourceWithId);
+
+      toast.success('Recurso subido exitosamente');
+      setSelectedFile(null);
+      await loadClassroomData();
+    } catch (error) {
+      console.error('Error uploading resource:', error);
+      toast.error('Error al subir el recurso');
+    } finally {
+      setUploadingResource(false);
+    }
+  };
+
+  const handleDeleteResource = async (resourceId: string, filename: string) => {
+    if (!id) return;
+
+    const confirmed = window.confirm(`¿Estás seguro de eliminar el recurso "${filename}"?`);
+    if (!confirmed) return;
+
+    try {
+      // Delete from GCloud
+      const filenameMatch = filename.match(/classroom-.*$/);
+      if (filenameMatch) {
+        await GCloudService.deletePhoto(filenameMatch[0]);
+      }
+
+      // Remove from classroom
+      await ClassroomService.deleteResource(id, resourceId);
+
+      toast.success('Recurso eliminado exitosamente');
+      await loadClassroomData();
+    } catch (error) {
+      console.error('Error deleting resource:', error);
+      toast.error('Error al eliminar el recurso');
+    }
+  };
+
+  const handleDownloadResource = async (url: string, filename: string) => {
+    try {
+      // Show modal
+      setDownloadingFileName(filename);
+      setDownloadProgress(0);
+      setDownloadModalOpen(true);
+
+      // Fetch the file with progress tracking
+      const response = await fetch(url);
+
+      if (!response.ok) throw new Error('Error al obtener el archivo');
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No se pudo leer el archivo');
+
+      const chunks: Uint8Array[] = [];
+      let receivedLength = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        chunks.push(value);
+        receivedLength += value.length;
+
+        // Update progress
+        if (total > 0) {
+          const progress = Math.round((receivedLength / total) * 100);
+          setDownloadProgress(progress);
+        }
+      }
+
+      // Combine chunks into single array
+      const chunksAll = new Uint8Array(receivedLength);
+      let position = 0;
+      for (const chunk of chunks) {
+        chunksAll.set(chunk, position);
+        position += chunk.length;
+      }
+
+      // Create blob from combined chunks
+      const blob = new Blob([chunksAll]);
+
+      // Create a blob URL
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Create a temporary anchor and trigger download
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+
+      // Close modal after a short delay
+      setTimeout(() => {
+        setDownloadModalOpen(false);
+      }, 500);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Error al descargar el archivo');
+      setDownloadModalOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <Container className="py-5 text-center">
@@ -667,6 +810,16 @@ const ClassroomManagement: React.FC = () => {
           >
             <i className="bi bi-clipboard-check me-1"></i>
             <span className="d-none d-sm-inline">Evaluaciones</span>
+          </NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink
+            className={activeTab === 'resources' ? 'active' : ''}
+            onClick={() => setActiveTab('resources')}
+            style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            <i className="bi bi-folder me-1"></i>
+            <span className="d-none d-sm-inline">Recursos</span>
           </NavLink>
         </NavItem>
       </Nav>
@@ -969,6 +1122,124 @@ const ClassroomManagement: React.FC = () => {
             </CardBody>
           </Card>
         </TabPane>
+
+        {/* Resources Tab */}
+        <TabPane tabId="resources">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="bg-white">
+              <h6 className="mb-0">
+                <i className="bi bi-folder me-2"></i>
+                Recursos de la Clase
+              </h6>
+            </CardHeader>
+            <CardBody>
+              {/* Upload Section */}
+              {!isFinalized && (
+                <div className="mb-4 p-3 bg-light rounded">
+                  <h6 className="mb-3">Subir Nuevo Recurso</h6>
+                  <FormGroup>
+                    <Input
+                      type="file"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      disabled={uploadingResource}
+                      accept="*/*"
+                    />
+                    <small className="text-muted">
+                      Puedes subir diapositivas, documentos, imágenes, audios, videos, etc.
+                    </small>
+                  </FormGroup>
+                  <Button
+                    color="primary"
+                    onClick={handleFileUpload}
+                    disabled={!selectedFile || uploadingResource}
+                  >
+                    {uploadingResource ? (
+                      <>
+                        <Spinner size="sm" className="me-2" />
+                        Subiendo...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-cloud-upload me-2"></i>
+                        Subir Recurso
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Resources List */}
+              {!classroom?.resources || classroom.resources.length === 0 ? (
+                <Alert color="info">
+                  <i className="bi bi-info-circle me-2"></i>
+                  No hay recursos disponibles para esta clase
+                </Alert>
+              ) : (
+                <div className="table-responsive">
+                  <Table hover>
+                    <thead className="table-light">
+                      <tr>
+                        <th style={{ width: '50px' }}></th>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Tamaño</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classroom.resources.map((resource) => (
+                        <tr key={resource.id}>
+                          <td className="text-center">
+                            <i
+                              className={`${getFileIcon(resource.type, resource.name)} fs-4`}
+                              style={{ color: getFileTypeColor(resource.type) }}
+                            ></i>
+                          </td>
+                          <td>
+                            <div className="fw-bold">{resource.name}</div>
+                            <small className="text-muted">
+                              {new Date(resource.uploadedAt).toLocaleDateString('es-ES', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </small>
+                          </td>
+                          <td>
+                            <Badge color={getFileTypeColor(resource.type)}>
+                              {resource.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                            </Badge>
+                          </td>
+                          <td>{formatFileSize(resource.size)}</td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <Button
+                                color="success"
+                                size="sm"
+                                onClick={() => handleDownloadResource(resource.url, resource.name)}
+                              >
+                                <i className="bi bi-download"></i>
+                              </Button>
+                              {!isFinalized && (
+                                <Button
+                                  color="danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteResource(resource.id, resource.name)}
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </TabPane>
       </TabContent>
 
       {/* WhatsApp Message Modal */}
@@ -1024,8 +1295,31 @@ const ClassroomManagement: React.FC = () => {
         isOpen={finalizationModal}
         onClose={() => setFinalizationModal(false)}
         classroom={classroom}
-        onSuccess={loadClassroomData}
+        onSuccess={() => {
+          setFinalizationModal(false);
+          loadClassroomData();
+        }}
       />
+
+      {/* Download Progress Modal */}
+      <Modal isOpen={downloadModalOpen} centered>
+        <ModalHeader>Descargando Archivo</ModalHeader>
+        <ModalBody>
+          <div className="text-center mb-3">
+            <i className="bi bi-download fs-1 text-primary"></i>
+          </div>
+          <p className="text-center mb-3">
+            <strong>{downloadingFileName}</strong>
+          </p>
+          <Progress
+            value={downloadProgress}
+            color="primary"
+            style={{ height: '25px' }}
+          >
+            {downloadProgress}%
+          </Progress>
+        </ModalBody>
+      </Modal>
     </Container>
   );
 };

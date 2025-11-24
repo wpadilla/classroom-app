@@ -106,7 +106,7 @@ const PWAInstallPrompt: React.FC = () => {
   if (!modalOpen || !deferredPrompt) return null;
 
   return (
-    <Modal isOpen={modalOpen} toggle={handleClose} centered>
+    <Modal isOpen={modalOpen} toggle={handleClose} centered backdrop="static">
       <ModalHeader toggle={handleClose}>Instalar Aplicación</ModalHeader>
       <ModalBody>
         <p>

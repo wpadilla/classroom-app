@@ -2,6 +2,7 @@
 
 import { IWhatsappGroup } from './whatsapp.model';
 import { IEvaluationCriteria } from './evaluation.model';
+import { IClassroomResource } from './resource.model';
 
 export interface IModule {
   id: string;
@@ -26,13 +27,13 @@ export interface IClassroom {
   modules: IModule[]; // Replaces 'classes' - represents weeks/modules
   currentModule?: IModule;
   isActive: boolean; // Whether classroom is currently being taught
-  
+
   // WhatsApp Integration
   whatsappGroup?: IWhatsappGroup;
-  
+
   // Evaluation Configuration
   evaluationCriteria: IEvaluationCriteria;
-  
+
   // Classroom metadata
   startDate: Date;
   endDate?: Date;
@@ -45,7 +46,10 @@ export interface IClassroom {
   location?: string;
   maxStudents?: number;
   materialPrice: number;
-  
+
+  // Resources - uploaded files for the classroom
+  resources?: IClassroomResource[];
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;

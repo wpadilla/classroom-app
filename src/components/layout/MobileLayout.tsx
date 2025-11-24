@@ -100,10 +100,10 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
         <Container fluid className="px-3">
           <NavbarBrand tag={Link} to="/" className="fw-bold">
             <i className="bi bi-mortarboard-fill me-2"></i>
-            <span className="d-none d-sm-inline">Formación Oasis</span>
+            <span className="d-none d-sm-inline">Academia de Ministros Oasis de Amor</span>
             <span className="d-inline d-sm-none">FOA</span>
           </NavbarBrand>
-          
+
           <div className="d-flex align-items-center">
             {user && (
               <>
@@ -125,8 +125,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
       </Navbar>
 
       {/* Main Content with padding for fixed navbar and bottom nav */}
-      <main style={{ 
-        paddingTop: '60px', 
+      <main style={{
+        paddingTop: '60px',
         paddingBottom: '70px',
         minHeight: '100vh',
         backgroundColor: '#f8f9fa'

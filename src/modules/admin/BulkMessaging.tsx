@@ -426,6 +426,7 @@ const BulkMessaging: React.FC = () => {
 
             const groupContact = {
               phone: classroom.whatsappGroup.id,
+              id: `${classroom.whatsappGroup.id}`,
               title: classroom.whatsappGroup.name || `${classroom.subject} - ${classroom.name}`,
               // Classroom properties - use space if invalid
               teacherName: teacherName,
@@ -438,7 +439,9 @@ const BulkMessaging: React.FC = () => {
             const response = await WhatsappService.sendMessage(
               [groupContact],
               message,
-              messageDelay
+              messageDelay,
+              "",
+              true
             );
 
             if (response.success) {

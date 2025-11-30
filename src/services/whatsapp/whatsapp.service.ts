@@ -174,7 +174,8 @@ export class WhatsappService {
     recipients: string[] | any[],
     message: IWhatsappMessage,
     delay: number = 5,
-    groupTitle?: string
+    groupTitle?: string,
+    isGroup?: boolean
   ): Promise<IWhatsappMessageResponse> {
     try {
       const formData = new FormData();
@@ -182,13 +183,14 @@ export class WhatsappService {
       // Filter and format contacts
       const contacts = recipients.map(recipient => {
         // If recipient is already an object with contact info, use it
-        if (typeof recipient === 'object' && recipient.phone) {
-          const processedPhone = this.processPhoneNumber(recipient.phone);
-          if (!processedPhone) return null;
-
-          return {
-            phone: processedPhone,
-            id: recipient.id || (processedPhone.includes('@') ? processedPhone : `${processedPhone}@s.whatsapp.net`),
+        if (typeof recipient === 'object') {
+          // Check if it's a group
+          const isGroupRecipient = recipient.id?.includes('@g.us') || isGroup;
+          
+          // Build the contact object with all properties
+          const contact: any = {
+            phone: isGroupRecipient ? '' : (this.processPhoneNumber(recipient.phone) || ''),
+            id: recipient.id || (isGroupRecipient ? '' : `${this.processPhoneNumber(recipient.phone)}@s.whatsapp.net`),
             ...(recipient.firstName && { firstName: recipient.firstName }),
             ...(recipient.lastName && { lastName: recipient.lastName }),
             ...(recipient.fullName && { fullName: recipient.fullName }),
@@ -199,17 +201,24 @@ export class WhatsappService {
             ...(recipient.schedule && { schedule: recipient.schedule }),
             ...(recipient.materialPrice !== undefined && { materialPrice: recipient.materialPrice }),
             ...(recipient.classroom && { classroom: recipient.classroom }),
-            ...(recipient.title && { title: recipient.title })
+            ...(recipient.title && { title: recipient.title }),
+            ...(groupTitle && isGroupRecipient && { title: groupTitle })
           };
+          
+          // Validate: groups need valid id, individuals need valid phone
+          if (isGroupRecipient && !contact.id) return null;
+          if (!isGroupRecipient && !contact.phone) return null;
+          
+          return contact;
         }
 
         // If recipient is just a string (phone number or group ID)
         const recipientStr = String(recipient);
 
-        // Check if it's a group ID (contains @g.us)
-        if (recipientStr.includes('@g.us')) {
+        // Check if it's a group ID (contains @g.us) or isGroup flag is true
+        if (recipientStr.includes('@g.us') || isGroup) {
           const contact: any = {
-            phone: recipientStr,
+            phone: '', // Empty phone for groups
             id: recipientStr
           };
           if (groupTitle) {

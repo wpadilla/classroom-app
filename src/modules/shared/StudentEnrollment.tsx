@@ -25,8 +25,10 @@ import {
   Form
 } from 'reactstrap';
 import { useAuth } from '../../contexts/AuthContext';
+import { useOffline } from '../../contexts/OfflineContext';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
+import { OfflineStorageService } from '../../services/offline/offline-storage.service';
 import { IClassroom, IUser } from '../../models';
 import { toast } from 'react-toastify';
 
@@ -37,6 +39,7 @@ interface StudentEnrollmentProps {
 
 const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpdate }) => {
   const { user } = useAuth();
+  const { isOffline, pendingOperations } = useOffline();
   const [students, setStudents] = useState<IUser[]>([]);
   const [allStudents, setAllStudents] = useState<IUser[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<IUser[]>([]);
@@ -64,21 +67,45 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
     try {
       setLoading(true);
       
-      // Load all students
-      const allStudentsList = await UserService.getUsersByRole('student');
+      // Load all students from Firebase (or cache)
+      let allStudentsList = await UserService.getUsersByRole('student');
+      
+      // If offline, merge with local students
+      if (isOffline) {
+        const localStudents = OfflineStorageService.getLocalStudents();
+        // Merge local students with fetched students, avoiding duplicates
+        const localStudentIds = localStudents.map(s => s.id);
+        const mergedStudents = [
+          ...localStudents,
+          ...allStudentsList.filter(s => !localStudentIds.includes(s.id))
+        ];
+        allStudentsList = mergedStudents;
+      }
+      
       setAllStudents(allStudentsList);
       
+      // Get current classroom student IDs (may include offline changes)
+      let currentStudentIds = classroom.studentIds || [];
+      if (isOffline) {
+        const localClassroom = OfflineStorageService.getLocalClassroom(classroom.id);
+        if (localClassroom && localClassroom.studentIds) {
+          currentStudentIds = localClassroom.studentIds;
+        }
+      }
+      
       // Load enrolled students
-      if (classroom.studentIds && classroom.studentIds.length > 0) {
+      if (currentStudentIds.length > 0) {
         const enrolledList = allStudentsList.filter(s => 
-          classroom.studentIds?.includes(s.id)
+          currentStudentIds.includes(s.id)
         );
         setEnrolledStudents(enrolledList);
+      } else {
+        setEnrolledStudents([]);
       }
       
       // Filter available students
       const availableStudents = allStudentsList.filter(s => 
-        !classroom.studentIds?.includes(s.id)
+        !currentStudentIds.includes(s.id)
       );
       setStudents(availableStudents);
     } catch (error) {
@@ -98,17 +125,49 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
     try {
       setSaving(true);
       
-      // Add students to classroom
-      for (const studentId of selectedStudents) {
-        await ClassroomService.addStudentToClassroom(classroom.id, studentId);
+      if (isOffline) {
+        // Handle offline: Save to local storage
+        const currentStudentIds = classroom.studentIds || [];
+        for (const studentId of selectedStudents) {
+          await OfflineStorageService.saveOperation({
+            type: 'addStudentToClassroom',
+            data: { classroomId: classroom.id, studentId }
+          });
+          
+          // Update local classroom data
+          if (!currentStudentIds.includes(studentId)) {
+            currentStudentIds.push(studentId);
+          }
+          
+          // Save student locally for immediate display
+          const student = allStudents.find(s => s.id === studentId);
+          if (student) {
+            OfflineStorageService.saveStudentLocally(student);
+          }
+        }
+        
+        // Update local classroom with new student IDs
+        OfflineStorageService.updateClassroomStudentsLocally(classroom.id, currentStudentIds);
+        
+        // Update local classroom object
+        classroom.studentIds = currentStudentIds;
+        
+        toast.info(`${selectedStudents.length} estudiante(s) agregado(s) localmente. Se sincronizará cuando haya conexión.`);
+      } else {
+        // Handle online: Add directly to Firebase
+        for (const studentId of selectedStudents) {
+          await ClassroomService.addStudentToClassroom(classroom.id, studentId);
+        }
+        
+        toast.success(`${selectedStudents.length} estudiantes agregados`);
       }
       
-      toast.success(`${selectedStudents.length} estudiantes agregados`);
       setEnrollModal(false);
       setSelectedStudents([]);
       
-      if (onUpdate) onUpdate();
+      // Force reload to show new students immediately
       await loadData();
+      if (onUpdate) await onUpdate();
     } catch (error) {
       console.error('Error adding students:', error);
       toast.error('Error al agregar estudiantes');
@@ -123,11 +182,31 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
     }
     
     try {
-      await ClassroomService.removeStudentFromClassroom(classroom.id, studentId);
-      toast.success('Estudiante removido de la clase');
+      if (isOffline) {
+        // Handle offline: Save operation
+        await OfflineStorageService.saveOperation({
+          type: 'removeStudent',
+          data: { classroomId: classroom.id, studentId }
+        });
+        
+        // Update local classroom data
+        const currentStudentIds = classroom.studentIds || [];
+        const updatedIds = currentStudentIds.filter(id => id !== studentId);
+        OfflineStorageService.updateClassroomStudentsLocally(classroom.id, updatedIds);
+        
+        // Update local classroom object
+        classroom.studentIds = updatedIds;
+        
+        toast.info('Estudiante removido localmente. Se sincronizará cuando haya conexión.');
+      } else {
+        // Handle online
+        await ClassroomService.removeStudentFromClassroom(classroom.id, studentId);
+        toast.success('Estudiante removido de la clase');
+      }
       
-      if (onUpdate) onUpdate();
+      // Force reload to update lists immediately
       await loadData();
+      if (onUpdate) await onUpdate();
     } catch (error) {
       console.error('Error removing student:', error);
       toast.error('Error al remover estudiante');
@@ -145,22 +224,55 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
     try {
       setSaving(true);
       
-      // Create new student
-      const studentId = await UserService.createUser({
+      const studentData = {
         ...newStudentForm,
-        role: 'student',
+        role: 'student' as const,
         isTeacher: false,
         isActive: true,
         enrolledClassrooms: [classroom.id],
         completedClassrooms: [],
         teachingClassrooms: [],
         taughtClassrooms: []
-      });
+      };
       
-      // Add to classroom
-      await ClassroomService.addStudentToClassroom(classroom.id, studentId);
+      if (isOffline) {
+        // Handle offline: Generate temporary ID and save locally
+        const tempStudentId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const tempStudent: IUser = {
+          ...studentData,
+          id: tempStudentId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        // Save operation for later sync
+        await OfflineStorageService.saveOperation({
+          type: 'createStudent',
+          data: { studentData, classroomId: classroom.id }
+        });
+        
+        // Save student locally
+        OfflineStorageService.saveStudentLocally(tempStudent);
+        
+        // Update local classroom data
+        const currentStudentIds = classroom.studentIds || [];
+        currentStudentIds.push(tempStudentId);
+        OfflineStorageService.updateClassroomStudentsLocally(classroom.id, currentStudentIds);
+        
+        // Update local classroom object
+        classroom.studentIds = currentStudentIds;
+        
+        toast.info('Estudiante creado localmente. Se sincronizará cuando haya conexión.');
+      } else {
+        // Handle online: Create in Firebase
+        const studentId = await UserService.createUser(studentData);
+        
+        // Add to classroom
+        await ClassroomService.addStudentToClassroom(classroom.id, studentId);
+        
+        toast.success('Estudiante creado y agregado a la clase');
+      }
       
-      toast.success('Estudiante creado y agregado a la clase');
       setNewStudentModal(false);
       setNewStudentForm({
         firstName: '',
@@ -170,8 +282,9 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
         password: ''
       });
       
-      if (onUpdate) onUpdate();
+      // Force reload to show new student immediately
       await loadData();
+      if (onUpdate) await onUpdate();
     } catch (error: any) {
       console.error('Error creating student:', error);
       toast.error(error.message || 'Error al crear estudiante');
@@ -199,6 +312,14 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
 
   return (
     <>
+      {/* Offline indicator */}
+      {isOffline && pendingOperations > 0 && (
+        <Alert color="warning" className="mb-3">
+          <i className="bi bi-wifi-off me-2"></i>
+          Modo sin conexión. {pendingOperations} operación(es) pendiente(s) de sincronizar.
+        </Alert>
+      )}
+
       {/* Mobile-First Card Design */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="bg-white border-bottom">
@@ -206,6 +327,7 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
             <h5 className="mb-0">
               <i className="bi bi-people-fill me-2"></i>
               Estudiantes ({enrolledStudents.length})
+              {isOffline && <Badge color="warning" className="ms-2">Offline</Badge>}
             </h5>
             <div className="btn-group mt-2 mt-sm-0">
               <Button 

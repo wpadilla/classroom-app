@@ -53,7 +53,7 @@ const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isOffline } = useOffline();
+  const { isOffline, pendingOperations } = useOffline();
 
   // State
   const [classroom, setClassroom] = useState<IClassroom | null>(null);
@@ -108,7 +108,7 @@ const ClassroomManagement: React.FC = () => {
     setLoading(true);
     try {
       // Load from Firebase (cache-first by default if offline)
-      const classroomData = await ClassroomService.getClassroomById(id);
+      let classroomData = (await ClassroomService.getClassroomById(id)) || {} as any;
 
       if (!classroomData) {
         toast.error('Clase no encontrada');
@@ -123,6 +123,15 @@ const ClassroomManagement: React.FC = () => {
         return;
       }
 
+      // If offline, get updated classroom data from local storage
+      if (isOffline) {
+        const OfflineStorageService = (await import('../../services/offline/offline-storage.service')).OfflineStorageService;
+        const localClassroom = OfflineStorageService.getLocalClassroom(id);
+        if (localClassroom && localClassroom.studentIds) {
+          classroomData = { ...classroomData, studentIds: localClassroom.studentIds };
+        }
+      }
+
       // Load evaluations
       const evaluationsData = await EvaluationService.getClassroomEvaluations(id);
 
@@ -130,6 +139,18 @@ const ClassroomManagement: React.FC = () => {
       let studentsData: IUser[] = [];
       if (classroomData.studentIds && classroomData.studentIds.length > 0) {
         studentsData = await UserService.getUsersByIds(classroomData.studentIds);
+        
+        // If offline, merge with local students
+        if (isOffline) {
+          const OfflineStorageService = (await import('../../services/offline/offline-storage.service')).OfflineStorageService;
+          const localStudents = OfflineStorageService.getLocalStudents();
+          
+          // Add local students that are not in the fetched list
+          const additionalStudents = localStudents.filter(ls => 
+            classroomData.studentIds?.includes(ls.id) && !studentsData.find(s => s.id === ls.id)
+          );
+          studentsData = [...studentsData, ...additionalStudents];
+        }
       }
 
       setClassroom(classroomData);
@@ -141,7 +162,7 @@ const ClassroomManagement: React.FC = () => {
       setEvaluations(evalMap);
 
       // Initialize attendance and participation for current module
-      const activeModule = classroomData.modules.find(m => !m.isCompleted) || classroomData.modules[classroomData.modules.length - 1];
+      const activeModule = classroomData?.modules?.find((m: any) => !m?.isCompleted) || classroomData?.modules?.[classroomData?.modules?.length - 1];
       setCurrentModule(activeModule);
 
       // Update local tracking state based on loaded evaluations
@@ -581,6 +602,14 @@ const ClassroomManagement: React.FC = () => {
 
   return (
     <Container fluid className="py-3 px-2 px-sm-3">
+      {/* Offline Indicator */}
+      {isOffline && pendingOperations > 0 && (
+        <Alert color="warning" className="mb-3">
+          <i className="bi bi-wifi-off me-2"></i>
+          Modo sin conexión. {pendingOperations} operación(es) pendiente(s) de sincronizar.
+        </Alert>
+      )}
+
       {/* Header - Mobile Optimized */}
       <Row className="mb-3">
         <Col>
@@ -601,6 +630,12 @@ const ClassroomManagement: React.FC = () => {
                   <Badge color="warning" className="ms-2">
                     <i className="bi bi-flag-fill me-1"></i>
                     Finalizada
+                  </Badge>
+                )}
+                {isOffline && (
+                  <Badge color="secondary" className="ms-2">
+                    <i className="bi bi-wifi-off me-1"></i>
+                    Offline
                   </Badge>
                 )}
               </h4>

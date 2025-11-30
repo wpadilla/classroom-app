@@ -18,7 +18,9 @@ import {
 } from 'reactstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useOffline } from '../../contexts/OfflineContext';
 import { ToastContainer } from 'react-toastify';
+import OfflineSyncBadge from '../common/OfflineSyncBadge';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -26,6 +28,7 @@ interface MobileLayoutProps {
 
 const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { isOffline, pendingOperations } = useOffline();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -104,19 +107,42 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
             <span className="d-inline d-sm-none">AMOA</span>
           </NavbarBrand>
 
-          <div className="d-flex align-items-center">
+          <div className="d-flex align-items-center gap-2">
             {user && (
               <>
-                <Badge color="light" className="text-primary me-3 d-none d-sm-inline">
+                {/* Offline indicator */}
+                {isOffline && (
+                  <Badge color="warning" className="d-none d-sm-inline">
+                    <i className="bi bi-wifi-off me-1"></i>
+                    Offline
+                  </Badge>
+                )}
+                {/* Pending operations indicator */}
+                {pendingOperations > 0 && (
+                  <Badge color="danger" pill className="d-none d-sm-inline">
+                    {pendingOperations}
+                  </Badge>
+                )}
+                <Badge color="light" className="text-primary me-2 d-none d-sm-inline">
                   {user.firstName}
                 </Badge>
                 <Button
                   color="primary"
                   size="sm"
                   onClick={toggleMenu}
-                  className="border-0"
+                  className="border-0 position-relative"
                 >
                   <i className="bi bi-list fs-5"></i>
+                  {pendingOperations > 0 && (
+                    <Badge 
+                      color="danger" 
+                      pill 
+                      className="position-absolute top-0 start-100 translate-middle"
+                      style={{ fontSize: '0.6rem' }}
+                    >
+                      {pendingOperations}
+                    </Badge>
+                  )}
                 </Button>
               </>
             )}
@@ -195,7 +221,22 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
               </div>
             )}
             <p className="mb-1">{user?.email || user?.phone}</p>
+            
+            {/* Connection Status */}
+            {isOffline && (
+              <Badge color="warning" className="mt-2">
+                <i className="bi bi-wifi-off me-1"></i>
+                Sin conexión
+              </Badge>
+            )}
           </div>
+
+          {/* Offline Sync Badge */}
+          {pendingOperations > 0 && (
+            <div className="mb-3 p-3 bg-light rounded">
+              <OfflineSyncBadge showButton={!isOffline} />
+            </div>
+          )}
 
           {/* Navigation Links */}
           <ListGroup flush>

@@ -105,11 +105,22 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
         percentage: data.total > 0 ? (data.completed / data.total) * 100 : 0,
       }));
 
+      // Calculate overall grade from enrolled classrooms evaluations
+      const validEnrolledClassrooms = enrolledClassrooms.filter(Boolean) as UserProfilePdfProps['enrolledClassrooms'];
+      const evaluatedGrades = validEnrolledClassrooms
+        .filter((ec) => ec?.evaluation?.status === 'evaluated' && ec?.evaluation?.percentage !== undefined)
+        .map((ec) => ec.evaluation!.percentage);
+      
+      const overallGrade = evaluatedGrades.length > 0
+        ? evaluatedGrades.reduce((sum, g) => sum + g, 0) / evaluatedGrades.length
+        : 0;
+
       const pdfData: UserProfilePdfProps = {
         user,
-        enrolledClassrooms: enrolledClassrooms.filter(Boolean) as UserProfilePdfProps['enrolledClassrooms'],
+        enrolledClassrooms: validEnrolledClassrooms,
         teachingClassrooms: teachingClassrooms.filter(Boolean) as UserProfilePdfProps['teachingClassrooms'],
         programProgress,
+        overallGrade,
       };
 
       // Generate PDF blob on-demand (not pre-rendered)

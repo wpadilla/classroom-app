@@ -26,6 +26,7 @@ export interface UserProfilePdfProps {
     average: number;
     percentage: number;
   }[];
+  overallGrade?: number; // Student's overall average grade
 }
 
 const translateRole = (role: string): string => {
@@ -72,6 +73,7 @@ const UserProfilePdfTemplate: React.FC<UserProfilePdfProps> = ({
   enrolledClassrooms,
   teachingClassrooms,
   programProgress,
+  overallGrade,
 }) => {
   const roleLabel = translateRole(user.role) + (user.isTeacher && user.role !== 'teacher' ? ' / Profesor' : '');
 
@@ -156,6 +158,7 @@ const UserProfilePdfTemplate: React.FC<UserProfilePdfProps> = ({
           'Telefono': user.phone,
           'Email': user.email || 'N/A',
           'Estado': user.isActive ? 'Activo' : 'Inactivo',
+          'Promedio General': overallGrade !== undefined && overallGrade > 0 ? `${overallGrade.toFixed(1)}%` : 'N/A',
           'Fecha de Registro': user.createdAt ? formatDate(user.createdAt) : 'N/A',
         }}
       />

@@ -62,9 +62,11 @@ const Register: React.FC = () => {
     handleSubmit,
     watch,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, dirtyFields, isSubmitted },
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -203,7 +205,7 @@ const Register: React.FC = () => {
           country: getCountryLabel(data.country),
           churchName: data.churchName,
           pastorName: data.pastor.fullName,
-          pastorContact: data.pastor.phone,
+          pastorContact: data.pastor.phone || '',
           academicLevel: getAcademicLevelLabel(data.academicLevel),
           enrollmentType: getEnrollmentTypeLabel(data.enrollmentType),
         });
@@ -222,6 +224,8 @@ const Register: React.FC = () => {
   };
 
   const isDisabled = loading || uploadingPhoto || isSubmitting || registrationStep !== 'form';
+  const { ref: passwordRef, ...passwordField } = register('password');
+  const { ref: confirmPasswordRef, ...confirmPasswordField } = register('confirmPassword');
 
   return (
     <Container className="min-vh-100 d-flex align-items-center justify-content-center py-5">
@@ -318,6 +322,8 @@ const Register: React.FC = () => {
                 <PersonalInfoSection
                   register={register}
                   errors={errors}
+                  dirtyFields={dirtyFields}
+                  isSubmitted={isSubmitted}
                   watch={watch}
                   setValue={setValue}
                   disabled={isDisabled}
@@ -327,6 +333,8 @@ const Register: React.FC = () => {
                 <ChurchInfoSection
                   register={register}
                   errors={errors}
+                  dirtyFields={dirtyFields}
+                  isSubmitted={isSubmitted}
                   disabled={isDisabled}
                 />
 
@@ -334,6 +342,8 @@ const Register: React.FC = () => {
                 <AcademicInfoSection
                   register={register}
                   errors={errors}
+                  dirtyFields={dirtyFields}
+                  isSubmitted={isSubmitted}
                   disabled={isDisabled}
                 />
 
@@ -352,8 +362,9 @@ const Register: React.FC = () => {
                           type={showPassword ? 'text' : 'password'}
                           id="password"
                           placeholder="Mínimo 6 caracteres"
-                          {...register('password')}
-                          invalid={!!errors.password}
+                          {...passwordField}
+                          innerRef={passwordRef}
+                          invalid={!!errors.password && (isSubmitted || !!dirtyFields.password)}
                           disabled={isDisabled}
                         />
                         <Button
@@ -368,9 +379,11 @@ const Register: React.FC = () => {
                           <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
                         </Button>
                       </div>
-                      <FormFeedback className="d-block">
-                        {errors.password?.message}
-                      </FormFeedback>
+                      {(isSubmitted || !!dirtyFields.password) && (
+                        <FormFeedback className="d-block">
+                          {errors.password?.message}
+                        </FormFeedback>
+                      )}
                     </FormGroup>
                   </Col>
                   <Col md={6}>
@@ -380,11 +393,14 @@ const Register: React.FC = () => {
                         type={showPassword ? 'text' : 'password'}
                         id="confirmPassword"
                         placeholder="Repita la contraseña"
-                        {...register('confirmPassword')}
-                        invalid={!!errors.confirmPassword}
+                        {...confirmPasswordField}
+                        innerRef={confirmPasswordRef}
+                        invalid={!!errors.confirmPassword && (isSubmitted || !!dirtyFields.confirmPassword)}
                         disabled={isDisabled}
                       />
-                      <FormFeedback>{errors.confirmPassword?.message}</FormFeedback>
+                      {(isSubmitted || !!dirtyFields.confirmPassword) && (
+                        <FormFeedback>{errors.confirmPassword?.message}</FormFeedback>
+                      )}
                     </FormGroup>
                   </Col>
                 </Row>

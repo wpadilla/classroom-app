@@ -2,7 +2,7 @@
 // Comprehensive user management modal for admins
 // Features: edit profile, manage classroom history, view program progress
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -88,16 +88,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   // Program progress hook
   const { programProgress, loading: loadingProgress, calculateProgress } = useProgramProgress();
 
-  // Form
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors, isDirty },
-  } = useForm<UserEditFormData>({
-    resolver: zodResolver(userEditSchema),
-    defaultValues: {
+  const defaultFormValues = useMemo<UserEditFormData>(
+    () => ({
       firstName: '',
       lastName: '',
       email: '',
@@ -111,45 +103,110 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       country: 'DO',
       churchName: '',
       academicLevel: '',
-    },
+    }),
+    []
+  );
+
+  const formValues = useMemo<UserEditFormData>(
+    () =>
+      currentUser
+        ? {
+            firstName: currentUser.firstName,
+            lastName: currentUser.lastName,
+            email: currentUser.email || '',
+            phone: currentUser.phone,
+            role: currentUser.role,
+            isTeacher: currentUser.isTeacher,
+            isActive: currentUser.isActive,
+            password: '',
+            documentType: currentUser.documentType || '',
+            documentNumber: currentUser.documentNumber || '',
+            country: currentUser.country || 'DO',
+            churchName: currentUser.churchName || '',
+            academicLevel: currentUser.academicLevel || '',
+          }
+        : defaultFormValues,
+    [currentUser, defaultFormValues]
+  );
+
+  // Form
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isDirty },
+  } = useForm<UserEditFormData>({
+    resolver: zodResolver(userEditSchema),
+    defaultValues: defaultFormValues,
+    values: formValues,
+    resetOptions: { keepDefaultValues: true },
   });
+
+  const { ref: firstNameRef, ...firstNameField } = register('firstName');
+  const { ref: lastNameRef, ...lastNameField } = register('lastName');
+  const { ref: phoneRef, ...phoneField } = register('phone');
+  const { ref: emailRef, ...emailField } = register('email');
+  const { ref: roleRef, ...roleField } = register('role');
+  const { ref: isTeacherRef, ...isTeacherField } = register('isTeacher');
+  const { ref: isActiveRef, ...isActiveField } = register('isActive');
+  const { ref: documentTypeRef, ...documentTypeField } = register('documentType');
+  const { ref: documentNumberRef, ...documentNumberField } = register('documentNumber');
+  const { ref: countryRef, ...countryField } = register('country');
+  const { ref: churchNameRef, ...churchNameField } = register('churchName');
+  const { ref: academicLevelRef, ...academicLevelField } = register('academicLevel');
+  const { ref: passwordRef, ...passwordField } = register('password');
 
   // Form watch is available if needed for debugging
   // const formData = watch();
 
+  const resetForm = useCallback(
+    (targetUser: IUser) => {
+      reset({
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        email: targetUser.email || '',
+        phone: targetUser.phone,
+        role: targetUser.role,
+        isTeacher: targetUser.isTeacher,
+        isActive: targetUser.isActive,
+        password: '',
+        documentType: targetUser.documentType || '',
+        documentNumber: targetUser.documentNumber || '',
+        country: targetUser.country || 'DO',
+        churchName: targetUser.churchName || '',
+        academicLevel: targetUser.academicLevel || '',
+      });
+    },
+    [reset]
+  );
+
   // Load data on open
   useEffect(() => {
-    console.log('edit =>', user)
     if (isOpen && user) {
-      loadData();
+      // Immediately reset form with user data (before async fetch)
+      setCurrentUser(user);
+      resetForm(user);
+      setPhotoPreview(user.profilePhoto || '');
+      // Then load fresh data from server
+      void loadData(user.id);
+    } else if (!isOpen) {
+      // Reset state when modal closes
+      setCurrentUser(null);
+      setEditMode(mode === 'edit');
+      setActiveTab('info');
     }
-  }, [isOpen, user]);
+  }, [isOpen, mode, resetForm, user]);
 
-  const loadData = async () => {
-    if (!user) return;
-    
+  const loadData = async (userId: string) => {
     setLoading(true);
     try {
       // Fetch fresh user data
-      const freshUser = await UserService.getUserById(user.id);
+      const freshUser = await UserService.getUserById(userId);
+      console.log('Fetched user data:', freshUser);
       if (freshUser) {
         setCurrentUser(freshUser);
-        reset({
-          firstName: freshUser.firstName,
-          lastName: freshUser.lastName,
-          email: freshUser.email || '',
-          phone: freshUser.phone,
-          role: freshUser.role,
-          isTeacher: freshUser.isTeacher,
-          isActive: freshUser.isActive,
-          password: '',
-          // Extended fields
-          documentType: freshUser.documentType || '',
-          documentNumber: freshUser.documentNumber || '',
-          country: freshUser.country || 'DO',
-          churchName: freshUser.churchName || '',
-          academicLevel: freshUser.academicLevel || '',
-        });
+        resetForm(freshUser);
         setPhotoPreview(freshUser.profilePhoto || '');
       }
 
@@ -522,24 +579,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       ) : (
                         <Button color="secondary" size="sm" onClick={() => {
                           setEditMode(false);
-                          // Reset to current user values
-                          if (currentUser) {
-                            reset({
-                              firstName: currentUser.firstName,
-                              lastName: currentUser.lastName,
-                              email: currentUser.email || '',
-                              phone: currentUser.phone,
-                              role: currentUser.role,
-                              isTeacher: currentUser.isTeacher,
-                              isActive: currentUser.isActive,
-                              password: '',
-                              documentType: currentUser.documentType || '',
-                              documentNumber: currentUser.documentNumber || '',
-                              country: currentUser.country || 'DO',
-                              churchName: currentUser.churchName || '',
-                              academicLevel: currentUser.academicLevel || '',
-                            });
-                          }
+                          reset(formValues);
                         }}>
                           Cancelar
                         </Button>
@@ -552,7 +592,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup>
                             <Label>Nombre</Label>
                             <Input
-                              {...register('firstName')}
+                              {...firstNameField}
+                              innerRef={firstNameRef}
                               invalid={!!errors.firstName}
                               disabled={!editMode}
                             />
@@ -563,7 +604,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup>
                             <Label>Apellido</Label>
                             <Input
-                              {...register('lastName')}
+                              {...lastNameField}
+                              innerRef={lastNameRef}
                               invalid={!!errors.lastName}
                               disabled={!editMode}
                             />
@@ -576,7 +618,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup>
                             <Label>Teléfono</Label>
                             <Input
-                              {...register('phone')}
+                              {...phoneField}
+                              innerRef={phoneRef}
                               invalid={!!errors.phone}
                               disabled={!editMode}
                             />
@@ -587,7 +630,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup>
                             <Label>Email</Label>
                             <Input
-                              {...register('email')}
+                              {...emailField}
+                              innerRef={emailRef}
                               invalid={!!errors.email}
                               disabled={!editMode}
                             />
@@ -601,7 +645,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <Label>Rol</Label>
                             <Input
                               type="select"
-                              {...register('role')}
+                              {...roleField}
+                              innerRef={roleRef}
                               disabled={!editMode}
                             >
                               <option value="student">Estudiante</option>
@@ -614,7 +659,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup check className="mt-4">
                             <Input
                               type="checkbox"
-                              {...register('isTeacher')}
+                              {...isTeacherField}
+                              innerRef={isTeacherRef}
                               disabled={!editMode}
                             />
                             <Label check>Es Profesor</Label>
@@ -624,7 +670,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup check className="mt-4">
                             <Input
                               type="checkbox"
-                              {...register('isActive')}
+                              {...isActiveField}
+                              innerRef={isActiveRef}
                               disabled={!editMode}
                             />
                             <Label check>Activo</Label>
@@ -641,7 +688,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <Label>Tipo de Documento</Label>
                             <Input
                               type="select"
-                              {...register('documentType')}
+                              {...documentTypeField}
+                              innerRef={documentTypeRef}
                               disabled={!editMode}
                             >
                               <option value="">Seleccionar...</option>
@@ -655,7 +703,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup>
                             <Label>Número de Documento</Label>
                             <Input
-                              {...register('documentNumber')}
+                              {...documentNumberField}
+                              innerRef={documentNumberRef}
                               disabled={!editMode}
                               placeholder="000-0000000-0"
                             />
@@ -666,7 +715,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <Label>País</Label>
                             <Input
                               type="select"
-                              {...register('country')}
+                              {...countryField}
+                              innerRef={countryRef}
                               disabled={!editMode}
                             >
                               <option value="">Seleccionar...</option>
@@ -682,7 +732,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           <FormGroup>
                             <Label>Iglesia</Label>
                             <Input
-                              {...register('churchName')}
+                              {...churchNameField}
+                              innerRef={churchNameRef}
                               disabled={!editMode}
                               placeholder="Nombre de la iglesia"
                             />
@@ -693,7 +744,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <Label>Nivel Académico</Label>
                             <Input
                               type="select"
-                              {...register('academicLevel')}
+                              {...academicLevelField}
+                              innerRef={academicLevelRef}
                               disabled={!editMode}
                             >
                               <option value="">Seleccionar...</option>
@@ -714,7 +766,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                                 <Label>Nueva Contraseña (dejar vacío para no cambiar)</Label>
                                 <Input
                                   type="password"
-                                  {...register('password')}
+                                  {...passwordField}
+                                  innerRef={passwordRef}
                                   invalid={!!errors.password}
                                   placeholder="••••••"
                                 />

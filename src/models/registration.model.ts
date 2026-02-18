@@ -29,7 +29,7 @@ export type EnrollmentType =
  */
 export interface IContact {
   fullName: string;
-  phone: string;
+  phone?: string; // Optional phone number
 }
 
 /**

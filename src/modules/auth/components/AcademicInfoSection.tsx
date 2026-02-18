@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Row, Col, FormGroup, Label, Input, FormFeedback } from 'reactstrap';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import { FieldErrors, FieldNamesMarkedBoolean, UseFormRegister } from 'react-hook-form';
 import { RegistrationFormData } from '../../../schemas/registration.schema';
 import { 
   ACADEMIC_LEVEL_OPTIONS, 
@@ -13,14 +13,21 @@ import {
 interface AcademicInfoSectionProps {
   register: UseFormRegister<RegistrationFormData>;
   errors: FieldErrors<RegistrationFormData>;
+  dirtyFields: FieldNamesMarkedBoolean<RegistrationFormData>;
+  isSubmitted: boolean;
   disabled?: boolean;
 }
 
 export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
   register,
   errors,
+  dirtyFields,
+  isSubmitted,
   disabled = false,
 }) => {
+  const shouldShowError = (fieldDirty?: boolean) => isSubmitted || fieldDirty;
+  const { ref: academicLevelRef, ...academicLevelField } = register('academicLevel');
+  const { ref: enrollmentTypeRef, ...enrollmentTypeField } = register('enrollmentType');
   return (
     <>
       <h5 className="mb-3 mt-4 text-primary">
@@ -35,8 +42,9 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
             <Input
               type="select"
               id="academicLevel"
-              {...register('academicLevel')}
-              invalid={!!errors.academicLevel}
+              {...academicLevelField}
+              innerRef={academicLevelRef}
+              invalid={!!errors.academicLevel && shouldShowError(dirtyFields.academicLevel)}
               disabled={disabled}
             >
               {ACADEMIC_LEVEL_OPTIONS.map(option => (
@@ -45,7 +53,9 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
                 </option>
               ))}
             </Input>
-            <FormFeedback>{String(errors.academicLevel?.message || '')}</FormFeedback>
+            {shouldShowError(dirtyFields.academicLevel) && (
+              <FormFeedback>{String(errors.academicLevel?.message || '')}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
         <Col md={6}>
@@ -54,8 +64,9 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
             <Input
               type="select"
               id="enrollmentType"
-              {...register('enrollmentType')}
-              invalid={!!errors.enrollmentType}
+              {...enrollmentTypeField}
+              innerRef={enrollmentTypeRef}
+              invalid={!!errors.enrollmentType && shouldShowError(dirtyFields.enrollmentType)}
               disabled={disabled}
             >
               {ENROLLMENT_TYPE_OPTIONS.map(option => (
@@ -64,7 +75,9 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
                 </option>
               ))}
             </Input>
-            <FormFeedback>{String(errors.enrollmentType?.message || '')}</FormFeedback>
+            {shouldShowError(dirtyFields.enrollmentType) && (
+              <FormFeedback>{String(errors.enrollmentType?.message || '')}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
       </Row>

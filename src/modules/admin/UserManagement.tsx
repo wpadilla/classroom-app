@@ -852,6 +852,7 @@ console.log('detailUser', detailUser)
 
       {/* User Detail Modal */}
       <UserDetailModal
+        key={detailUser?.id || 'detail-modal'}
         isOpen={detailModalOpen}
         toggle={() => setDetailModalOpen(false)}
         user={detailUser}

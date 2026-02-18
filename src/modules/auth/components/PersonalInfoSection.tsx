@@ -3,13 +3,15 @@
 
 import React from 'react';
 import { Row, Col, FormGroup, Label, Input, FormFeedback } from 'reactstrap';
-import { UseFormRegister, FieldErrors, UseFormWatch, UseFormSetValue } from 'react-hook-form';
+import { FieldErrors, FieldNamesMarkedBoolean, UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form';
 import { RegistrationFormData } from '../../../schemas/registration.schema';
 import { DOCUMENT_TYPE_OPTIONS, COUNTRIES } from '../../../constants/registration.constants';
 
 interface PersonalInfoSectionProps {
   register: UseFormRegister<RegistrationFormData>;
   errors: FieldErrors<RegistrationFormData>;
+  dirtyFields: FieldNamesMarkedBoolean<RegistrationFormData>;
+  isSubmitted: boolean;
   watch: UseFormWatch<RegistrationFormData>;
   setValue: UseFormSetValue<RegistrationFormData>;
   disabled?: boolean;
@@ -18,11 +20,21 @@ interface PersonalInfoSectionProps {
 export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
   register,
   errors,
+  dirtyFields,
+  isSubmitted,
   watch,
   setValue,
   disabled = false,
 }) => {
   const documentType = watch('documentType');
+  const shouldShowError = (fieldDirty?: boolean) => isSubmitted || fieldDirty;
+  const { ref: firstNameRef, ...firstNameField } = register('firstName');
+  const { ref: lastNameRef, ...lastNameField } = register('lastName');
+  const { ref: documentTypeRef, ...documentTypeField } = register('documentType');
+  const { ref: documentNumberRef, ...documentNumberField } = register('documentNumber');
+  const { ref: phoneRef, ...phoneField } = register('phone');
+  const { ref: countryRef, ...countryField } = register('country');
+  const { ref: emailRef, ...emailField } = register('email');
 
   return (
     <>
@@ -40,11 +52,14 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               type="text"
               id="firstName"
               placeholder="Juan"
-              {...register('firstName')}
-              invalid={!!errors.firstName}
+              {...firstNameField}
+              innerRef={firstNameRef}
+              invalid={!!errors.firstName && shouldShowError(dirtyFields.firstName)}
               disabled={disabled}
             />
-            <FormFeedback>{errors.firstName?.message}</FormFeedback>
+            {shouldShowError(dirtyFields.firstName) && (
+              <FormFeedback>{errors.firstName?.message}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
         <Col md={6}>
@@ -54,11 +69,14 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               type="text"
               id="lastName"
               placeholder="Pérez"
-              {...register('lastName')}
-              invalid={!!errors.lastName}
+              {...lastNameField}
+              innerRef={lastNameRef}
+              invalid={!!errors.lastName && shouldShowError(dirtyFields.lastName)}
               disabled={disabled}
             />
-            <FormFeedback>{errors.lastName?.message}</FormFeedback>
+            {shouldShowError(dirtyFields.lastName) && (
+              <FormFeedback>{errors.lastName?.message}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
       </Row>
@@ -71,8 +89,9 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
             <Input
               type="select"
               id="documentType"
-              {...register('documentType')}
-              invalid={!!errors.documentType}
+              {...documentTypeField}
+              innerRef={documentTypeRef}
+              invalid={!!errors.documentType && shouldShowError(dirtyFields.documentType)}
               disabled={disabled}
             >
               {DOCUMENT_TYPE_OPTIONS.map(option => (
@@ -81,7 +100,9 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                 </option>
               ))}
             </Input>
-            <FormFeedback>{String(errors.documentType?.message || '')}</FormFeedback>
+            {shouldShowError(dirtyFields.documentType) && (
+              <FormFeedback>{String(errors.documentType?.message || '')}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
         <Col md={8}>
@@ -93,11 +114,14 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               type="text"
               id="documentNumber"
               placeholder={documentType === 'NationalId' ? '001-1234567-8' : 'AB1234567'}
-              {...register('documentNumber')}
-              invalid={!!errors.documentNumber}
+              {...documentNumberField}
+              innerRef={documentNumberRef}
+              invalid={!!errors.documentNumber && shouldShowError(dirtyFields.documentNumber)}
               disabled={disabled}
             />
-            <FormFeedback>{String(errors.documentNumber?.message || '')}</FormFeedback>
+            {shouldShowError(dirtyFields.documentNumber) && (
+              <FormFeedback>{String(errors.documentNumber?.message || '')}</FormFeedback>
+            )}
             {documentType === 'NationalId' && (
               <small className="text-muted">Formato: XXX-XXXXXXX-X</small>
             )}
@@ -114,11 +138,14 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               type="tel"
               id="phone"
               placeholder="8091234567"
-              {...register('phone')}
-              invalid={!!errors.phone}
+              {...phoneField}
+              innerRef={phoneRef}
+              invalid={!!errors.phone && shouldShowError(dirtyFields.phone)}
               disabled={disabled}
             />
-            <FormFeedback>{String(errors.phone?.message || '')}</FormFeedback>
+            {shouldShowError(dirtyFields.phone) && (
+              <FormFeedback>{String(errors.phone?.message || '')}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
         <Col md={6}>
@@ -127,8 +154,9 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
             <Input
               type="select"
               id="country"
-              {...register('country')}
-              invalid={!!errors.country}
+              {...countryField}
+              innerRef={countryRef}
+              invalid={!!errors.country && shouldShowError(dirtyFields.country)}
               disabled={disabled}
             >
               {COUNTRIES.map(country => (
@@ -137,7 +165,9 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                 </option>
               ))}
             </Input>
-            <FormFeedback>{String(errors.country?.message || '')}</FormFeedback>
+            {shouldShowError(dirtyFields.country) && (
+              <FormFeedback>{String(errors.country?.message || '')}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
       </Row>
@@ -149,11 +179,14 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
           type="email"
           id="email"
           placeholder="correo@ejemplo.com"
-          {...register('email')}
-          invalid={!!errors.email}
+          {...emailField}
+          innerRef={emailRef}
+          invalid={!!errors.email && shouldShowError(dirtyFields.email)}
           disabled={disabled}
         />
-        <FormFeedback>{String(errors.email?.message || '')}</FormFeedback>
+        {shouldShowError(dirtyFields.email) && (
+          <FormFeedback>{String(errors.email?.message || '')}</FormFeedback>
+        )}
       </FormGroup>
     </>
   );

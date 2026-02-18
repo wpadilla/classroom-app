@@ -3,20 +3,28 @@
 
 import React from 'react';
 import { Row, Col, FormGroup, Label, Input, FormFeedback } from 'reactstrap';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import { FieldErrors, FieldNamesMarkedBoolean, UseFormRegister } from 'react-hook-form';
 import { RegistrationFormData } from '../../../schemas/registration.schema';
 
 interface ChurchInfoSectionProps {
   register: UseFormRegister<RegistrationFormData>;
   errors: FieldErrors<RegistrationFormData>;
+  dirtyFields: FieldNamesMarkedBoolean<RegistrationFormData>;
+  isSubmitted: boolean;
   disabled?: boolean;
 }
 
 export const ChurchInfoSection: React.FC<ChurchInfoSectionProps> = ({
   register,
   errors,
+  dirtyFields,
+  isSubmitted,
   disabled = false,
 }) => {
+  const shouldShowError = (fieldDirty?: boolean) => isSubmitted || fieldDirty;
+  const { ref: churchNameRef, ...churchNameField } = register('churchName');
+  const { ref: pastorNameRef, ...pastorNameField } = register('pastor.fullName');
+  const { ref: pastorPhoneRef, ...pastorPhoneField } = register('pastor.phone');
   return (
     <>
       <h5 className="mb-3 mt-4 text-primary">
@@ -30,11 +38,14 @@ export const ChurchInfoSection: React.FC<ChurchInfoSectionProps> = ({
           type="text"
           id="churchName"
           placeholder="Ministerio Oasis de Amor"
-          {...register('churchName')}
-          invalid={!!errors.churchName}
+          {...churchNameField}
+          innerRef={churchNameRef}
+          invalid={!!errors.churchName && shouldShowError(dirtyFields.churchName)}
           disabled={disabled}
         />
-        <FormFeedback>{errors.churchName?.message}</FormFeedback>
+        {shouldShowError(dirtyFields.churchName) && (
+          <FormFeedback>{errors.churchName?.message}</FormFeedback>
+        )}
       </FormGroup>
 
       <Row>
@@ -45,25 +56,31 @@ export const ChurchInfoSection: React.FC<ChurchInfoSectionProps> = ({
               type="text"
               id="pastorFullName"
               placeholder="Pastor Juan Rodríguez"
-              {...register('pastor.fullName')}
-              invalid={!!errors.pastor?.fullName}
+              {...pastorNameField}
+              innerRef={pastorNameRef}
+              invalid={!!errors.pastor?.fullName && shouldShowError(dirtyFields.pastor?.fullName)}
               disabled={disabled}
             />
-            <FormFeedback>{errors.pastor?.fullName?.message}</FormFeedback>
+            {shouldShowError(dirtyFields.pastor?.fullName) && (
+              <FormFeedback>{errors.pastor?.fullName?.message}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
         <Col md={6}>
           <FormGroup>
-            <Label for="pastorPhone">Teléfono del Pastor/a *</Label>
+            <Label for="pastorPhone">Teléfono del Pastor/a</Label>
             <Input
               type="tel"
               id="pastorPhone"
               placeholder="8091234567"
-              {...register('pastor.phone')}
-              invalid={!!errors.pastor?.phone}
+              {...pastorPhoneField}
+              innerRef={pastorPhoneRef}
+              invalid={!!errors.pastor?.phone && shouldShowError(dirtyFields.pastor?.phone)}
               disabled={disabled}
             />
-            <FormFeedback>{errors.pastor?.phone?.message}</FormFeedback>
+            {shouldShowError(dirtyFields.pastor?.phone) && (
+              <FormFeedback>{errors.pastor?.phone?.message}</FormFeedback>
+            )}
           </FormGroup>
         </Col>
       </Row>

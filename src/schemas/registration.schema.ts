@@ -33,10 +33,10 @@ export const contactSchema = z.object({
     .regex(VALIDATION_PATTERNS.NAME, 'El nombre contiene caracteres inválidos'),
   phone: z
     .string()
-    .min(10, 'El teléfono debe tener al menos 10 dígitos')
+    .optional()
     .refine(
-      (val) => VALIDATION_PATTERNS.PHONE_DIGITS.test(val.replace(/\D/g, '')),
-      'Ingrese un número de teléfono válido'
+      (val) => !val || val.length === 0 || (val.length >= 10 && VALIDATION_PATTERNS.PHONE_DIGITS.test(val.replace(/\D/g, ''))),
+      'Ingrese un número de teléfono válido (mínimo 10 dígitos)'
     ),
 });
 

@@ -17,6 +17,7 @@ import ClassroomList from './modules/admin/ClassroomList';
 import WhatsAppManager from './modules/admin/WhatsAppManager';
 import WhatsAppGroupManager from './modules/admin/WhatsAppGroupManager';
 import BulkMessaging from './modules/admin/BulkMessaging';
+import Statistics from './modules/admin/Statistics';
 
 // Teacher Components
 import TeacherDashboard from './modules/teacher/TeacherDashboard';
@@ -65,6 +66,7 @@ const App: React.FC = () => {
                   <Route path="classrooms" element={<ClassroomList />} />
                   <Route path="classroom/:id" element={<ClassroomManagement />} />
                   {/* WhatsApp Routes - Admin Only */}
+                  <Route path="statistics" element={<Statistics />} />
                   <Route path="whatsapp" element={<WhatsAppManager />} />
                   <Route path="whatsapp/groups" element={<WhatsAppGroupManager />} />
                   <Route path="whatsapp/bulk-messaging" element={<BulkMessaging />} />

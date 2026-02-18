@@ -1,379 +1,843 @@
-import React, { useState } from 'react';
-import { Button, Card, CardBody, Progress, Alert, Table, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
+// StudentImporter Component
+// Bulk import students from Excel files with deduplication by phone
+
+import React, { useState, useRef, useCallback } from 'react';
+import {
+  Button,
+  Card,
+  CardBody,
+  Progress,
+  Alert,
+  Table,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Row,
+  Col,
+  Input,
+  Label,
+  FormGroup,
+  Badge,
+  Spinner,
+} from 'reactstrap';
+import * as XLSX from 'xlsx';
 import { UserService } from '../../../services/user/user.service';
 import { ClassroomService } from '../../../services/classroom/classroom.service';
-import { IUser } from '../../../models/user.model';
+import { IClassroom } from '../../../models';
 import { toast } from 'react-toastify';
 
-// Embedded CSV Data
-const CSV_DATA = `Timestamp,Nombre Completo,Celular o Teléfono ,Nivel de Formación
-,Melkys Anneris Feliz Suero,8092184255,Sanidad Interior
-,Carlos Manuel Mora cuello ,8094905422,Compendio de Teologia pastoral SEAN Nivel 3
-,Pablo Moya ,8097771187,Compendio de Teologia pastoral SEAN Nivel 3
-,Sahira Reyes ,8492275212,Compendio de Teologia pastoral SEAN Nivel 6
-,Carlos Manuel ,8094905422,Educación Financiera
-,Stami Arlenis Cabrera Guzmán de Mora ,8492498648,Educación Financiera
-,Milagros Medina ,8298510927,Taller de Predicación
-,Francia Esther Ferrer Saldaña,8295794315,Compendio de Teologia pastoral SEAN Nivel 3
-,Madelyne Peralta ,8093034006,Sanidad Interior
-,Charlotte J. Lebron Peralta,8094091766,Sanidad Interior
-,María Fernanda Séptimo Gómez ,8293190112,Sanidad Interior
-,Alexandra Cabrera ,8293524671,Sanidad Interior
-,Jorge Luis Ramos ,8093053805,Libro Especial
-,Noelia Peña,8498558495,Compendio de Teologia pastoral SEAN Nivel 5
-,Yissel feliz ,8299805201,Educación Financiera
-,Eridania jacinto ,8093083528,Compendio de Teologia pastoral SEAN Nivel 2
-,Maribel frometa,8094088988,Compendio de Teologia pastoral SEAN Nivel 5
-,Yunelky Guillot Holguin,8495033718,Sanidad Interior
-,Emelin valdez frias ,8098422910,Sanidad Interior
-,Pedro J. López ,8293420512,Sanidad Interior
-,Ronny Enrique peña Santos ,8295543304,Taller de Predicación
-,Sherlyne De Los Santos Peralta ,8494461905,Sanidad Interior
-,Albert Berliza ,8493998236,Sanidad Interior
-,Anderson Montero De Los Santos,8299438173,Educación Financiera
-,SOLAINY ELIZABETH ORTIZ MATOS,8492765709,Compendio de Teologia pastoral SEAN Nivel 1
-,Veronica Rodriguez,8099909051,Compendio de Teologia pastoral SEAN Nivel 3
-,Eberli Benjamin Dalmasi Pérez ,8094095316,Taller de Liderazgo
-,Yamilka Vallejo Rivera ,8299802672,Taller de Predicación
-,Josué Augusto Puntiel Mena,8499128020,Compendio de Teologia pastoral SEAN Nivel 3
-,Lourdes María Liriano ,8297572977,Libro Especial
-,María Pérez ,8494035898,Educación Financiera
-,Noelia peña,8498558495,Compendio de Teologia pastoral SEAN Nivel 6
-,Aileen Genesis Vasquez Ventura,8092176509,Sanidad Interior
-,Daneisis Nicol Jacobs Peralta ,8093710879,Compendio de Teologia pastoral SEAN Nivel 3
-,Freddy Alexander Félix Adames ,8096097636,Compendio de Teologia pastoral SEAN Nivel 3
-,Freddy Alexander Félix Adames ,8096097636,Compendio de Teologia pastoral SEAN Nivel 3
-,Minerva De Los santos.,8099247051,Sanidad Interior
-,Rosalba Liriano ,8492071336,Educación Financiera
-,Rosalba Liriano ,8492071336,Educación Financiera
-,Rosalba Liriano ,8482071336,Sanidad Interior
-,Rony Américo Pérez peña ,8298170911,Compendio de Teologia pastoral SEAN Nivel 2
-,Evelyn Y. Terrero Santana,8297532534,Compendio de Teologia pastoral SEAN Nivel 2
-,Sory de la Rosa ,8299619382,Sanidad Interior
-,Felicia Rodriguez,8492725515,Compendio de Teologia pastoral SEAN Nivel 1
-,Yerelin Arias,8297935696,Compendio de Teologia pastoral SEAN Nivel 5
-,Yenifer jose ,8297989787,Compendio de Teologia pastoral SEAN Nivel 3
-,Aideé Pérez Mateo ,8298434913,Taller de Predicación
-,Altagracia Reyes infante ,8293966607,Discipulado
-,Aniuberca Bonilla ,8296611019,Compendio de Teologia pastoral SEAN Nivel 2
-,Braudy Méndez Trinidad ,8094455487,Compendio de Teologia pastoral SEAN Nivel 3
-,Evelyn del Carmen Vasquez Diaz ,8092980873,Educación Financiera
-,Ambiorix de Jesús Regalado ,8096782921,Compendio de Teologia pastoral SEAN Nivel 1
-,Jorge Luis Ramos ,8093053905,Libro Especial
-,Pamela Suero,8095095495,Compendio de Teologia pastoral SEAN Nivel 4
-,José de León tejada ,8099630275,Discipulado
-,Angela Torres,8092580476,Educación Financiera
-,Santa Monica Jimenez ,8098537857,Compendio de Teologia pastoral SEAN Nivel 6
-,María Fernanda Séptimo Gómez ,8293190112,Sanidad Interior
-,Wanda Yadira Espinal colòn,8097174697,Compendio de Teologia pastoral SEAN Nivel 1
-,David ogando frometa,8296018402,Sanidad Interior
-,Juan Miguel Polanco Paulino ,8298990607,Discipulado
-,Eridania jacinto Figueroa ,8093083528,Compendio de Teologia pastoral SEAN Nivel 2
-,Charlotte  J. Lebron Peralta,8094091766,Sanidad Interior
-,Yissel feliz ,8299805201,Educación Financiera
-,Andreina Batista Ventura ,8098990947,Compendio de Teologia pastoral SEAN Nivel 6
-,Rubenny Patricia Disla,8294776661,Sanidad Interior
-,Eberli Benjamin Dalmasi Pérez ,8094095316,Compendio de Teologia pastoral SEAN Nivel 1
-,Ysabel Morillo Cruz ,8099122735,Compendio de Teologia pastoral SEAN Nivel 2
-,Jemmy princessa,8292095562,Compendio de Teologia pastoral SEAN Nivel 5
-,Evelyn Y. Terrero Santana,8297533534,Compendio de Teologia pastoral SEAN Nivel 2
-,Aideé Pérez Mateo ,8298434913,Taller de Predicación
-,Ramón de la cruz ,8094138149,Compendio de Teologia pastoral SEAN Nivel 4
-,Mary jimenez,8096497100,Compendio de Teologia pastoral SEAN Nivel 3
-,FRANKLIN CANDELARIO ,8292612557,Compendio de Teologia pastoral SEAN Nivel 3
-,Geri Cuevas,8297673440,Compendio de Teologia pastoral SEAN Nivel 1
-,Félix Manuel De La Rosa rosa ,8497546991,Compendio de Teologia pastoral SEAN Nivel 4
-,Emelyn Mendez,2142709224,Discipulado
-,Minerva De Los santos ,8099247051,Sanidad Interior`;
+// Column mapping options
+interface ColumnMapping {
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone: string;
+  email?: string;
+  classroomName?: string;
+}
 
-// Embedded Classrooms Data (Simplified for matching)
-const CLASSROOMS_DATA = [
-    { id: "MwrLpEpz9ad4hmZPZpi7", name: "Taller de Sanidad Interior" },
-    { id: "iF6aUkPXVOpbR5WrZCN6", name: "Discipulado" },
-    { id: "uRwrOfNf139LftzigHN7", name: "Libro Especial" },
-    { id: "wu4hsyQFQCCAMuZPpiRe", name: "Taller de Predicación" },
-    { id: "IWlmb8sqePJ3JyRioHZ9", name: "Educación Financiera" },
-    { id: "JcbuljZLGL7ZBLUBcPxW", name: "Compendio de Teologia pastoral SEAN Nivel 6" },
-    { id: "nTCp8GNtq4UIp0ht1YH3", name: "Compendio de Teologia pastoral SEAN Nivel 5" },
-    { id: "AtHLleJs1XXxfnI717Pz", name: "Compendio de Teologia pastoral SEAN Nivel 4" },
-    { id: "CYgv3Ishc6T6rC7jsFbU", name: "Compendio de Teologia pastoral SEAN Nivel 3" },
-    { id: "De1q0QxwJa3dguelp5LE", name: "Compendio de Teologia pastoral SEAN Nivel 2" },
-    { id: "m7K6M0QusADHQeAYjCih", name: "Compendio de Teologia pastoral SEAN Nivel 1" }
-];
-
+// Parsed student row
 interface ParsedStudent {
-    fullName: string;
-    phone: string;
-    level: string;
-    firstName: string;
-    lastName: string;
-    status: 'pending' | 'success' | 'error' | 'skipped';
-    message?: string;
+  rowNumber: number;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  classroomName: string;
+  matchedClassroomId: string | null;
+  matchedClassroomName: string | null;
+  status: 'pending' | 'success' | 'error' | 'skipped' | 'duplicate';
+  message?: string;
+  existingUserId?: string;
+}
+
+// Import result
+interface ImportResult {
+  total: number;
+  created: number;
+  enrolled: number;
+  duplicates: number;
+  errors: number;
+  skipped: number;
 }
 
 interface StudentImporterProps {
-    isOpen: boolean;
-    toggle: () => void;
+  isOpen: boolean;
+  toggle: () => void;
+  onImportComplete?: () => void;
 }
 
-const StudentImporter: React.FC<StudentImporterProps> = ({ isOpen, toggle }) => {
-    const [students, setStudents] = useState<ParsedStudent[]>([]);
-    const [importing, setImporting] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [logs, setLogs] = useState<string[]>([]);
+const StudentImporter: React.FC<StudentImporterProps> = ({
+  isOpen,
+  toggle,
+  onImportComplete,
+}) => {
+  // File state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = useState<string>('');
+  const [rawData, setRawData] = useState<any[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
 
-    // Parse CSV on load
-    React.useEffect(() => {
-        if (isOpen) {
-            const lines = CSV_DATA.split('\n').filter(line => line.trim() !== '');
-            const parsed: ParsedStudent[] = [];
+  // Column mapping state
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
+    fullName: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    classroomName: '',
+  });
 
-            // Skip header
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i];
-                // Handle CSV parsing (simple split by comma, assuming no commas in fields for now based on data)
-                const parts = line.split(',');
-                if (parts.length < 4) continue;
+  // Parsed data state
+  const [students, setStudents] = useState<ParsedStudent[]>([]);
+  const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
+  const [existingPhones, setExistingPhones] = useState<Map<string, string>>(new Map());
 
-                const fullName = parts[1].trim();
-                const phone = parts[2].trim();
-                const level = parts[3].trim();
+  // UI state
+  const [step, setStep] = useState<'upload' | 'mapping' | 'preview' | 'importing' | 'complete'>('upload');
+  const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [result, setResult] = useState<ImportResult | null>(null);
 
-                // Name splitting logic
-                const nameParts = fullName.split(' ').filter(p => p.trim() !== '');
-                let firstName = '';
-                let lastName = '';
+  // Reset everything
+  const resetImporter = useCallback(() => {
+    setFileName('');
+    setRawData([]);
+    setHeaders([]);
+    setColumnMapping({
+      fullName: '',
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      classroomName: '',
+    });
+    setStudents([]);
+    setStep('upload');
+    setLoading(false);
+    setImporting(false);
+    setProgress(0);
+    setLogs([]);
+    setResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
 
-                if (nameParts.length >= 4) {
-                    firstName = `${nameParts[0]} ${nameParts[1]}`;
-                    lastName = nameParts.slice(2).join(' ');
-                } else if (nameParts.length === 3) {
-                    firstName = nameParts[0];
-                    lastName = `${nameParts[1]} ${nameParts[2]}`;
-                } else if (nameParts.length === 2) {
-                    firstName = nameParts[0];
-                    lastName = nameParts[1];
-                } else {
-                    firstName = fullName;
-                    lastName = '-';
-                }
+  // Handle file selection
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-                parsed.push({
-                    fullName,
-                    phone,
-                    level,
-                    firstName,
-                    lastName,
-                    status: 'pending'
-                });
-            }
-            setStudents(parsed);
-            setLogs([]);
-            setProgress(0);
+    // Validate file type
+    const validTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'text/csv',
+    ];
+    
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+      toast.error('Por favor seleccione un archivo Excel (.xlsx, .xls) o CSV');
+      return;
+    }
+
+    setLoading(true);
+    setFileName(file.name);
+
+    try {
+      // Read file
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      
+      // Get first sheet
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      
+      // Convert to JSON (with headers)
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+      
+      if (jsonData.length < 2) {
+        toast.error('El archivo no contiene datos suficientes');
+        setLoading(false);
+        return;
+      }
+
+      // Extract headers (first row)
+      const headerRow = jsonData[0].map((h: any) => String(h || '').trim());
+      setHeaders(headerRow);
+
+      // Extract data rows
+      const dataRows = jsonData.slice(1).filter(row => 
+        row.some(cell => cell !== null && cell !== undefined && cell !== '')
+      );
+      setRawData(dataRows);
+
+      // Auto-detect column mapping
+      const autoMapping: ColumnMapping = { phone: '' };
+      headerRow.forEach((header, index) => {
+        const h = header.toLowerCase();
+        if (h.includes('nombre completo') || h.includes('full name')) {
+          autoMapping.fullName = header;
+        } else if (h.includes('nombre') || h.includes('first')) {
+          if (!autoMapping.firstName) autoMapping.firstName = header;
+        } else if (h.includes('apellido') || h.includes('last')) {
+          autoMapping.lastName = header;
+        } else if (h.includes('telefono') || h.includes('teléfono') || h.includes('celular') || h.includes('phone') || h.includes('whatsapp')) {
+          autoMapping.phone = header;
+        } else if (h.includes('email') || h.includes('correo')) {
+          autoMapping.email = header;
+        } else if (h.includes('clase') || h.includes('nivel') || h.includes('formación') || h.includes('classroom')) {
+          autoMapping.classroomName = header;
         }
-    }, [isOpen]);
+      });
 
-    const findClassroomId = (levelName: string): string | null => {
-        // Normalize strings for comparison
-        const normalize = (s: string) => s.toLowerCase().replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u').trim();
-        const target = normalize(levelName);
+      setColumnMapping(autoMapping);
 
-        // Direct match or fuzzy match
-        const match = CLASSROOMS_DATA.find(c => {
-            const source = normalize(c.name);
-            return source.includes(target) || target.includes(source);
-        });
+      // Load existing data
+      const [allClassrooms, allUsers] = await Promise.all([
+        ClassroomService.getAllClassrooms(),
+        UserService.getAllUsers(),
+      ]);
 
-        // Special cases mapping if needed
-        if (!match) {
-            if (target.includes('sanidad interior')) return "MwrLpEpz9ad4hmZPZpi7";
-            if (target.includes('discipulado')) return "iF6aUkPXVOpbR5WrZCN6";
-            // Add more special cases if fuzzy match fails
+      setClassrooms(allClassrooms);
+      
+      // Build existing phones map (phone -> userId)
+      const phoneMap = new Map<string, string>();
+      allUsers.forEach(user => {
+        const cleanPhone = cleanPhoneNumber(user.phone);
+        if (cleanPhone) {
+          phoneMap.set(cleanPhone, user.id);
         }
+      });
+      setExistingPhones(phoneMap);
 
-        return match ? match.id : null;
+      setStep('mapping');
+      toast.success(`Archivo cargado: ${dataRows.length} filas encontradas`);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      toast.error('Error al leer el archivo');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Clean phone number (remove non-digits)
+  const cleanPhoneNumber = (phone: string): string => {
+    return String(phone || '').replace(/\D/g, '');
+  };
+
+  // Find matching classroom by name
+  const findMatchingClassroom = useCallback((name: string): { id: string; name: string } | null => {
+    if (!name) return null;
+    
+    const normalize = (s: string) => 
+      s.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+    const target = normalize(name);
+
+    // Try exact match first
+    let match = classrooms.find(c => normalize(c.name) === target);
+    
+    // Try partial match
+    if (!match) {
+      match = classrooms.find(c => {
+        const source = normalize(c.name);
+        return source.includes(target) || target.includes(source);
+      });
+    }
+
+    return match ? { id: match.id, name: match.name } : null;
+  }, [classrooms]);
+
+  // Process data with column mapping
+  const processMapping = useCallback(() => {
+    if (!columnMapping.phone) {
+      toast.error('Debe mapear la columna de teléfono');
+      return;
+    }
+
+    const parsed: ParsedStudent[] = [];
+
+    rawData.forEach((row, index) => {
+      // Get header indices
+      const getColValue = (colName: string | undefined): string => {
+        if (!colName) return '';
+        const colIndex = headers.indexOf(colName);
+        return colIndex >= 0 ? String(row[colIndex] || '').trim() : '';
+      };
+
+      const phone = cleanPhoneNumber(getColValue(columnMapping.phone));
+      const fullName = getColValue(columnMapping.fullName);
+      const firstName = getColValue(columnMapping.firstName);
+      const lastName = getColValue(columnMapping.lastName);
+      const email = getColValue(columnMapping.email);
+      const classroomName = getColValue(columnMapping.classroomName);
+
+      // Skip rows without phone
+      if (!phone || phone.length < 10) {
+        return;
+      }
+
+      // Parse name
+      let parsedFirstName = firstName;
+      let parsedLastName = lastName;
+
+      if (!parsedFirstName && fullName) {
+        const nameParts = fullName.split(' ').filter(p => p.trim());
+        if (nameParts.length >= 4) {
+          parsedFirstName = `${nameParts[0]} ${nameParts[1]}`;
+          parsedLastName = nameParts.slice(2).join(' ');
+        } else if (nameParts.length === 3) {
+          parsedFirstName = nameParts[0];
+          parsedLastName = `${nameParts[1]} ${nameParts[2]}`;
+        } else if (nameParts.length === 2) {
+          parsedFirstName = nameParts[0];
+          parsedLastName = nameParts[1];
+        } else {
+          parsedFirstName = fullName;
+          parsedLastName = '';
+        }
+      }
+
+      // Check for duplicate in current batch
+      const existsInBatch = parsed.some(s => cleanPhoneNumber(s.phone) === phone);
+
+      // Check for existing user
+      const existingUserId = existingPhones.get(phone);
+
+      // Find matching classroom
+      const classroomMatch = findMatchingClassroom(classroomName);
+
+      const student: ParsedStudent = {
+        rowNumber: index + 2, // +2 for 1-indexed and header row
+        fullName: fullName || `${parsedFirstName} ${parsedLastName}`.trim(),
+        firstName: parsedFirstName,
+        lastName: parsedLastName,
+        phone,
+        email,
+        classroomName,
+        matchedClassroomId: classroomMatch?.id || null,
+        matchedClassroomName: classroomMatch?.name || null,
+        status: existsInBatch ? 'duplicate' : (existingUserId ? 'skipped' : 'pending'),
+        message: existsInBatch 
+          ? 'Duplicado en el archivo' 
+          : (existingUserId ? 'Usuario ya existe' : undefined),
+        existingUserId,
+      };
+      Object.keys(student).forEach(key => {
+        if(!student[key as keyof ParsedStudent] && !['false', '0'].includes(JSON.stringify(student[key as keyof ParsedStudent]))) { 
+          delete student[key as keyof ParsedStudent];
+        }
+       }); // For debugging if needed
+      parsed.push(student);
+    });
+
+    console.log('Parsed students:', parsed);
+
+    setStudents(parsed);
+    setStep('preview');
+    
+    const duplicates = parsed.filter(s => s.status === 'duplicate' || s.existingUserId).length;
+    const pending = parsed.filter(s => s.status === 'pending').length;
+    
+    toast.info(`${pending} estudiantes nuevos, ${duplicates} existentes/duplicados`);
+  }, [rawData, headers, columnMapping, existingPhones, findMatchingClassroom]);
+
+  // Start import process
+  const startImport = async () => {
+    setImporting(true);
+    setStep('importing');
+    setProgress(0);
+    setLogs([]);
+
+    const importResult: ImportResult = {
+      total: students.length,
+      created: 0,
+      enrolled: 0,
+      duplicates: 0,
+      errors: 0,
+      skipped: 0,
     };
 
-    const startImport = async () => {
-        setImporting(true);
-        const newStudents = [...students];
-        let successCount = 0;
+    const updatedStudents = [...students];
 
-        for (let i = 0; i < newStudents.length; i++) {
-            const student = newStudents[i];
+    for (let i = 0; i < updatedStudents.length; i++) {
+      const student = updatedStudents[i];
 
+      try {
+        // Handle existing users
+        if (student.existingUserId) {
+          // Just enroll in classroom if specified
+          if (student.matchedClassroomId) {
             try {
-                // 1. Find Classroom
-                const classroomId = findClassroomId(student.level);
-                if (!classroomId) {
-                    student.status = 'skipped';
-                    student.message = `No se encontró clase para: ${student.level}`;
-                    setLogs(prev => [...prev, `⚠️ Skipped ${student.fullName}: No matching classroom for ${student.level}`]);
-                    continue;
-                }
-
-                // 2. Create or Get User
-                // Check if user exists by phone (simulated check or try create)
-                // Since we don't have a direct "checkByPhone" easily exposed without auth,
-                // we'll try to create and catch error if exists, or use a specialized service method if available.
-                // For this script, we'll assume we try to create.
-
-                let userId = '';
-
-                // We need to check if user exists first to avoid duplicates
-                // Using a workaround: try to login? No.
-                // We will try to create. If it fails because of duplicate, we assume it exists?
-                // Actually UserService.createUser might not check duplicates on phone in Firestore unless we query.
-                // Let's query first.
-
-                const existingUsers = await UserService.getUsersByRole('student');
-                const existingUser = existingUsers.find((u: IUser) => u.phone === student.phone);
-
-                if (existingUser) {
-                    userId = existingUser.id;
-                    setLogs(prev => [...prev, `ℹ️ User exists: ${student.fullName}`]);
-                } else {
-                    // Create new user
-                    const newUser: any = {
-                        firstName: student.firstName,
-                        lastName: student.lastName,
-                        email: '-',
-                        phone: student.phone,
-                        role: 'student',
-                        isTeacher: false,
-                        isActive: true,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                        password: student.phone // Phone as password
-                    };
-
-                    // We need to use the service to create.
-                    // Note: UserService.createUser might assume Firebase Auth.
-                    // If this app uses Firebase Auth, we can't easily create users programmatically without Admin SDK.
-                    // BUT, looking at the code, UserService seems to interact with Firestore.
-                    // Let's assume we can create in Firestore.
-                    // If auth is required, this might fail.
-
-                    // Wait, the app uses Firebase. Creating a user usually requires `createUserWithEmailAndPassword`.
-                    // If we are just creating Firestore records, they won't be able to login if Auth is used.
-                    // However, the prompt says "create each user... phone as password".
-                    // This implies we should create Auth users too.
-                    // Client-side SDK cannot create *other* users easily while logged in.
-                    // We might only be able to create Firestore records and "fake" the auth or the user has to register?
-                    // OR, maybe the app handles "creation" by just adding to Firestore and there's a separate auth flow?
-                    // Let's look at UserService.createUser.
-
-                    // Actually, let's just try to create the Firestore document.
-                    // If the app uses a custom auth or just Firestore, this is fine.
-                    // If it uses Firebase Auth, we can't create accounts for others from the client.
-                    // BUT, for this task, I will assume creating the Firestore record is what's needed,
-                    // or that the `UserService` handles it.
-
-                    const created = await UserService.createUser(newUser); // Passing password if service supports it
-                    userId = created;
-                    setLogs(prev => [...prev, `✅ Created user: ${student.fullName}`]);
-                }
-
-                // 3. Enroll in Classroom
-                await ClassroomService.addStudentToClassroom(classroomId, userId);
-                setLogs(prev => [...prev, `📚 Enrolled ${student.fullName} in ${student.level}`]);
-
-                student.status = 'success';
-                successCount++;
-
-            } catch (error: any) {
-                console.error(error);
-                student.status = 'error';
-                student.message = error.message;
-                setLogs(prev => [...prev, `❌ Error ${student.fullName}: ${error.message}`]);
+              await ClassroomService.addStudentToClassroom(
+                student.matchedClassroomId,
+                student.existingUserId
+              );
+              student.status = 'success';
+              student.message = 'Inscrito en clase (usuario existente)';
+              importResult.enrolled++;
+              setLogs(prev => [...prev, `📚 ${student.fullName}: Inscrito en ${student.matchedClassroomName}`]);
+            } catch (enrollError: any) {
+              // Already enrolled is not an error
+              if (enrollError.message?.includes('already enrolled')) {
+                student.status = 'skipped';
+                student.message = 'Ya inscrito en esta clase';
+                importResult.skipped++;
+              } else {
+                throw enrollError;
+              }
             }
+          } else {
+            student.status = 'skipped';
+            student.message = 'Usuario existente, sin clase para inscribir';
+            importResult.duplicates++;
+          }
+          setLogs(prev => [...prev, `ℹ️ ${student.fullName}: Usuario existente`]);
+        } else if (student.status !== 'duplicate') {
+          // Create new user
+          const newUserData: any = {
+            firstName: student.firstName || 'Sin nombre',
+            lastName: student.lastName || '',
+            email: student.email || undefined,
+            phone: student.phone,
+            password: student.phone, // Phone as default password
+            role: 'student',
+            isTeacher: false,
+            isActive: true,
+            enrolledClassrooms: [],
+            completedClassrooms: [],
+            teachingClassrooms: [],
+            taughtClassrooms: [],
+          };
 
-            // Update progress
-            setProgress(Math.round(((i + 1) / newStudents.length) * 100));
-            setStudents([...newStudents]); // Force update UI
+          const newUserId = await UserService.createUser(newUserData);
+          importResult.created++;
+          setLogs(prev => [...prev, `✅ ${student.fullName}: Usuario creado`]);
+
+          // Enroll in classroom if matched
+          if (student.matchedClassroomId && newUserId) {
+            try {
+              await ClassroomService.addStudentToClassroom(
+                student.matchedClassroomId,
+                newUserId
+              );
+              importResult.enrolled++;
+              setLogs(prev => [...prev, `📚 ${student.fullName}: Inscrito en ${student.matchedClassroomName}`]);
+            } catch (enrollError) {
+              console.error('Error enrolling:', enrollError);
+              setLogs(prev => [...prev, `⚠️ ${student.fullName}: Error al inscribir`]);
+            }
+          }
+
+          student.status = 'success';
+          student.message = 'Usuario creado exitosamente';
+        } else {
+          importResult.duplicates++;
         }
+      } catch (error: any) {
+        console.error('Import error:', error);
+        student.status = 'error';
+        student.message = error.message || 'Error desconocido';
+        importResult.errors++;
+        setLogs(prev => [...prev, `❌ ${student.fullName}: ${error.message}`]);
+      }
 
-        setImporting(false);
-        toast.success(`Importación completada. ${successCount} estudiantes procesados.`);
-    };
+      // Update progress
+      setProgress(Math.round(((i + 1) / updatedStudents.length) * 100));
+      setStudents([...updatedStudents]);
+    }
 
-    return (
-        <Modal isOpen={isOpen} toggle={toggle} size="xl">
-            <ModalHeader toggle={toggle}>Importar Estudiantes Masivamente</ModalHeader>
-            <ModalBody>
-                <div className="mb-3">
-                    <Alert color="info">
-                        <strong>Total Estudiantes:</strong> {students.length} <br/>
-                        Esta herramienta creará usuarios (si no existen) y los inscribirá en sus clases correspondientes.
-                        <br/>
-                        <strong>Nota:</strong> Los estudiantes de "Taller de Liderazgo" serán omitidos (no hay clase).
-                    </Alert>
-                </div>
+    setResult(importResult);
+    setImporting(false);
+    setStep('complete');
+    toast.success(`Importación completada: ${importResult.created} creados, ${importResult.enrolled} inscripciones`);
+    
+    if (onImportComplete) {
+      onImportComplete();
+    }
+  };
 
-                {importing && (
-                    <div className="mb-4">
-                        <div className="d-flex justify-content-between mb-1">
-                            <span>Procesando...</span>
-                            <span>{progress}%</span>
-                        </div>
-                        <Progress value={progress} />
-                    </div>
-                )}
+  // Render column mapping selector
+  const renderColumnSelector = (label: string, field: keyof ColumnMapping, required: boolean = false) => (
+    <FormGroup>
+      <Label>{label} {required && <span className="text-danger">*</span>}</Label>
+      <Input
+        type="select"
+        value={columnMapping[field] || ''}
+        onChange={(e) => setColumnMapping(prev => ({ ...prev, [field]: e.target.value }))}
+      >
+        <option value="">-- No mapear --</option>
+        {headers.map(header => (
+          <option key={header} value={header}>{header}</option>
+        ))}
+      </Input>
+    </FormGroup>
+  );
 
-                <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px' }}>
-                    <Table size="sm" bordered striped>
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Teléfono</th>
-                                <th>Nivel</th>
-                                <th>Clase Detectada</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {students.map((s, idx) => {
-                                const classId = findClassroomId(s.level);
-                                const className = classId ? CLASSROOMS_DATA.find(c => c.id === classId)?.name : 'NO ENCONTRADO';
+  // Get status badge
+  const getStatusBadge = (status: ParsedStudent['status']) => {
+    switch (status) {
+      case 'success': return <Badge color="success">Éxito</Badge>;
+      case 'error': return <Badge color="danger">Error</Badge>;
+      case 'skipped': return <Badge color="warning">Existente</Badge>;
+      case 'duplicate': return <Badge color="secondary">Duplicado</Badge>;
+      default: return <Badge color="info">Pendiente</Badge>;
+    }
+  };
 
-                                return (
-                                    <tr key={idx} className={
-                                        s.status === 'success' ? 'table-success' :
-                                        s.status === 'error' ? 'table-danger' :
-                                        s.status === 'skipped' ? 'table-warning' : ''
-                                    }>
-                                        <td>{s.fullName}</td>
-                                        <td>{s.phone}</td>
-                                        <td>{s.level}</td>
-                                        <td>{className}</td>
-                                        <td>
-                                            {s.status === 'pending' && <span className="text-muted">Pendiente</span>}
-                                            {s.status === 'success' && <span className="text-success">Exito</span>}
-                                            {s.status === 'error' && <span className="text-danger">Error</span>}
-                                            {s.status === 'skipped' && <span className="text-warning">Omitido</span>}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </Table>
-                </div>
+  return (
+    <Modal isOpen={isOpen} toggle={toggle} size="xl" backdrop="static">
+      <ModalHeader toggle={step !== 'importing' ? toggle : undefined}>
+        <i className="bi bi-file-earmark-spreadsheet me-2"></i>
+        Importar Estudiantes desde Excel
+      </ModalHeader>
+      <ModalBody>
+        {/* Step 1: Upload */}
+        {step === 'upload' && (
+          <div className="text-center py-5">
+            <i className="bi bi-cloud-upload display-1 text-primary mb-4"></i>
+            <h5>Seleccione un archivo Excel</h5>
+            <p className="text-muted mb-4">
+              Formatos soportados: .xlsx, .xls, .csv
+            </p>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            
+            <Button
+              color="primary"
+              size="lg"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Spinner size="sm" className="me-2" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-folder2-open me-2"></i>
+                  Seleccionar Archivo
+                </>
+              )}
+            </Button>
 
-                <div className="bg-light p-3 border rounded" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    <h6>Logs:</h6>
-                    {logs.map((log, i) => (
-                        <div key={i} className="small text-monospace">{log}</div>
-                    ))}
-                </div>
-            </ModalBody>
-            <ModalFooter>
-                <Button color="secondary" onClick={toggle} disabled={importing}>Cerrar</Button>
-                <Button color="primary" onClick={startImport} disabled={importing || students.length === 0}>
-                    {importing ? 'Importando...' : 'Iniciar Importación'}
-                </Button>
-            </ModalFooter>
-        </Modal>
-    );
+            <Alert color="info" className="mt-4 text-start">
+              <strong>Columnas esperadas:</strong>
+              <ul className="mb-0 mt-2">
+                <li><strong>Teléfono</strong> (requerido): Número de teléfono del estudiante</li>
+                <li><strong>Nombre / Nombre Completo</strong>: Nombre del estudiante</li>
+                <li><strong>Email</strong> (opcional): Correo electrónico</li>
+                <li><strong>Clase / Nivel</strong> (opcional): Nombre de la clase para inscribir</li>
+              </ul>
+            </Alert>
+          </div>
+        )}
+
+        {/* Step 2: Column Mapping */}
+        {step === 'mapping' && (
+          <>
+            <Alert color="info">
+              <strong>Archivo:</strong> {fileName} ({rawData.length} filas)
+              <br />
+              <span>Configure el mapeo de columnas y luego haga clic en "Procesar Datos"</span>
+            </Alert>
+
+            <Card className="mb-3">
+              <CardBody>
+                <h6 className="mb-3">Mapeo de Columnas</h6>
+                <Row>
+                  <Col md={6}>
+                    {renderColumnSelector('Teléfono / WhatsApp', 'phone', true)}
+                  </Col>
+                  <Col md={6}>
+                    {renderColumnSelector('Nombre Completo', 'fullName')}
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={6}>
+                    {renderColumnSelector('Nombre(s)', 'firstName')}
+                  </Col>
+                  <Col md={6}>
+                    {renderColumnSelector('Apellido(s)', 'lastName')}
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={6}>
+                    {renderColumnSelector('Correo Electrónico', 'email')}
+                  </Col>
+                  <Col md={6}>
+                    {renderColumnSelector('Clase / Nivel de Formación', 'classroomName')}
+                  </Col>
+                </Row>
+              </CardBody>
+            </Card>
+
+            <h6>Vista previa de datos (primeras 5 filas)</h6>
+            <div style={{ overflowX: 'auto' }}>
+              <Table size="sm" bordered>
+                <thead>
+                  <tr>
+                    {headers.map(h => <th key={h}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rawData.slice(0, 5).map((row, i) => (
+                    <tr key={i}>
+                      {headers.map((_, j) => (
+                        <td key={j}>{row[j] ?? ''}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </>
+        )}
+
+        {/* Step 3: Preview */}
+        {step === 'preview' && (
+          <>
+            <Alert color="info">
+              <Row>
+                <Col md={3}>
+                  <strong>Total:</strong> {students.length}
+                </Col>
+                <Col md={3}>
+                  <strong>Nuevos:</strong> {students.filter(s => s.status === 'pending').length}
+                </Col>
+                <Col md={3}>
+                  <strong>Existentes:</strong> {students.filter(s => s.existingUserId).length}
+                </Col>
+                <Col md={3}>
+                  <strong>Duplicados:</strong> {students.filter(s => s.status === 'duplicate').length}
+                </Col>
+              </Row>
+            </Alert>
+
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <Table size="sm" bordered striped hover>
+                <thead className="sticky-top bg-white">
+                  <tr>
+                    <th>#</th>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Clase Detectada</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s, idx) => (
+                    <tr
+                      key={idx}
+                      className={
+                        s.status === 'duplicate' ? 'table-secondary' :
+                        s.existingUserId ? 'table-warning' : ''
+                      }
+                    >
+                      <td>{s.rowNumber}</td>
+                      <td>
+                        {s.fullName}
+                        {!s.firstName && <Badge color="warning" className="ms-1">Sin nombre</Badge>}
+                      </td>
+                      <td>{s.phone}</td>
+                      <td>{s.email || '-'}</td>
+                      <td>
+                        {s.matchedClassroomName ? (
+                          <Badge color="success">{s.matchedClassroomName}</Badge>
+                        ) : s.classroomName ? (
+                          <span className="text-danger">
+                            <i className="bi bi-exclamation-triangle me-1"></i>
+                            {s.classroomName}
+                          </span>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {s.existingUserId ? (
+                          <Badge color="warning">Usuario existe</Badge>
+                        ) : s.status === 'duplicate' ? (
+                          <Badge color="secondary">Duplicado</Badge>
+                        ) : (
+                          <Badge color="primary">Nuevo</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </>
+        )}
+
+        {/* Step 4: Importing */}
+        {step === 'importing' && (
+          <>
+            <div className="text-center mb-4">
+              <Spinner color="primary" className="mb-3" style={{ width: '3rem', height: '3rem' }} />
+              <h5>Importando estudiantes...</h5>
+              <p className="text-muted">Por favor no cierre esta ventana</p>
+            </div>
+
+            <div className="mb-4">
+              <div className="d-flex justify-content-between mb-1">
+                <span>Progreso</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} animated />
+            </div>
+
+            <div className="bg-dark text-light p-3 rounded" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              <code>
+                {logs.map((log, i) => (
+                  <div key={i}>{log}</div>
+                ))}
+              </code>
+            </div>
+          </>
+        )}
+
+        {/* Step 5: Complete */}
+        {step === 'complete' && result && (
+          <>
+            <div className="text-center mb-4">
+              <i className="bi bi-check-circle display-1 text-success"></i>
+              <h4 className="mt-3">Importación Completada</h4>
+            </div>
+
+            <Row className="text-center mb-4">
+              <Col>
+                <Card className="bg-success text-white">
+                  <CardBody>
+                    <h3 className="mb-0">{result.created}</h3>
+                    <small>Usuarios Creados</small>
+                  </CardBody>
+                </Card>
+              </Col>
+              <Col>
+                <Card className="bg-primary text-white">
+                  <CardBody>
+                    <h3 className="mb-0">{result.enrolled}</h3>
+                    <small>Inscripciones</small>
+                  </CardBody>
+                </Card>
+              </Col>
+              <Col>
+                <Card className="bg-warning">
+                  <CardBody>
+                    <h3 className="mb-0">{result.duplicates + result.skipped}</h3>
+                    <small>Existentes/Omitidos</small>
+                  </CardBody>
+                </Card>
+              </Col>
+              <Col>
+                <Card className="bg-danger text-white">
+                  <CardBody>
+                    <h3 className="mb-0">{result.errors}</h3>
+                    <small>Errores</small>
+                  </CardBody>
+                </Card>
+              </Col>
+            </Row>
+
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <Table size="sm" bordered striped>
+                <thead className="sticky-top bg-white">
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Mensaje</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s, idx) => (
+                    <tr key={idx}>
+                      <td>{s.fullName}</td>
+                      <td>{s.phone}</td>
+                      <td>{getStatusBadge(s.status)}</td>
+                      <td><small>{s.message || '-'}</small></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          </>
+        )}
+      </ModalBody>
+      <ModalFooter>
+        {step === 'upload' && (
+          <Button color="secondary" onClick={toggle}>
+            Cancelar
+          </Button>
+        )}
+        
+        {step === 'mapping' && (
+          <>
+            <Button color="secondary" onClick={resetImporter}>
+              <i className="bi bi-arrow-left me-1"></i>
+              Volver
+            </Button>
+            <Button color="primary" onClick={processMapping} disabled={!columnMapping.phone}>
+              Procesar Datos
+              <i className="bi bi-arrow-right ms-1"></i>
+            </Button>
+          </>
+        )}
+
+        {step === 'preview' && (
+          <>
+            <Button color="secondary" onClick={() => setStep('mapping')}>
+              <i className="bi bi-arrow-left me-1"></i>
+              Volver al Mapeo
+            </Button>
+            <Button
+              color="success"
+              onClick={startImport}
+              disabled={students.filter(s => s.status === 'pending').length === 0}
+            >
+              <i className="bi bi-play-fill me-1"></i>
+              Iniciar Importación ({students.filter(s => s.status === 'pending' || s.existingUserId).length} estudiantes)
+            </Button>
+          </>
+        )}
+
+        {step === 'importing' && (
+          <Button color="secondary" disabled>
+            Importando...
+          </Button>
+        )}
+
+        {step === 'complete' && (
+          <>
+            <Button color="secondary" onClick={resetImporter}>
+              <i className="bi bi-arrow-repeat me-1"></i>
+              Nueva Importación
+            </Button>
+            <Button color="primary" onClick={toggle}>
+              Cerrar
+            </Button>
+          </>
+        )}
+      </ModalFooter>
+    </Modal>
+  );
 };
 
 export default StudentImporter;

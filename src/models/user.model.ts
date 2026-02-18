@@ -1,5 +1,12 @@
 // Unified User Model for Students, Teachers, and Admins
 
+import { 
+  DocumentType, 
+  AcademicLevel, 
+  EnrollmentType, 
+  IContact 
+} from './registration.model';
+
 export type UserRole = 'student' | 'teacher' | 'admin';
 
 export interface IClassroomHistory {
@@ -42,6 +49,15 @@ export interface IUser {
     language?: 'es' | 'en';
     notifications?: boolean;
   };
+
+  // Extended registration data (from Amor Bible Institute registration)
+  documentType?: DocumentType;
+  documentNumber?: string;
+  country?: string;
+  churchName?: string;
+  pastor?: IContact;
+  academicLevel?: AcademicLevel;
+  enrollmentType?: EnrollmentType;
 }
 
 // Helper type for user creation

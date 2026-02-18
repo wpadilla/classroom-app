@@ -399,6 +399,66 @@ export class WhatsappService {
   }
 
   /**
+   * Register student to academy via WhatsApp integration
+   * This adds the student to the official WhatsApp group
+   * Based on the Google Forms script integration
+   */
+  static async registerStudentToAcademy(data: {
+    firstName: string;
+    lastName: string;
+    documentNumber: string;
+    email: string;
+    phone: string;
+    country: string;
+    churchName: string;
+    pastorName: string;
+    pastorContact: string;
+    academicLevel: string;
+    enrollmentType: string;
+  }): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const payload = {
+        names: data.firstName,
+        lastNames: data.lastName,
+        id: data.documentNumber,
+        email: data.email || '',
+        phone: data.phone,
+        country: data.country,
+        church: data.churchName,
+        pastor: data.pastorName,
+        pastorContact: data.pastorContact,
+        academyLevel: data.academicLevel,
+        enrollment: data.enrollmentType,
+      };
+
+      const response = await axios.post(
+        'https://betuel-promotions.xyz/api/bible-assistant/academy/inscription',
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
+
+      return {
+        success: true,
+        message: 'Estudiante registrado exitosamente en la academia',
+      };
+    } catch (error: any) {
+      console.error('Error registering student to academy:', error);
+      
+      // Don't throw - just log and return error
+      // Registration can proceed even if WhatsApp fails
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Error al registrar en la academia',
+      };
+    }
+  }
+
+  /**
    * Stop message execution
    */
   static async stopMessages(cancelId: string, stopType: 'pause' | 'cancel' = 'cancel'): Promise<void> {

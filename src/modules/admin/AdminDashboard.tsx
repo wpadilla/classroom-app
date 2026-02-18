@@ -161,6 +161,10 @@ const AdminDashboard: React.FC = () => {
                   <i className="bi bi-calendar-plus me-2"></i>
                   Crear Nueva Clase
                 </Button>
+                <Button tag={Link} to="/admin/statistics" color="outline-info">
+                  <i className="bi bi-graph-up-arrow me-2"></i>
+                  Ver Estadisticas
+                </Button>
               </div>
             </CardBody>
           </Card>

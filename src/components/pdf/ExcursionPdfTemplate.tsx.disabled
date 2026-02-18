@@ -1,0 +1,154 @@
+import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
+
+import pdfStyles from "./PrintStyles";
+import { IEvent } from "@/models/excursionModel";
+import IUser from "@/models/interfaces/userModel";
+import { IOrganization } from "@/models/organizationModel";
+import { EXCURSION_PDF_TEXTS } from "@/constants/excursionPdf.constant";
+
+const ExcursionPDF = ({ excursion, user }: { excursion: IEvent; user: IUser | null }) => {
+  const totalReceived = (excursion.clients || []).reduce((total, client) => {
+    const payments = (client.services || [])
+      .map((service) => (service.excursionId === excursion._id ? service.payments : []))
+      .flat();
+    return total + payments.reduce((sum, p) => sum + p?.amount || 0, 0);
+  }, 0);
+
+  const totalTransportCost =
+    excursion.transport?.transportResources?.reduce(
+      (total, resource) => total + (resource.finance?.cost || resource.finance?.price || 0),
+      0
+    ) || 0;
+
+  const totalDestinationsPerClient =
+    excursion.destinations
+      ?.map((destination) => destination.provider)
+      .reduce((total, destination) => {
+        // Verificar que destination y destination.provider existan antes de acceder a entryFee
+        if (!destination || !destination.entryFee) {
+          return total;
+        }
+
+        const perClientCost =
+          (destination.entryFee?.cost || destination.entryFee?.price || 0) *
+          (excursion.clients || []).filter((client) => {
+            const service = (client.services || []).find(
+              (service) => service.excursionId === excursion._id
+            );
+            return service && (service.status === "paid" || service.status === "reserved");
+          }).length;
+        return total + perClientCost;
+      }, 0) || 0;
+
+  const totalExpenses =
+    excursion.expenses?.reduce((acc, expense) => acc + (expense.finance?.price ?? 0), 0) || 0;
+
+  const gainingAmount =
+    totalReceived - totalTransportCost - totalDestinationsPerClient - totalExpenses;
+
+  return (
+    <Document>
+      <Page style={pdfStyles.page}>
+        <View style={pdfStyles.titleContainer}>
+          {user?.organization?.logo?.content && (
+            <Image style={pdfStyles.logo} src={user.organization.logo.content} />
+          )}
+          <Text style={pdfStyles.title}>{excursion.title || "Sin título"}</Text>
+        </View>
+
+        <View style={pdfStyles.section}>
+          <Text style={pdfStyles.sectionTitle}>{EXCURSION_PDF_TEXTS.DATES}</Text>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.START_DATE}</Text>
+            <Text style={pdfStyles.value}>
+              {excursion.startDate ? new Date(excursion.startDate).toLocaleDateString() : "N/A"}
+            </Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.END_DATE}</Text>
+            <Text style={pdfStyles.value}>
+              {excursion.endDate ? new Date(excursion.endDate).toLocaleDateString() : "N/A"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={pdfStyles.section}>
+          <Text style={pdfStyles.sectionTitle}>{EXCURSION_PDF_TEXTS.FINANCIAL_SUMMARY}</Text>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.TOTAL_RECEIVED}</Text>
+            <Text style={pdfStyles.value}>
+              {EXCURSION_PDF_TEXTS.CURRENCY}
+              {totalReceived.toLocaleString()}
+            </Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.TRANSPORT_COST}</Text>
+            <Text style={pdfStyles.value}>
+              {EXCURSION_PDF_TEXTS.CURRENCY}
+              {totalTransportCost.toLocaleString()}
+            </Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.DESTINATIONS_COST}</Text>
+            <Text style={pdfStyles.value}>
+              {EXCURSION_PDF_TEXTS.CURRENCY}
+              {totalDestinationsPerClient.toLocaleString()}
+            </Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.EXTRA_EXPENSES}</Text>
+            <Text style={pdfStyles.value}>
+              {EXCURSION_PDF_TEXTS.CURRENCY}
+              {totalExpenses.toLocaleString()}
+            </Text>
+          </View>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.PROFIT}</Text>
+            <Text style={pdfStyles.value}>
+              {EXCURSION_PDF_TEXTS.CURRENCY}
+              {gainingAmount.toLocaleString()}
+            </Text>
+          </View>
+        </View>
+
+        <View style={pdfStyles.section}>
+          <Text style={pdfStyles.sectionTitle}>{EXCURSION_PDF_TEXTS.CLIENTS}</Text>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.TOTAL_CLIENTS}</Text>
+            <Text style={pdfStyles.value}>{(excursion.clients || []).length}</Text>
+          </View>
+        </View>
+
+        <View style={pdfStyles.section}>
+          <Text style={pdfStyles.sectionTitle}>
+            {EXCURSION_PDF_TEXTS.PROVIDERS_AND_DESTINATIONS}
+          </Text>
+          <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.ORGANIZATIONS}</Text>
+          {(excursion.organizations || []).map((org: IOrganization, index) => (
+            <View key={index} style={pdfStyles.row}>
+              <Text style={pdfStyles.value}>{org?.name || EXCURSION_PDF_TEXTS.NO_NAME}</Text>
+            </View>
+          ))}
+
+          <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.DESTINATIONS}</Text>
+          {(excursion.destinations || []).map((dest, index) => (
+            <View key={index} style={pdfStyles.row}>
+              <Text style={pdfStyles.value}>
+                {dest?.place?.name || EXCURSION_PDF_TEXTS.NO_NAME}
+              </Text>
+            </View>
+          ))}
+
+          <Text style={pdfStyles.label}>{EXCURSION_PDF_TEXTS.TRANSPORT}</Text>
+          <View style={pdfStyles.row}>
+            <Text style={pdfStyles.value}>
+              {excursion.transport?.organization?.name || EXCURSION_PDF_TEXTS.NO_NAME}
+            </Text>
+          </View>
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
+export default ExcursionPDF;

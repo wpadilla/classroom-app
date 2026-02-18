@@ -48,6 +48,7 @@ import { IClassroom, IUser, IModule, IStudentEvaluation, IAttendanceRecord, ICla
 import { useOffline } from '../../contexts/OfflineContext';
 import { GCloudService } from '../../services/gcloud/gcloud.service';
 import { getFileIcon, formatFileSize, getFileTypeColor } from '../../utils/fileUtils';
+import { ClassroomReportPdfDownloadButton } from '../../components/pdf/components/ClassroomReportPdfDownloadButton';
 
 const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -645,6 +646,14 @@ const ClassroomManagement: React.FC = () => {
             </div>
 
             <div className="d-flex gap-2">
+              {/* PDF Download Button */}
+              <ClassroomReportPdfDownloadButton classroom={classroom}>
+                <Button color="outline-secondary" size="sm" tag="span">
+                  <i className="bi bi-file-earmark-pdf me-1"></i>
+                  <span className="d-none d-sm-inline">Reporte</span>
+                </Button>
+              </ClassroomReportPdfDownloadButton>
+
               {/* Finalization Button */}
               <Button
                 color={isFinalized ? 'warning' : 'danger'}

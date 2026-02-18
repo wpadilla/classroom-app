@@ -1,0 +1,163 @@
+// ExcursionPdfDownloadButton - Handles chart generation before showing download button
+import React, { useEffect, useState } from 'react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import { IEvent } from '@/models/excursionModel';
+import IUser from '@/models/interfaces/userModel';
+import { chartToImage, ChartData } from '../utils/chartToImage';
+import ExcursionPdfTemplate from '../templates/ExcursionPdfTemplate';
+import { Spinner } from '@material-tailwind/react';
+
+interface ExcursionPdfDownloadButtonProps {
+  excursion: IEvent;
+  user: IUser | null;
+  children: React.ReactNode; // The button/link content
+  fileName?: string;
+}
+
+/**
+ * This component generates charts BEFORE showing the PDF download button
+ * It handles the async chart generation properly
+ */
+export const ExcursionPdfDownloadButton: React.FC<ExcursionPdfDownloadButtonProps> = ({
+  excursion,
+  user,
+  children,
+  fileName,
+}) => {
+  const [chartImage, setChartImage] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(true);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    const generateChart = async () => {
+      try {
+        setIsGenerating(true);
+        setError('');
+
+        // Calculate financial data
+        const totalReceived = (excursion.clients || []).reduce((total, client) => {
+          const payments = (client.services || [])
+            .map((service) => (service.excursionId === excursion._id ? service.payments : []))
+            .flat();
+          return total + payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+        }, 0);
+
+        const totalTransportCost =
+          excursion.transport?.transportResources?.reduce(
+            (total, resource) => total + (resource.finance?.cost || resource.finance?.price || 0),
+            0
+          ) || 0;
+
+        const totalDestinationsPerClient =
+          excursion.destinations
+            ?.map((destination) => destination.provider)
+            .reduce((total, destination) => {
+              if (!destination || !destination.entryFee) {
+                return total;
+              }
+
+              const perClientCost =
+                (destination.entryFee?.cost || destination.entryFee?.price || 0) *
+                (excursion.clients || []).filter((client) => {
+                  const service = (client.services || []).find(
+                    (service) => service.excursionId === excursion._id
+                  );
+                  return service && (service.status === 'paid' || service.status === 'reserved');
+                }).length;
+              return total + perClientCost;
+            }, 0) || 0;
+
+        const totalExpenses =
+          excursion.expenses?.reduce((acc, expense) => acc + (expense.finance?.price ?? 0), 0) || 0;
+
+        const gainingAmount =
+          totalReceived - totalTransportCost - totalDestinationsPerClient - totalExpenses;
+
+        // Chart data
+        const financialChartData: ChartData = {
+          labels: ['Ingresos', 'Transporte', 'Destinos', 'Gastos', 'Ganancia'],
+          datasets: [
+            {
+              label: 'Monto ($)',
+              data: [
+                totalReceived,
+                totalTransportCost,
+                totalDestinationsPerClient,
+                totalExpenses,
+                gainingAmount,
+              ],
+              backgroundColor: [
+                '#22c55e', // green
+                '#ef4444', // red
+                '#f97316', // orange
+                '#f59e0b', // amber
+                '#3b82f6', // blue
+              ],
+            },
+          ],
+        };
+
+        // Generate chart image
+        const result = await chartToImage(
+          'bar',
+          financialChartData,
+          {
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+          },
+          {
+            width: 500,
+            height: 300,
+            backgroundColor: '#ffffff',
+          }
+        );
+
+        setChartImage(result.base64);
+        setIsGenerating(false);
+      } catch (err) {
+        console.error('Error generating chart:', err);
+        setError('Error generando gráfico');
+        setIsGenerating(false);
+      }
+    };
+
+    generateChart();
+  }, [excursion]);
+
+  if (error) {
+    return (
+      <div style={{ color: 'red', fontSize: '12px' }}>
+        {error}
+      </div>
+    );
+  }
+
+  if (isGenerating) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Spinner className="h-4 w-4" />
+        <span style={{ fontSize: '12px' }}>Preparando PDF...</span>
+      </div>
+    );
+  }
+
+  return (
+    <PDFDownloadLink
+      document={<ExcursionPdfTemplate excursion={excursion} user={user} chartImage={chartImage} />}
+      fileName={fileName || `excursion_${excursion.title}.pdf`}
+    >
+      {children}
+    </PDFDownloadLink>
+  );
+};
+
+export default ExcursionPdfDownloadButton;
+

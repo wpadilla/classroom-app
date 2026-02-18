@@ -1,7 +1,9 @@
-// User Registration Component with Photo Upload
+// User Registration Component with Extended Fields
+// Uses react-hook-form + zod for validation
+// Integrates WhatsApp academy registration
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useRef, useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Row,
@@ -15,38 +17,77 @@ import {
   Button,
   Alert,
   Spinner,
-  FormFeedback
+  FormFeedback,
 } from 'reactstrap';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../contexts/AuthContext';
-import { IRegistrationData } from '../../models';
 import { GCloudService } from '../../services/gcloud/gcloud.service';
+import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
+import { 
+  registrationSchema, 
+  RegistrationFormData 
+} from '../../schemas/registration.schema';
+import {
+  DEFAULT_REGISTRATION_VALUES,
+  getEnrollmentFromQueryParam,
+  getAcademicLevelLabel,
+  getEnrollmentTypeLabel,
+  getCountryLabel,
+} from '../../constants/registration.constants';
+import { PersonalInfoSection } from './components/PersonalInfoSection';
+import { ChurchInfoSection } from './components/ChurchInfoSection';
+import { AcademicInfoSection } from './components/AcademicInfoSection';
 
 const Register: React.FC = () => {
-  const { register, loading, isAuthenticated, user } = useAuth();
+  const { register: registerUser, loading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [formData, setFormData] = useState<IRegistrationData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    role: 'student'
-  });
 
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
-  const [errors, setErrors] = useState<Partial<Record<keyof IRegistrationData, string>>>({});
+  const [photoError, setPhotoError] = useState<string>('');
   const [generalError, setGeneralError] = useState<string>('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [registrationStep, setRegistrationStep] = useState<'form' | 'submitting' | 'whatsapp'>('form');
+
+  // Get enrollment type from query param
+  const enrollmentFromParam = getEnrollmentFromQueryParam(searchParams.get('enrollment'));
+
+  // Initialize form with react-hook-form + zod
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<RegistrationFormData>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      documentType: DEFAULT_REGISTRATION_VALUES.documentType,
+      documentNumber: '',
+      email: '',
+      phone: '',
+      country: DEFAULT_REGISTRATION_VALUES.country,
+      churchName: '',
+      pastor: {
+        fullName: '',
+        phone: '',
+      },
+      academicLevel: DEFAULT_REGISTRATION_VALUES.academicLevel,
+      enrollmentType: enrollmentFromParam,
+      password: '',
+      confirmPassword: '',
+    },
+  });
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      // Navigate to appropriate dashboard based on role
       switch (user.role) {
         case 'admin':
           navigate('/admin/dashboard', { replace: true });
@@ -63,45 +104,24 @@ const Register: React.FC = () => {
     }
   }, [loading, isAuthenticated, user, navigate]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Clear specific field error
-    if (errors[name as keyof IRegistrationData]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-    setGeneralError('');
-  };
-
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle photo selection
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({
-        ...prev,
-        profilePhoto: 'Por favor seleccione una imagen válida'
-      }));
+      setPhotoError('Por favor seleccione una imagen válida');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({
-        ...prev,
-        profilePhoto: 'La imagen no debe superar los 5MB'
-      }));
+      setPhotoError('La imagen no debe superar los 5MB');
       return;
     }
 
+    setPhotoError('');
     setProfilePhoto(file);
 
     // Create preview
@@ -112,58 +132,18 @@ const Register: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  // Handle take photo (mobile camera)
   const handleTakePhoto = () => {
-    // This would open camera on mobile devices
     if (fileInputRef.current) {
       fileInputRef.current.setAttribute('capture', 'user');
       fileInputRef.current.click();
     }
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof IRegistrationData, string>> = {};
-
-    // Required fields
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'El nombre es requerido';
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'El apellido es requerido';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'El teléfono es requerido';
-    } else if (!/^\d{10,}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Ingrese un número de teléfono válido';
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Ingrese un correo electrónico válido';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'La contraseña es requerida';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Las contraseñas no coinciden';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+  // Form submission
+  const onSubmit = async (data: RegistrationFormData) => {
     setGeneralError('');
+    setRegistrationStep('submitting');
 
     try {
       let photoUrl = '';
@@ -174,7 +154,7 @@ const Register: React.FC = () => {
         try {
           photoUrl = await GCloudService.uploadProfilePhoto(
             profilePhoto,
-            formData.phone // Use phone as temporary ID
+            data.phone
           );
         } catch (error) {
           console.error('Error uploading photo:', error);
@@ -184,43 +164,101 @@ const Register: React.FC = () => {
         }
       }
 
-      // Register user
-      const registrationData: IRegistrationData = {
-        ...formData,
-        profilePhoto: photoUrl
+      // Register user in the system
+      const registrationData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email || undefined,
+        phone: data.phone,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        role: 'student' as const,
+        profilePhoto: photoUrl,
+        documentType: data.documentType,
+        documentNumber: data.documentNumber,
+        country: data.country,
+        churchName: data.churchName,
+        pastor: data.pastor,
+        academicLevel: data.academicLevel,
+        enrollmentType: data.enrollmentType,
       };
 
-      const success = await register(registrationData);
+      const success = await registerUser(registrationData);
 
       if (!success) {
         setGeneralError('Error al registrar. Por favor intente nuevamente.');
-      } else {
-        navigate('/student/dashboard');
+        setRegistrationStep('form');
+        return;
       }
+
+      // Register with WhatsApp academy (non-blocking)
+      setRegistrationStep('whatsapp');
+      try {
+        await WhatsappService.registerStudentToAcademy({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          documentNumber: data.documentNumber,
+          email: data.email || '',
+          phone: data.phone,
+          country: getCountryLabel(data.country),
+          churchName: data.churchName,
+          pastorName: data.pastor.fullName,
+          pastorContact: data.pastor.phone,
+          academicLevel: getAcademicLevelLabel(data.academicLevel),
+          enrollmentType: getEnrollmentTypeLabel(data.enrollmentType),
+        });
+      } catch (whatsappError) {
+        // Log but don't block registration
+        console.error('WhatsApp registration error:', whatsappError);
+      }
+
+      // Navigate to dashboard
+      navigate('/student/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
       setGeneralError('Error al registrar. Por favor intente nuevamente.');
+      setRegistrationStep('form');
     }
   };
+
+  const isDisabled = loading || uploadingPhoto || isSubmitting || registrationStep !== 'form';
 
   return (
     <Container className="min-vh-100 d-flex align-items-center justify-content-center py-5">
       <Row className="w-100">
-        <Col md={8} lg={6} xl={5} className="mx-auto">
+        <Col md={10} lg={8} xl={7} className="mx-auto">
           <Card className="shadow-lg">
-            <CardBody className="p-5">
+            <CardBody className="p-4 p-md-5">
+              {/* Header */}
               <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary">Academia de Ministros Oasis de Amor</h2>
-                <p className="text-muted">Registro de Estudiante</p>
+                <h2 className="fw-bold text-primary">
+                  Academia de Ministros Oasis de Amor
+                </h2>
+                <p className="text-muted">Inscripción de Estudiante</p>
               </div>
 
+              {/* Error Alert */}
               {generalError && (
                 <Alert color="danger" className="mb-3">
                   {generalError}
                 </Alert>
               )}
 
-              <Form onSubmit={handleSubmit}>
+              {/* Loading States */}
+              {registrationStep === 'submitting' && (
+                <Alert color="info" className="mb-3">
+                  <Spinner size="sm" className="me-2" />
+                  {uploadingPhoto ? 'Subiendo foto de perfil...' : 'Registrando usuario...'}
+                </Alert>
+              )}
+              {registrationStep === 'whatsapp' && (
+                <Alert color="success" className="mb-3">
+                  <Spinner size="sm" className="me-2" />
+                  Agregando al grupo oficial de WhatsApp...
+                </Alert>
+              )}
+
+              <Form onSubmit={handleSubmit(onSubmit)}>
                 {/* Profile Photo */}
                 <FormGroup className="text-center mb-4">
                   <div className="mb-3">
@@ -228,7 +266,7 @@ const Register: React.FC = () => {
                       <img
                         src={photoPreview}
                         alt="Profile"
-                        className="rounded-circle"
+                        className="rounded-circle border"
                         style={{ width: '120px', height: '120px', objectFit: 'cover' }}
                       />
                     ) : (
@@ -255,6 +293,7 @@ const Register: React.FC = () => {
                       color="outline-primary"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
+                      disabled={isDisabled}
                     >
                       <i className="bi bi-upload me-1"></i>
                       Subir Foto
@@ -264,140 +303,111 @@ const Register: React.FC = () => {
                       color="outline-primary"
                       size="sm"
                       onClick={handleTakePhoto}
+                      disabled={isDisabled}
                     >
                       <i className="bi bi-camera me-1"></i>
                       Tomar Foto
                     </Button>
                   </div>
-                  {errors.profilePhoto && (
-                    <div className="text-danger small mt-2">{errors.profilePhoto}</div>
+                  {photoError && (
+                    <div className="text-danger small mt-2">{photoError}</div>
                   )}
                 </FormGroup>
 
-                {/* Personal Information */}
+                {/* Personal Information Section */}
+                <PersonalInfoSection
+                  register={register}
+                  errors={errors}
+                  watch={watch}
+                  setValue={setValue}
+                  disabled={isDisabled}
+                />
+
+                {/* Church Information Section */}
+                <ChurchInfoSection
+                  register={register}
+                  errors={errors}
+                  disabled={isDisabled}
+                />
+
+                {/* Academic Information Section */}
+                <AcademicInfoSection
+                  register={register}
+                  errors={errors}
+                  disabled={isDisabled}
+                />
+
+                {/* Password Section */}
+                <h5 className="mb-3 mt-4 text-primary">
+                  <i className="bi bi-shield-lock me-2"></i>
+                  Contraseña
+                </h5>
+
                 <Row>
                   <Col md={6}>
                     <FormGroup>
-                      <Label for="firstName">Nombre *</Label>
-                      <Input
-                        type="text"
-                        name="firstName"
-                        id="firstName"
-                        placeholder="Juan"
-                        value={formData.firstName}
-                        onChange={handleChange}
-                        invalid={!!errors.firstName}
-                        disabled={loading || uploadingPhoto}
-                      />
-                      <FormFeedback>{errors.firstName}</FormFeedback>
+                      <Label for="password">Contraseña *</Label>
+                      <div className="position-relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          id="password"
+                          placeholder="Mínimo 6 caracteres"
+                          {...register('password')}
+                          invalid={!!errors.password}
+                          disabled={isDisabled}
+                        />
+                        <Button
+                          type="button"
+                          color="link"
+                          size="sm"
+                          className="position-absolute end-0 top-50 translate-middle-y pe-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{ zIndex: 10 }}
+                          tabIndex={-1}
+                        >
+                          <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                        </Button>
+                      </div>
+                      <FormFeedback className="d-block">
+                        {errors.password?.message}
+                      </FormFeedback>
                     </FormGroup>
                   </Col>
                   <Col md={6}>
                     <FormGroup>
-                      <Label for="lastName">Apellido *</Label>
+                      <Label for="confirmPassword">Confirmar Contraseña *</Label>
                       <Input
-                        type="text"
-                        name="lastName"
-                        id="lastName"
-                        placeholder="Pérez"
-                        value={formData.lastName}
-                        onChange={handleChange}
-                        invalid={!!errors.lastName}
-                        disabled={loading || uploadingPhoto}
+                        type={showPassword ? 'text' : 'password'}
+                        id="confirmPassword"
+                        placeholder="Repita la contraseña"
+                        {...register('confirmPassword')}
+                        invalid={!!errors.confirmPassword}
+                        disabled={isDisabled}
                       />
-                      <FormFeedback>{errors.lastName}</FormFeedback>
+                      <FormFeedback>{errors.confirmPassword?.message}</FormFeedback>
                     </FormGroup>
                   </Col>
                 </Row>
 
-                <FormGroup>
-                  <Label for="phone">Teléfono *</Label>
-                  <Input
-                    type="tel"
-                    name="phone"
-                    id="phone"
-                    placeholder="8091234567"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    invalid={!!errors.phone}
-                    disabled={loading || uploadingPhoto}
-                  />
-                  <FormFeedback>{errors.phone}</FormFeedback>
-                </FormGroup>
-
-                <FormGroup>
-                  <Label for="email">Correo Electrónico (Opcional)</Label>
-                  <Input
-                    type="email"
-                    name="email"
-                    id="email"
-                    placeholder="correo@ejemplo.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    invalid={!!errors.email}
-                    disabled={loading || uploadingPhoto}
-                  />
-                  <FormFeedback>{errors.email}</FormFeedback>
-                </FormGroup>
-
-                {/* Password */}
-                <FormGroup>
-                  <Label for="password">Contraseña *</Label>
-                  <div className="position-relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      id="password"
-                      placeholder="Mínimo 6 caracteres"
-                      value={formData.password}
-                      onChange={handleChange}
-                      invalid={!!errors.password}
-                      disabled={loading || uploadingPhoto}
-                    />
-                    <Button
-                      type="button"
-                      color="link"
-                      size="sm"
-                      className="position-absolute end-0 top-50 translate-middle-y"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{ zIndex: 10 }}
-                    >
-                      {showPassword ? 'Ocultar' : 'Mostrar'}
-                    </Button>
-                  </div>
-                  <FormFeedback>{errors.password}</FormFeedback>
-                </FormGroup>
-
-                <FormGroup>
-                  <Label for="confirmPassword">Confirmar Contraseña *</Label>
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    id="confirmPassword"
-                    placeholder="Repita la contraseña"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    invalid={!!errors.confirmPassword}
-                    disabled={loading || uploadingPhoto}
-                  />
-                  <FormFeedback>{errors.confirmPassword}</FormFeedback>
-                </FormGroup>
-
+                {/* Submit Button */}
                 <Button
                   type="submit"
                   color="primary"
                   block
                   size="lg"
-                  disabled={loading || uploadingPhoto}
+                  disabled={isDisabled}
                   className="mt-4"
                 >
-                  {loading || uploadingPhoto ? (
+                  {isDisabled ? (
                     <>
                       <Spinner size="sm" className="me-2" />
                       {uploadingPhoto ? 'Subiendo foto...' : 'Registrando...'}
                     </>
                   ) : (
-                    'Registrarse'
+                    <>
+                      <i className="bi bi-person-plus me-2"></i>
+                      Inscribirse
+                    </>
                   )}
                 </Button>
               </Form>
@@ -407,7 +417,7 @@ const Register: React.FC = () => {
               <div className="text-center">
                 <p className="mb-0">
                   ¿Ya tienes una cuenta?{' '}
-                  <Link to="/login" className="text-decoration-none">
+                  <Link to="/login" className="text-decoration-none fw-bold">
                     Inicia sesión aquí
                   </Link>
                 </p>

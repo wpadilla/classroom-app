@@ -1,0 +1,207 @@
+// Refactored Excursion PDF Template using new PDF system with charts
+import React from "react";
+import { IEvent } from "@/models/excursionModel";
+import IUser from "@/models/interfaces/userModel";
+import { IOrganization } from "@/models/organizationModel";
+import PDFDocument from "../core/PDFDocument";
+import PDFHeader from "../layout/PDFHeader";
+import PDFSection from "../layout/PDFSection";
+import PDFKeyValue from "../data/PDFKeyValue";
+import PDFList from "../data/PDFList";
+import PDFChart from "../visual/PDFChart";
+import PDFGrid from "../data/PDFGrid";
+import PDFStatCard from "../visual/PDFStatCard";
+import PDFColumns from "../layout/PDFColumns";
+
+interface ExcursionPdfTemplateProps {
+  excursion: IEvent;
+  user: IUser | null;
+  chartImage?: string; // Pre-generated chart image
+}
+
+const ExcursionPdfTemplate: React.FC<ExcursionPdfTemplateProps> = ({
+  excursion,
+  user,
+  chartImage,
+}) => {
+  // Calculate financial data
+  const totalReceived = (excursion.clients || []).reduce((total, client) => {
+    const payments = (client.services || [])
+      .map((service) => (service.excursionId === excursion._id ? service.payments : []))
+      .flat();
+    return total + payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+  }, 0);
+
+  const totalTransportCost =
+    excursion.transport?.transportResources?.reduce(
+      (total, resource) => total + (resource.finance?.cost || resource.finance?.price || 0),
+      0
+    ) || 0;
+
+  const totalDestinationsPerClient =
+    excursion.destinations
+      ?.map((destination) => destination.provider)
+      .reduce((total, destination) => {
+        if (!destination || !destination.entryFee) {
+          return total;
+        }
+
+        const perClientCost =
+          (destination.entryFee?.cost || destination.entryFee?.price || 0) *
+          (excursion.clients || []).filter((client) => {
+            const service = (client.services || []).find(
+              (service) => service.excursionId === excursion._id
+            );
+            return service && (service.status === "paid" || service.status === "reserved");
+          }).length;
+        return total + perClientCost;
+      }, 0) || 0;
+
+  const totalExpenses =
+    excursion.expenses?.reduce((acc, expense) => acc + (expense.finance?.price ?? 0), 0) || 0;
+
+  const gainingAmount =
+    totalReceived - totalTransportCost - totalDestinationsPerClient - totalExpenses;
+
+  return (
+    <PDFDocument
+      metadata={{
+        title: excursion.title || "Excursion Report",
+        author: user?.organization?.name || "TravelM",
+        subject: "Excursion Financial and Details Report",
+      }}
+      context={{
+        user,
+        organization: user?.organization,
+      }}
+    >
+      {/* Header */}
+      <PDFHeader logo={user?.organization?.logo} title={excursion.title || "Sin título"} />
+
+      {/* Dates Section */}
+      <PDFSection title="Fechas">
+        <PDFKeyValue
+          data={{
+            "Fecha de Inicio": excursion.startDate
+              ? new Date(excursion.startDate).toLocaleDateString()
+              : "N/A",
+            "Fecha de Fin": excursion.endDate
+              ? new Date(excursion.endDate).toLocaleDateString()
+              : "N/A",
+          }}
+        />
+      </PDFSection>
+
+      {/* Financial Summary Statistics */}
+      <PDFSection title="Resumen Financiero">
+        <PDFGrid columns={2} gap={10}>
+          <PDFStatCard
+            title="Total Recibido"
+            value={`$${totalReceived.toLocaleString()}`}
+            color="green"
+          />
+          <PDFStatCard
+            title="Costo de Transporte"
+            value={`$${totalTransportCost.toLocaleString()}`}
+            color="red"
+          />
+          <PDFStatCard
+            title="Costo de Destinos"
+            value={`$${totalDestinationsPerClient.toLocaleString()}`}
+            color="orange"
+          />
+          <PDFStatCard
+            title="Gastos Extras"
+            value={`$${totalExpenses.toLocaleString()}`}
+            color="amber"
+          />
+        </PDFGrid>
+
+        <PDFSection title="Ganancia Neta" border={false}>
+          <PDFKeyValue
+            data={{
+              Ganancia: `$${gainingAmount.toLocaleString()}`,
+            }}
+            labelColor="#15803d"
+            valueColor="#15803d"
+            fontSize={16}
+          />
+        </PDFSection>
+      </PDFSection>
+
+      {/* Financial Chart */}
+      {chartImage && (
+        <PDFSection title="Distribución Financiera">
+          <PDFChart chartImage={chartImage} width={500} height={300} />
+        </PDFSection>
+      )}
+
+      {/* Clients Information */}
+      <PDFColumns columns={2} gap={10}>
+        <PDFSection title="Clientes">
+          <PDFKeyValue
+            data={{
+              "Total de Clientes": (excursion.clients || []).length,
+            }}
+          />
+        </PDFSection>
+
+        <PDFSection title="Estado">
+          <PDFKeyValue
+            data={{
+              Estado: excursion.status || "N/A",
+            }}
+          />
+        </PDFSection>
+      </PDFColumns>
+
+      {/* Providers and Destinations */}
+      <PDFSection title="Proveedores y Destinos">
+        {(excursion.organizations || []).length > 0 && (
+          <>
+            <PDFKeyValue
+              data={{
+                Organizaciones: "",
+              }}
+              spacing={8}
+            />
+            <PDFList
+              items={(excursion.organizations || []).map(
+                (org: IOrganization) => org?.name || "Sin nombre"
+              )}
+              type="bullet"
+            />
+          </>
+        )}
+
+        {(excursion.destinations || []).length > 0 && (
+          <>
+            <PDFKeyValue
+              data={{
+                Destinos: "",
+              }}
+              spacing={8}
+            />
+            <PDFList
+              items={(excursion.destinations || []).map(
+                (dest) => dest?.place?.name || "Sin nombre"
+              )}
+              type="bullet"
+            />
+          </>
+        )}
+
+        {excursion.transport?.organization && (
+          <PDFKeyValue
+            data={{
+              Transporte: excursion.transport.organization.name || "Sin nombre",
+            }}
+            spacing={8}
+          />
+        )}
+      </PDFSection>
+    </PDFDocument>
+  );
+};
+
+export default ExcursionPdfTemplate;

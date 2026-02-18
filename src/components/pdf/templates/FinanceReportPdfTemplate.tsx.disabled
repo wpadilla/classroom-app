@@ -1,0 +1,323 @@
+// Finance Report PDF Template - Detailed financial report with filters
+import React from "react";
+import { IClient } from "@/models/clientModel";
+import { IFinance } from "@/models/financeModel";
+import IUser from "@/models/interfaces/userModel";
+import { IExpense } from "@/models/ExpensesModel";
+import PDFDocument from "../core/PDFDocument";
+import PDFHeader from "../layout/PDFHeader";
+import PDFSection from "../layout/PDFSection";
+import PDFKeyValue from "../data/PDFKeyValue";
+import PDFGrid from "../data/PDFGrid";
+import PDFStatCard from "../visual/PDFStatCard";
+import PDFTable from "../data/PDFTable";
+import PDFColumns from "../layout/PDFColumns";
+import { View, Text } from "@react-pdf/renderer";
+import { getFinancePriceForSeatType } from "@/utils/finance.utils";
+import { financeOptionLabels } from "@/constants/finance.constants";
+
+// Status labels in Spanish
+const statusLabels: Record<string, string> = {
+    paid: "Pagado",
+    reserved: "Reservado",
+    interested: "Interesado",
+    free: "Gratis",
+    canceled: "Cancelado",
+};
+
+// Status colors for display
+const statusColors: Record<string, string> = {
+    paid: "#15803d",
+    reserved: "#1d4ed8",
+    interested: "#ca8a04",
+    free: "#059669",
+    canceled: "#dc2626",
+};
+
+export interface FinanceReportPdfTemplateProps {
+    excursionTitle: string;
+    excursionId: string;
+    clients: IClient[];
+    finance: IFinance;
+    financeCost: IFinance;
+    expenses?: IExpense[];
+    currencySymbol?: string;
+    user: IUser | null;
+    filterInfo?: {
+        dateRange?: { start: string; end: string };
+        authors?: Array<{ id: string; name: string }>;
+        filterPaymentsByAuthor?: boolean;
+        seatTypes?: Array<{ type: string; label: string }>;
+        statuses?: Array<{ status: string; label: string }>;
+    };
+    statistics: {
+        totalReceived: number;
+        totalExpenses: number;
+        totalGaining: number;
+        expectedGaining: number;
+        totalPersons: number;
+        totalTransportCost: number;
+        totalDestinationCost: number;
+        extraExpenses: number;
+        clientCounts: Record<string, number>;
+    };
+}
+
+const FinanceReportPdfTemplate: React.FC<FinanceReportPdfTemplateProps> = ({
+    excursionTitle,
+    excursionId,
+    clients,
+    finance,
+    financeCost,
+    expenses = [],
+    currencySymbol = "$",
+    user,
+    filterInfo,
+    statistics,
+}) => {
+    const {
+        totalReceived,
+        totalExpenses,
+        totalGaining,
+        expectedGaining,
+        totalPersons,
+        totalTransportCost,
+        totalDestinationCost,
+        extraExpenses,
+        clientCounts,
+    } = statistics;
+
+    // Format currency helper
+    const formatCurrency = (amount: number): string => {
+        return `${currencySymbol}${amount.toLocaleString()}`;
+    };
+
+    // Format date helper
+    const formatDate = (dateString: string): string => {
+        if (!dateString) return "N/A";
+        return new Date(dateString).toLocaleDateString("es-ES", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+        });
+    };
+
+    // Check if filters are applied
+    const hasFilters = filterInfo?.dateRange ||
+        (filterInfo?.authors && filterInfo.authors.length > 0) ||
+        (filterInfo?.seatTypes && filterInfo.seatTypes.length > 0) ||
+        (filterInfo?.statuses && filterInfo.statuses.length > 0);
+
+    // Prepare client data for table
+    const clientTableData = clients.map((client) => {
+        const service = client.currentService ||
+            client.services?.find((s) => s.excursionId === excursionId);
+        let payments = service?.payments || [];
+
+        // Filter payments by author if the flag is set
+        if (filterInfo?.filterPaymentsByAuthor && filterInfo?.authors && filterInfo.authors.length > 0) {
+            const authorIds = filterInfo.authors.map(a => a.id);
+            payments = payments.filter((p) => {
+                if (!p?.author) return false;
+                // Handle both populated (object with _id) and unpopulated (string) author
+                const authorId = typeof p.author === 'object' && (p.author as any)?._id
+                    ? (p.author as any)._id
+                    : p.author;
+                return authorIds.includes(authorId);
+            });
+        }
+
+        const totalPaid = payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+        const seats = typeof service?.seats === "object" ? service?.seats : [];
+
+        // Filter seats by selected seat types if applicable
+        const selectedSeatTypes = filterInfo?.seatTypes?.map(st => st.type) || [];
+        const displaySeats = selectedSeatTypes.length > 0
+            ? seats.filter(seat => selectedSeatTypes.includes(seat.type))
+            : seats;
+
+        // Format seats detail as "label: quantity" per line
+        const seatsDetail = displaySeats.map(seat => {
+            const seatLabel = filterInfo?.seatTypes?.find(st => st.type === seat.type)?.label || financeOptionLabels[seat.type] || seat.type;
+            return `${seatLabel}: ${seat.quantity}`;
+        }).join('\n');
+
+        const totalToPay = seats.reduce((acc, seat) => {
+            const seatPrice = getFinancePriceForSeatType(service?.finance, seat.type);
+            return acc + seatPrice * seat.quantity;
+        }, 0);
+        const remaining = Math.max(0, totalToPay - totalPaid);
+
+        return {
+            name: `${client.firstName || ""} ${client.lastName || ""}`.trim(),
+            phone: client.phone || "N/A",
+            status: statusLabels[service?.status || "interested"] || service?.status || "N/A",
+            seatsDetail: seatsDetail || "N/A",
+            totalToPay,
+            totalPaid,
+            remaining,
+            createdAt: service?.createdAt ? formatDate(String(service.createdAt)) : "N/A",
+        };
+    });
+
+    // Table columns definition
+    const tableColumns = [
+        { key: "name", label: "Cliente", width: "18%" },
+        { key: "phone", label: "Teléfono", width: "12%" },
+        { key: "status", label: "Estado", width: "10%" },
+        {
+            key: "seatsDetail",
+            label: "Asientos",
+            width: "12%",
+            fontSize: 6, // smaller font for seat details
+        },
+        {
+            key: "totalToPay",
+            label: "A Pagar",
+            width: "12%",
+            align: "right" as const,
+            render: (value: number) => formatCurrency(value)
+        },
+        {
+            key: "totalPaid",
+            label: "Pagado",
+            width: "12%",
+            align: "right" as const,
+            render: (value: number) => formatCurrency(value)
+        },
+        {
+            key: "remaining",
+            label: "Restante",
+            width: "12%",
+            align: "right" as const,
+            render: (value: number) => formatCurrency(value)
+        },
+        { key: "createdAt", label: "Fecha", width: "12%" },
+    ];
+
+    return (
+        <PDFDocument
+            metadata={{
+                title: `Reporte Financiero - ${excursionTitle}`,
+                author: user?.organization?.name || "TravelM",
+                subject: "Excursion Finance Report",
+            }}
+            context={{
+                user,
+                organization: user?.organization,
+            }}
+        >
+            {/* Header */}
+            <PDFHeader
+                logo={user?.organization?.logo}
+                title={`Reporte Financiero`}
+                subtitle={excursionTitle}
+            />
+
+            {/* Filter Summary - Only shown if filters are applied */}
+            {hasFilters && (
+                <PDFSection title="Filtros Aplicados" wrap={false}>
+                    <PDFKeyValue
+                        data={{
+                            ...(filterInfo?.dateRange && {
+                                "Rango de Fechas": `${formatDate(filterInfo.dateRange.start)} - ${formatDate(filterInfo.dateRange.end)}`,
+                            }),
+                            ...(filterInfo?.authors && filterInfo.authors.length > 0 && {
+                                "Autores": filterInfo.authors.map(a => a.name).join(", "),
+                            }),
+                            ...(filterInfo?.filterPaymentsByAuthor && {
+                                "Pagos filtrados por autor": "Sí",
+                            }),
+                            ...(filterInfo?.seatTypes && filterInfo.seatTypes.length > 0 && {
+                                "Tipos de Asiento": filterInfo.seatTypes.map(st => st.label).join(", "),
+                            }),
+                            ...(filterInfo?.statuses && filterInfo.statuses.length > 0 && {
+                                "Estados": filterInfo.statuses.map(s => s.label).join(", "),
+                            }),
+                            "Clientes Filtrados": `${clients.length}`,
+                        }}
+                    />
+                </PDFSection>
+            )}
+
+            {/* Financial Summary Statistics - Simplified */}
+            <PDFSection title="Resumen Financiero" wrap={false}>
+                <PDFGrid columns={3} gap={10}>
+                    <PDFStatCard
+                        title="Total Recibido"
+                        value={formatCurrency(totalReceived)}
+                        color="green"
+                    />
+                    <PDFStatCard
+                        title="Expectativa"
+                        value={formatCurrency(expectedGaining)}
+                        color="blue"
+                    />
+                    <PDFStatCard
+                        title="Diferencia"
+                        value={formatCurrency(totalReceived - expectedGaining)}
+                        color={totalReceived >= expectedGaining ? "green" : "orange"}
+                    />
+                </PDFGrid>
+            </PDFSection>
+
+            {/* Client Statistics */}
+            <PDFSection title="Estadísticas de Clientes" wrap={false}>
+                <PDFGrid columns={3} gap={8}>
+                    <PDFStatCard
+                        title="Total Personas"
+                        value={`${totalPersons}`}
+                        color="blue"
+                    />
+                    <PDFStatCard
+                        title="Pagados"
+                        value={`${clientCounts["paid"] || 0}`}
+                        color="green"
+                    />
+                    <PDFStatCard
+                        title="Reservados"
+                        value={`${clientCounts["reserved"] || 0}`}
+                        color="cyan"
+                    />
+                </PDFGrid>
+
+                <PDFKeyValue
+                    data={{
+                        "Interesados": `${clientCounts["interested"] || 0}`,
+                        "Gratis": `${clientCounts["free"] || 0}`,
+                        "Cancelados": `${clientCounts["canceled"] || 0}`,
+                    }}
+                    fontSize={10}
+                />
+            </PDFSection>
+
+            {/* Client Details Table */}
+            {clients.length > 0 && (
+                <PDFSection title="Detalle de Clientes" wrap={false}>
+                    <PDFTable
+                        columns={tableColumns}
+                        data={clientTableData}
+                        stripe={true}
+                        fontSize={8}
+                    />
+                </PDFSection>
+            )}
+
+            {/* Footer with generation info */}
+            <View style={{ marginTop: 20, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#e5e7eb" }}>
+                <Text style={{ fontSize: 8, color: "#6b7280", textAlign: "center" }}>
+                    Reporte generado el {new Date().toLocaleDateString("es-ES", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })}
+                    {user && ` por ${user.firstName} ${user.lastName || ""}`}
+                </Text>
+            </View>
+        </PDFDocument>
+    );
+};
+
+export default FinanceReportPdfTemplate;

@@ -52,7 +52,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
         { path: '/admin/profile', icon: 'bi-person-fill', label: 'Perfil' },
         { path: '/admin/users', icon: 'bi-people-fill', label: 'Usuarios' },
         { path: '/admin/programs', icon: 'bi-collection-fill', label: 'Programas' },
-        { path: '/admin/classrooms', icon: 'bi-door-open-fill', label: 'Clases' }
+        { path: '/admin/classrooms', icon: 'bi-door-open-fill', label: 'Clases' },
+        { path: '/admin/statistics', icon: 'bi-graph-up-arrow', label: 'Estadisticas' }
       );
     } else if (user.role === 'teacher' || user.isTeacher) {
       items.push(

@@ -7,7 +7,6 @@ import {
   Col,
   Card,
   CardBody,
-  CardHeader,
   Button,
   Table,
   Badge,
@@ -25,10 +24,7 @@ import {
   Nav,
   NavItem,
   NavLink,
-  TabContent,
-  TabPane,
   Spinner,
-  ButtonGroup,
   UncontrolledDropdown,
   DropdownToggle,
   DropdownMenu,
@@ -37,16 +33,26 @@ import {
 import { toast } from 'react-toastify';
 import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
-import { IUser, UserRole, IClassroom } from '../../models';
+import { ProgramService } from '../../services/program/program.service';
+import { IUser, UserRole, IClassroom, IProgram } from '../../models';
+import BulkOperationsToolbar from './components/BulkOperationsToolbar';
+import UserDetailModal from './components/UserDetailModal';
+import StudentImporter from './components/StudentImporter';
+import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
 
 const UserManagement: React.FC = () => {
   // State
   const [users, setUsers] = useState<IUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<IUser[]>([]);
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
+  const [programs, setPrograms] = useState<IProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<UserRole | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [programFilter, setProgramFilter] = useState<string>('');
+
+  // Selection state for bulk operations
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Modal states
   const [userModal, setUserModal] = useState(false);
@@ -56,7 +62,10 @@ const UserManagement: React.FC = () => {
   const [enrollModal, setEnrollModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const [selectedClassrooms, setSelectedClassrooms] = useState<string[]>([]);
-
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailUser, setDetailUser] = useState<IUser | null>(null);
+  const [showImporter, setShowImporter] = useState(false);
+console.log('detailUser', detailUser)
   // Form state
   const [formData, setFormData] = useState({
     firstName: '',
@@ -75,17 +84,19 @@ const UserManagement: React.FC = () => {
 
   useEffect(() => {
     filterUsers();
-  }, [users, activeTab, searchQuery]);
+  }, [users, activeTab, searchQuery, programFilter]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [usersList, classroomsList] = await Promise.all([
+      const [usersList, classroomsList, programsList] = await Promise.all([
         UserService.getAllUsers(),
-        ClassroomService.getAllClassrooms()
+        ClassroomService.getAllClassrooms(),
+        ProgramService.getAllPrograms()
       ]);
       setUsers(usersList);
       setClassrooms(classroomsList);
+      setPrograms(programsList);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar los datos');
@@ -106,6 +117,16 @@ const UserManagement: React.FC = () => {
       }
     }
 
+    // Filter by program (users enrolled in at least one classroom of that program)
+    if (programFilter) {
+      const programClassroomIds = classrooms
+        .filter(c => c.programId === programFilter)
+        .map(c => c.id);
+      filtered = filtered.filter(u => 
+        (u.enrolledClassrooms || []).some(cId => programClassroomIds.includes(cId))
+      );
+    }
+
     // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -118,6 +139,33 @@ const UserManagement: React.FC = () => {
     }
 
     setFilteredUsers(filtered);
+  };
+
+  // Selection handlers
+  const handleToggleSelection = (userId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedIds(new Set(filteredUsers.map(u => u.id)));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Open user detail modal
+  const handleOpenDetailModal = (user: IUser) => {
+    setDetailUser(user);
+    setDetailModalOpen(true);
   };
 
   const handleOpenModal = (user?: IUser) => {
@@ -311,10 +359,20 @@ const UserManagement: React.FC = () => {
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <h2>Gestión de Usuarios</h2>
-            <Button color="primary" onClick={() => handleOpenModal()}>
-              <i className="bi bi-person-plus me-2"></i>
-              Nuevo Usuario
-            </Button>
+            <div>
+              <Button 
+                color="info" 
+                className="me-2 text-white"
+                onClick={() => setShowImporter(true)}
+              >
+                <i className="bi bi-upload me-2"></i>
+                Importar Excel
+              </Button>
+              <Button color="primary" onClick={() => handleOpenModal()}>
+                <i className="bi bi-person-plus me-2"></i>
+                Nuevo Usuario
+              </Button>
+            </div>
           </div>
         </Col>
       </Row>
@@ -373,7 +431,7 @@ const UserManagement: React.FC = () => {
 
       {/* Search Bar */}
       <Row className="mb-3">
-        <Col md={6}>
+        <Col md={5}>
           <InputGroup>
             <InputGroupText>
               <i className="bi bi-search"></i>
@@ -385,7 +443,29 @@ const UserManagement: React.FC = () => {
             />
           </InputGroup>
         </Col>
+        <Col md={3}>
+          <Input
+            type="select"
+            value={programFilter}
+            onChange={(e) => setProgramFilter(e.target.value)}
+          >
+            <option value="">Todos los programas</option>
+            {programs.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </Input>
+        </Col>
       </Row>
+
+      {/* Bulk Operations Toolbar */}
+      <BulkOperationsToolbar
+        users={filteredUsers}
+        selectedIds={selectedIds}
+        onSelectAll={handleSelectAll}
+        onClearSelection={handleClearSelection}
+        onToggleSelection={handleToggleSelection}
+        onRefresh={loadData}
+      />
 
       {/* Tabs */}
       <Nav tabs className="mb-3">
@@ -439,6 +519,7 @@ const UserManagement: React.FC = () => {
             <Table responsive hover>
               <thead>
                 <tr>
+                  <th style={{ width: '40px' }}></th>
                   <th>#</th>
                   <th>Foto</th>
                   <th>Nombre</th>
@@ -453,8 +534,18 @@ const UserManagement: React.FC = () => {
               <tbody>
                 {filteredUsers.map((user, index) => (
                   <tr key={user.id}>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <Input
+                        type="checkbox"
+                        checked={selectedIds.has(user.id)}
+                        onChange={() => handleToggleSelection(user.id)}
+                      />
+                    </td>
                     <td>{index + 1}</td>
-                    <td>
+                    <td 
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleOpenDetailModal(user)}
+                    >
                       {user.profilePhoto ? (
                         <img
                           src={user.profilePhoto}
@@ -471,8 +562,11 @@ const UserManagement: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td>
-                      {user.firstName} {user.lastName}
+                    <td 
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleOpenDetailModal(user)}
+                    >
+                      <span className="text-primary">{user.firstName} {user.lastName}</span>
                     </td>
                     <td>{user.phone}</td>
                     <td>{user.email || '-'}</td>
@@ -510,6 +604,11 @@ const UserManagement: React.FC = () => {
                           <i className="bi bi-three-dots-vertical"></i>
                         </DropdownToggle>
                         <DropdownMenu end>
+                          <DropdownItem onClick={() => handleOpenDetailModal(user)}>
+                            <i className="bi bi-eye me-2"></i>
+                            Ver Detalles
+                          </DropdownItem>
+
                           <DropdownItem onClick={() => handleOpenModal(user)}>
                             <i className="bi bi-pencil me-2"></i>
                             Editar
@@ -530,6 +629,12 @@ const UserManagement: React.FC = () => {
                           <DropdownItem onClick={() => handleToggleUserStatus(user)}>
                             <i className={`bi bi-${user.isActive ? 'x-circle' : 'check-circle'} me-2`}></i>
                             {user.isActive ? 'Desactivar' : 'Activar'}
+                          </DropdownItem>
+
+                          <DropdownItem>
+                            <UserProfilePdfDownloadButton user={user}>
+                              <span><i className="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</span>
+                            </UserProfilePdfDownloadButton>
                           </DropdownItem>
 
                           <DropdownItem divider />
@@ -744,6 +849,22 @@ const UserManagement: React.FC = () => {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        isOpen={detailModalOpen}
+        toggle={() => setDetailModalOpen(false)}
+        user={detailUser}
+        onSave={(updatedUser) => {
+          setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+        }}
+      />
+      
+      <StudentImporter
+        isOpen={showImporter}
+        toggle={() => setShowImporter(false)}
+        onImportComplete={loadData}
+      />
     </Container>
   );
 };

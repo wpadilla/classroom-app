@@ -1,6 +1,12 @@
 // Authentication and Session Models
 
 import { UserRole } from './user.model';
+import { 
+  DocumentType, 
+  AcademicLevel, 
+  EnrollmentType, 
+  IContact 
+} from './registration.model';
 
 export interface IAuthCredentials {
   identifier: string; // Phone or email
@@ -52,6 +58,15 @@ export interface IRegistrationData {
   role?: UserRole; // Default to 'student' if not specified
   profilePhoto?: File | string;
   classroomToEnroll?: string; // Optional classroom ID for initial enrollment
+  
+  // Extended registration fields
+  documentType?: DocumentType;
+  documentNumber?: string;
+  country?: string;
+  churchName?: string;
+  pastor?: IContact;
+  academicLevel?: AcademicLevel;
+  enrollmentType?: EnrollmentType;
 }
 
 export interface IPasswordReset {

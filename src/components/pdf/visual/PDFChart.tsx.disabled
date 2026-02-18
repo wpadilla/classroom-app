@@ -1,0 +1,73 @@
+// PDFChart Component - Chart image embedder for PDFs
+// NOTE: Charts must be pre-generated before passing to this component
+// react-pdf doesn't support async operations like useEffect
+import React from 'react';
+import { View, Text, Image } from '@react-pdf/renderer';
+import { usePDFTheme } from '../core/PDFTemplate';
+
+interface PDFChartProps {
+  chartImage: string; // Pre-generated base64 image
+  width?: number;
+  height?: number;
+  title?: string;
+  description?: string;
+}
+
+export const PDFChart: React.FC<PDFChartProps> = ({
+  chartImage,
+  width = 500,
+  height = 300,
+  title,
+  description,
+}) => {
+  const theme = usePDFTheme();
+
+  if (!chartImage) {
+    return (
+      <View style={{ padding: theme.spacing.md, backgroundColor: '#fee2e2' }}>
+        <Text style={{ fontSize: theme.typography.fontSize.sm, color: '#991b1b' }}>
+          No chart image provided
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ marginBottom: theme.spacing.md }}>
+      {title && (
+        <Text
+          style={{
+            fontSize: theme.typography.fontSize.lg,
+            fontWeight: theme.typography.fontWeight.bold,
+            marginBottom: theme.spacing.sm,
+            color: theme.colors.blueGray[800],
+          }}
+        >
+          {title}
+        </Text>
+      )}
+      {description && (
+        <Text
+          style={{
+            fontSize: theme.typography.fontSize.sm,
+            color: theme.colors.blueGray[600],
+            marginBottom: theme.spacing.sm,
+          }}
+        >
+          {description}
+        </Text>
+      )}
+      <Image
+        src={chartImage}
+        style={{
+          width,
+          height,
+          objectFit: 'contain',
+        }}
+      />
+    </View>
+  );
+};
+
+export default PDFChart;
+

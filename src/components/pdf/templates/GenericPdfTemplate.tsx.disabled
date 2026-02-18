@@ -1,0 +1,129 @@
+// Generic PDF Template - Example usage of the new PDF system
+import React from 'react';
+import PDFDocument from '../core/PDFDocument';
+import PDFHeader from '../layout/PDFHeader';
+import PDFSection from '../layout/PDFSection';
+import PDFColumns from '../layout/PDFColumns';
+import PDFKeyValue from '../data/PDFKeyValue';
+import PDFTable from '../data/PDFTable';
+import PDFList from '../data/PDFList';
+import PDFStatCard from '../visual/PDFStatCard';
+import PDFGrid from '../data/PDFGrid';
+import PDFChart from '../visual/PDFChart';
+import PDFBadge from '../visual/PDFBadge';
+import { ChartData } from 'chart.js';
+
+interface GenericPdfTemplateProps {
+  title?: string;
+  logo?: any;
+  data?: any;
+}
+
+/**
+ * Generic PDF Template - Example implementation
+ * This demonstrates how to use the new PDF system
+ */
+const GenericPdfTemplate: React.FC<GenericPdfTemplateProps> = ({
+  title = 'Generic Report',
+  logo,
+  data,
+}) => {
+  // Example chart data
+  const sampleChartData: ChartData = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+    datasets: [
+      {
+        label: 'Sales',
+        data: [12, 19, 3, 5, 2],
+        backgroundColor: '#3b82f6',
+      },
+    ],
+  };
+
+  // Example table data
+  const sampleTableData = [
+    { id: 1, name: 'Product A', quantity: 5, price: 100 },
+    { id: 2, name: 'Product B', quantity: 3, price: 150 },
+    { id: 3, name: 'Product C', quantity: 8, price: 75 },
+  ];
+
+  return (
+    <PDFDocument
+      metadata={{
+        title,
+        author: 'TravelM',
+        subject: 'Generic Report Template',
+      }}
+    >
+      {/* Header with logo and title */}
+      <PDFHeader logo={logo} title={title} subtitle="Generated Report" />
+
+      {/* Statistics Cards */}
+      <PDFSection title="Key Metrics">
+        <PDFGrid columns={3} gap={10}>
+          <PDFStatCard title="Total Sales" value="$1,234" color="green" />
+          <PDFStatCard title="Orders" value="42" color="blue" />
+          <PDFStatCard title="Customers" value="156" color="purple" />
+        </PDFGrid>
+      </PDFSection>
+
+      {/* Two Column Layout */}
+      <PDFColumns columns={2} gap={10}>
+        <PDFSection title="Summary">
+          <PDFKeyValue
+            data={{
+              Date: new Date().toLocaleDateString(),
+              Status: 'Active',
+              Region: 'Americas',
+            }}
+          />
+        </PDFSection>
+
+        <PDFSection title="Details">
+          <PDFList
+            items={['Item 1', 'Item 2', 'Item 3']}
+            type="bullet"
+          />
+        </PDFSection>
+      </PDFColumns>
+
+      {/* Data Table */}
+      <PDFSection title="Products">
+        <PDFTable
+          columns={[
+            { key: 'id', label: 'ID', width: '10%' },
+            { key: 'name', label: 'Name', width: '40%' },
+            { key: 'quantity', label: 'Qty', width: '20%' },
+            { key: 'price', label: 'Price', width: '30%', render: (val) => `$${val}` },
+          ]}
+          data={sampleTableData}
+          stripe
+        />
+      </PDFSection>
+
+      {/* Chart */}
+      <PDFSection title="Sales Trend">
+        <PDFChart
+          type="bar"
+          data={sampleChartData}
+          width={500}
+          height={300}
+          title="Monthly Sales"
+        />
+      </PDFSection>
+
+      {/* Badges Example */}
+      <PDFSection title="Status Indicators">
+        <PDFGrid columns={4} gap={5}>
+          <PDFBadge text="Active" variant="success" />
+          <PDFBadge text="Pending" variant="warning" />
+          <PDFBadge text="Error" variant="error" />
+          <PDFBadge text="Info" variant="info" />
+        </PDFGrid>
+      </PDFSection>
+    </PDFDocument>
+  );
+};
+
+export default GenericPdfTemplate;
+

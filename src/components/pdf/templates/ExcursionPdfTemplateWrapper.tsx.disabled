@@ -1,0 +1,130 @@
+// Wrapper for ExcursionPdfTemplate that pre-generates charts
+import React, { useEffect, useState } from "react";
+import { IEvent } from "@/models/excursionModel";
+import IUser from "@/models/interfaces/userModel";
+import { chartToImage, ChartData } from "../utils/chartToImage";
+import ExcursionPdfTemplate from "./ExcursionPdfTemplate";
+
+interface ExcursionPdfTemplateWrapperProps {
+  excursion: IEvent;
+  user: IUser | null;
+}
+
+/**
+ * This wrapper generates charts BEFORE rendering the PDF
+ * react-pdf doesn't support async operations, so we must prepare all data first
+ */
+const ExcursionPdfTemplateWrapper = ({ excursion, user }: ExcursionPdfTemplateWrapperProps) => {
+  const [chartImage, setChartImage] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(true);
+
+  useEffect(() => {
+    const generateCharts = async () => {
+      try {
+        // Calculate financial data (same as in template)
+        const totalReceived = (excursion.clients || []).reduce((total, client) => {
+          const payments = (client.services || [])
+            .map((service) => (service.excursionId === excursion._id ? service.payments : []))
+            .flat();
+          return total + payments.reduce((sum, p) => sum + (p?.amount || 0), 0);
+        }, 0);
+
+        const totalTransportCost =
+          excursion.transport?.transportResources?.reduce(
+            (total, resource) => total + (resource.finance?.cost || resource.finance?.price || 0),
+            0
+          ) || 0;
+
+        const totalDestinationsPerClient =
+          excursion.destinations
+            ?.map((destination) => destination.provider)
+            .reduce((total, destination) => {
+              if (!destination || !destination.entryFee) {
+                return total;
+              }
+
+              const perClientCost =
+                (destination.entryFee?.cost || destination.entryFee?.price || 0) *
+                (excursion.clients || []).filter((client) => {
+                  const service = (client.services || []).find(
+                    (service) => service.excursionId === excursion._id
+                  );
+                  return service && (service.status === "paid" || service.status === "reserved");
+                }).length;
+              return total + perClientCost;
+            }, 0) || 0;
+
+        const totalExpenses =
+          excursion.expenses?.reduce((acc, expense) => acc + (expense.finance?.price ?? 0), 0) || 0;
+
+        const gainingAmount =
+          totalReceived - totalTransportCost - totalDestinationsPerClient - totalExpenses;
+
+        // Chart data for financial summary
+        const financialChartData: ChartData = {
+          labels: ["Ingresos", "Transporte", "Destinos", "Gastos", "Ganancia"],
+          datasets: [
+            {
+              label: "Monto ($)",
+              data: [
+                totalReceived,
+                totalTransportCost,
+                totalDestinationsPerClient,
+                totalExpenses,
+                gainingAmount,
+              ],
+              backgroundColor: [
+                "#22c55e", // green
+                "#ef4444", // red
+                "#f97316", // orange
+                "#f59e0b", // amber
+                "#3b82f6", // blue
+              ],
+            },
+          ],
+        };
+
+        // Generate chart image
+        const result = await chartToImage(
+          "bar",
+          financialChartData,
+          {
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+          },
+          {
+            width: 500,
+            height: 300,
+            backgroundColor: "#ffffff",
+          }
+        );
+
+        setChartImage(result.base64);
+        setIsGenerating(false);
+      } catch (error) {
+        console.error("Error generating chart:", error);
+        setIsGenerating(false);
+      }
+    };
+
+    generateCharts();
+  }, [excursion]);
+
+  if (isGenerating) {
+    return null; // or a loading placeholder
+  }
+
+  return <ExcursionPdfTemplate excursion={excursion} user={user} chartImage={chartImage} />;
+};
+
+export default ExcursionPdfTemplateWrapper;
+
+//

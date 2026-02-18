@@ -1,0 +1,400 @@
+import React, { useMemo } from "react";
+import { Text, View } from "@react-pdf/renderer";
+import { PDFDocument, PDFHeader, PDFSection, PDFKeyValue, PDFSpacer } from "@/components/pdf";
+import { IInvoice } from "@/models/invoiceModel";
+import { IClient } from "@/models/clientModel";
+import { IOrganization } from "@/models/organizationModel";
+import IUser from "@/models/interfaces/userModel";
+import { INVOICE_STATUS_CONFIG } from "@/constants/invoices.constant";
+import { OccupancyDistribution, SeatDistribution } from "@/models/financeModel";
+import { processBookingCurrency, type BookingWithCurrency } from "@/utils/invoice-currency.utils";
+import { formatCurrency } from "@/utils/currency.utils";
+import { IHotelBooking, IFlightBooking, IAgencyServiceBooking } from "@/models/bookingModels";
+
+interface InvoicePdfTemplateProps {
+  invoice?: IInvoice;
+  quote?: IInvoice; // Alias for backward compatibility with usePdfGenerator
+  client?: IClient;
+  organization?: IOrganization;
+  user?: IUser | null;
+}
+
+const InvoicePdfTemplate: React.FC<InvoicePdfTemplateProps> = ({
+  invoice: invoiceProp,
+  quote: quoteProp,
+  client,
+  organization,
+  user,
+}) => {
+  // Support both invoice and quote prop names (usePdfGenerator uses "quote")
+  const invoice = invoiceProp || quoteProp;
+
+  // Defensive checks
+  if (!invoice) {
+    console.error("InvoicePdfTemplate: invoice/quote is undefined");
+    return null;
+  }
+
+  // Get status from service
+  const invoiceStatus = (invoice?.service as any)?.status || "draft";
+  const statusConfig =
+    INVOICE_STATUS_CONFIG[invoiceStatus as keyof typeof INVOICE_STATUS_CONFIG] || INVOICE_STATUS_CONFIG.draft;
+
+  // Get currency from service
+  const currency = (invoice?.service as any)?.finance?.currency || "USD";
+
+  // Process all bookings with currency conversion
+  const processedHotelBookings = (invoice.hotelBookings || [])
+    .filter((b): b is IHotelBooking => typeof b === 'object')
+    .map((b: any) => processBookingCurrency(b, currency));
+
+  const processedFlightBookings = (invoice.flightBookings || [])
+    .filter((b): b is IFlightBooking => typeof b === 'object')
+    .map((b: any) => processBookingCurrency(b, currency));
+
+  const processedServiceBookings = (invoice.agencyServiceBookings || [])
+    .filter((b): b is IAgencyServiceBooking => typeof b === 'object')
+    .map((b: any) => processBookingCurrency(b, currency));
+
+  const allProcessedBookings = [
+    ...processedHotelBookings,
+    ...processedFlightBookings,
+    ...processedServiceBookings
+  ];
+
+  const getTotalAmount = () => {
+    return allProcessedBookings.reduce((sum, booking) => sum + booking.convertedAmount, 0);
+  };
+
+  const totalAmount = getTotalAmount();
+
+  return (
+    <PDFDocument
+      metadata={{
+        title: `Factura - ${invoice.title || "Sin título"}`,
+        author: organization?.name || "TravelM",
+        subject: `Factura ${invoice._id ? `#${invoice._id.slice(-8)}` : ""}`,
+      }}
+      context={{ user, organization }}
+    >
+      <PDFHeader
+        logo={organization?.logo?.content}
+        title={invoice.title || "Sin título"}
+        subtitle={invoice.description || ""}
+        metadata={{
+          Fecha: new Date().toLocaleDateString("es-DO", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          Estado: `${statusConfig?.icon || ""} ${statusConfig?.label || invoiceStatus
+            }`,
+          ...(invoice.taxInvoiceNumber && { "NCF": invoice.taxInvoiceNumber }),
+          ...(organization?.identification && { "RNC": organization.identification }),
+          "ID Factura": invoice._id ? `#${invoice._id.slice(-8).toUpperCase()}` : "BORRADOR",
+        }}
+      />
+
+      {client && (
+        <>
+          <PDFSpacer height={10} />
+          <PDFSection title="Información del Cliente">
+            <PDFKeyValue
+              data={{
+                Nombre: `${client.firstName} ${client.lastName}`,
+                Teléfono: client.phone,
+                Email: client.email || "No especificado",
+              }}
+            />
+          </PDFSection>
+        </>
+      )}
+
+      <PDFSpacer height={10} />
+      <PDFSection title="Detalle de Reservas">
+        {/* Hotel Bookings */}
+        {processedHotelBookings.length > 0 && (
+          <>
+            {processedHotelBookings.map((booking, index) => {
+              const originalBooking = invoice.hotelBookings![index] as any;
+              const finance = typeof originalBooking.finance === "object" ? originalBooking.finance : undefined;
+              const distribution = finance?.distribution as OccupancyDistribution[] | undefined;
+
+              return (
+                <View key={`hotel-${index}`} style={{ marginBottom: 15 }}>
+                  <View style={{ backgroundColor: "#f3f4f6", padding: 8, marginBottom: 8, flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+                      {index + 1}. 🏨 Hotel - {booking.name}
+                    </Text>
+                    <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+                      {formatCurrency(booking.convertedAmount, booking.convertedCurrency)}
+                      {booking.originalCurrency !== booking.convertedCurrency &&
+                        ` (${formatCurrency(booking.originalAmount, booking.originalCurrency)})`
+                      }
+                    </Text>
+                  </View>
+                  <PDFKeyValue
+                    data={{
+                      Noches: `${originalBooking.nights || 0} ${(originalBooking.nights || 0) === 1 ? "noche" : "noches"
+                        }`,
+                      "Check-in": originalBooking.startDate
+                        ? new Date(originalBooking.startDate).toLocaleDateString()
+                        : "N/A",
+                      "Check-out": originalBooking.endDate
+                        ? new Date(originalBooking.endDate).toLocaleDateString()
+                        : "N/A",
+                      Habitaciones: distribution?.length
+                        ? `${distribution.length}`
+                        : "N/A",
+                    }}
+                  />
+                  {distribution && distribution.length > 0 && (
+                    <View style={{ marginTop: 8, marginLeft: 10 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "bold", marginBottom: 4 }}>Distribución:</Text>
+                      {distribution.map((room, i) => {
+                        let roomPrice = 0;
+                        let roomLabel = "";
+                        if (finance?.rooms) {
+                          if (room.adults === 1) {
+                            roomPrice = Number(finance.rooms.single) || 0;
+                            roomLabel = "Single";
+                          } else if (room.adults === 2) {
+                            roomPrice = Number(finance.rooms.double) || 0;
+                            roomLabel = "Doble";
+                          } else if (room.adults === 3) {
+                            roomPrice = Number(finance.rooms.triple) || 0;
+                            roomLabel = "Triple";
+                          } else if (room.adults === 4) {
+                            roomPrice = Number(finance.rooms.quad) || 0;
+                            roomLabel = "Cuádruple";
+                          }
+                        }
+                        const childPrice = Number(finance?.children) || 0;
+                        const nightsCount = originalBooking.nights || 1;
+                        const roomTotal = (roomPrice === -1 ? 0 : roomPrice) * nightsCount;
+                        const childrenTotal = room.children * (childPrice === -1 ? 0 : childPrice) * nightsCount;
+
+                        return (
+                          <View key={i} style={{ marginBottom: 4 }}>
+                            <Text style={{ fontSize: 9, marginBottom: 2 }}>
+                              • Habitación {i + 1}: {room.adults} Adultos{room.children > 0 ? `, ${room.children} Niños` : ""}
+                            </Text>
+                            {roomPrice !== 0 && (
+                              <Text style={{ fontSize: 8, marginLeft: 10, color: "#666" }}>
+                                {roomLabel}: {currency || "USD"} {(roomPrice === -1 ? 0 : roomPrice).toLocaleString()} x {nightsCount} = {currency || "USD"} {roomTotal.toLocaleString()}
+                              </Text>
+                            )}
+                            {room.children > 0 && childPrice !== 0 && (
+                              <Text style={{ fontSize: 8, marginLeft: 10, color: "#666" }}>
+                                Niños: {currency || "USD"} {(childPrice === -1 ? 0 : childPrice).toLocaleString()} x {room.children} x {nightsCount} = {currency || "USD"} {childrenTotal.toLocaleString()}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {/* Flight Bookings */}
+        {processedFlightBookings.length > 0 && (
+          <>
+            {processedFlightBookings.map((booking, index) => {
+              const originalBooking = invoice.flightBookings![index] as any;
+              const finance = typeof originalBooking.finance === "object" ? originalBooking.finance : undefined;
+              const distribution = finance?.distribution as OccupancyDistribution[] | undefined;
+
+              let totalPassengers = "N/A";
+              if (distribution) {
+                let adults = 0, children = 0, infants = 0;
+                distribution.forEach(d => {
+                  adults += d.adults || 0;
+                  children += d.children || 0;
+                  infants += d.infants || 0;
+                });
+                totalPassengers = `${adults} adultos${children > 0 ? `, ${children} niños` : ""}${infants > 0 ? `,${infants} infantes` : ""}`;
+              }
+
+              return (
+                <View key={`flight-${index}`} style={{ marginBottom: 15 }}>
+                  <View style={{ backgroundColor: "#f3f4f6", padding: 8, marginBottom: 8, flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+                      {processedHotelBookings.length + index + 1}. ✈️ Vuelo - {booking.name}
+                    </Text>
+                    <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+                      {formatCurrency(booking.convertedAmount, booking.convertedCurrency)}
+                      {booking.originalCurrency !== booking.convertedCurrency &&
+                        ` (${formatCurrency(booking.originalAmount, booking.originalCurrency)})`
+                      }
+                    </Text>
+                  </View>
+                  <PDFKeyValue
+                    data={{
+                      Aerolínea: originalBooking.airline || "N/A",
+                      Clase: originalBooking.flightClass || "N/A",
+                      Salida: originalBooking.startDate
+                        ? new Date(originalBooking.startDate).toLocaleDateString()
+                        : "N/A",
+                      Regreso: originalBooking.endDate
+                        ? new Date(originalBooking.endDate).toLocaleDateString()
+                        : "Ida solamente",
+                      Pasajeros: totalPassengers,
+                    }}
+                  />
+                  {distribution && finance && (
+                    <View style={{ marginTop: 8, marginLeft: 10 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "bold", marginBottom: 4 }}>Detalle de Precios:</Text>
+                      {distribution.map((dist, i) => {
+                        const adultPrice = Number(finance.price) || 0;
+                        const childPrice = Number(finance.children) || 0;
+                        const infantPrice = Number(finance.baby) || 0;
+
+                        return (
+                          <View key={i} style={{ marginBottom: 4 }}>
+                            {dist.adults > 0 && adultPrice !== 0 && (
+                              <Text style={{ fontSize: 8, color: "#666" }}>
+                                • {dist.adults} Adulto{dist.adults > 1 ? "s" : ""}: {currency || "USD"} {(adultPrice === -1 ? 0 : adultPrice).toLocaleString()} x {dist.adults} = {currency || "USD"} {(dist.adults * (adultPrice === -1 ? 0 : adultPrice)).toLocaleString()}
+                              </Text>
+                            )}
+                            {dist.children > 0 && childPrice !== 0 && (
+                              <Text style={{ fontSize: 8, color: "#666" }}>
+                                • {dist.children} Niño{dist.children > 1 ? "s" : ""}: {currency || "USD"} {(childPrice === -1 ? 0 : childPrice).toLocaleString()} x {dist.children} = {currency || "USD"} {(dist.children * (childPrice === -1 ? 0 : childPrice)).toLocaleString()}
+                              </Text>
+                            )}
+                            {dist.infants > 0 && infantPrice !== 0 && (
+                              <Text style={{ fontSize: 8, color: "#666" }}>
+                                • {dist.infants} Infante{dist.infants > 1 ? "s" : ""}: {currency || "USD"} {(infantPrice === -1 ? 0 : infantPrice).toLocaleString()} x {dist.infants} = {currency || "USD"} {(dist.infants * (infantPrice === -1 ? 0 : infantPrice)).toLocaleString()}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {/* Agency Service Bookings */}
+        {processedServiceBookings.length > 0 && (
+          <>
+            {processedServiceBookings.map((booking, index) => {
+              const originalBooking = invoice.agencyServiceBookings![index] as any;
+              const finance = typeof originalBooking.finance === "object" ? originalBooking.finance : undefined;
+              const distribution = finance?.distribution as SeatDistribution[] | undefined;
+
+              const totalParticipants = distribution?.reduce(
+                (sum, seat) => sum + seat.quantity,
+                0
+              ) || 0;
+
+              return (
+                <View key={`service-${index}`} style={{ marginBottom: 15 }}>
+                  <View style={{ backgroundColor: "#f3f4f6", padding: 8, marginBottom: 8, flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+                      {processedHotelBookings.length +
+                        processedFlightBookings.length +
+                        index +
+                        1}
+                      . 🎯 Servicio - {booking.name}
+                    </Text>
+                    <Text style={{ fontSize: 12, fontWeight: "bold" }}>
+                      {formatCurrency(booking.convertedAmount, booking.convertedCurrency)}
+                      {booking.originalCurrency !== booking.convertedCurrency &&
+                        ` (${formatCurrency(booking.originalAmount, booking.originalCurrency)})`
+                      }
+                    </Text>
+                  </View>
+                  <PDFKeyValue
+                    data={{
+                      ...(originalBooking.startDate
+                        ? { Fecha: new Date(originalBooking.startDate).toLocaleDateString() }
+                        : {}),
+                      ...(originalBooking.endDate
+                        ? { "Fecha Fin": new Date(originalBooking.endDate).toLocaleDateString() }
+                        : {}),
+                      Participantes: totalParticipants,
+                    }}
+                  />
+                  {distribution && distribution.length > 0 && (
+                    <View style={{ marginTop: 8 }}>
+                      {distribution.map((seat: any, seatIdx: number) => (
+                        <Text key={seatIdx} style={{ fontSize: 9, marginBottom: 2 }}>
+                          • {seat.quantity || 0}x {seat.customName || seat.type || "Item"}{" "}
+                          {seat.price === -1
+                            ? "(Gratis)"
+                            : `- ${currency || "USD"} ${(seat.price || 0).toLocaleString()}`}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {(!invoice.hotelBookings || invoice.hotelBookings.length === 0) &&
+          (!invoice.flightBookings || invoice.flightBookings.length === 0) &&
+          (!invoice.agencyServiceBookings || invoice.agencyServiceBookings.length === 0) && (
+            <Text style={{ fontSize: 10, color: "#6b7280" }}>No hay reservas en esta factura</Text>
+          )}
+      </PDFSection>
+
+      <PDFSpacer height={10} />
+      <PDFSection title="Resumen de Totales">
+        <PDFKeyValue
+          data={{
+            Subtotal: `${currency || "USD"} ${totalAmount.toLocaleString()}`,
+            "Total Final": `${currency || "USD"} ${totalAmount.toLocaleString()}`,
+          }}
+        />
+      </PDFSection>
+
+      {invoice.comment && (
+        <>
+          <PDFSpacer height={10} />
+          <PDFSection title="Comentarios y Notas">
+            <Text style={{ fontSize: 10, lineHeight: 1.5 }}>{invoice.comment}</Text>
+          </PDFSection>
+        </>
+      )}
+
+      <PDFSpacer height={20} />
+      <Text
+        style={{
+          fontSize: 9,
+          color: "#6b7280",
+          textAlign: "center",
+          borderTopWidth: 1,
+          borderTopColor: "#e5e7eb",
+          paddingTop: 10,
+        }}
+      >
+        {organization?.name || "TravelM"} • Factura generada el{" "}
+        {new Date().toLocaleDateString("es-DO")}
+      </Text>
+      {organization?.contact?.phone && (
+        <Text
+          style={{
+            fontSize: 9,
+            color: "#6b7280",
+            textAlign: "center",
+            marginTop: 4,
+          }}
+        >
+          Contacto: {organization.contact.phone}
+          {organization.contact?.email && ` • ${organization.contact.email}`}
+        </Text>
+      )}
+    </PDFDocument>
+  );
+};
+
+export default InvoicePdfTemplate;

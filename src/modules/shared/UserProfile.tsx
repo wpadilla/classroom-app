@@ -36,6 +36,8 @@ import { GCloudService } from '../../services/gcloud/gcloud.service';
 import { ClassroomRestartService } from '../../services/classroom/classroom-restart.service';
 import { IUser, IClassroom, IStudentEvaluation, IClassroomHistory, UserRole, IClassroomRun } from '../../models';
 import { toast } from 'react-toastify';
+import ProgramsProgressTab from './components/ProgramsProgressTab';
+import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
 
 const UserProfile: React.FC = () => {
   const { user, updatePassword, refreshUser } = useAuth();
@@ -328,14 +330,24 @@ const UserProfile: React.FC = () => {
                       </h2>
                     </div>
                   )}
-                  <Button
-                    color="outline-primary"
-                    size="sm"
-                    onClick={() => setPasswordModal(true)}
-                  >
-                    <i className="bi bi-key me-2"></i>
-                    Cambiar Contraseña
-                  </Button>
+                  <div className="d-flex gap-2 flex-wrap">
+                    <Button
+                      color="outline-primary"
+                      size="sm"
+                      onClick={() => setPasswordModal(true)}
+                    >
+                      <i className="bi bi-key me-2"></i>
+                      Cambiar Contraseña
+                    </Button>
+                    {profile && (
+                      <UserProfilePdfDownloadButton user={profile}>
+                        <Button color="outline-secondary" size="sm" tag="span">
+                          <i className="bi bi-file-earmark-pdf me-2"></i>
+                          Descargar PDF
+                        </Button>
+                      </UserProfilePdfDownloadButton>
+                    )}
+                  </div>
                 </Col>
               </Row>
             </CardBody>
@@ -406,6 +418,18 @@ const UserProfile: React.FC = () => {
           >
             <i className="bi bi-clock-history me-2"></i>
             Historial
+          </NavLink>
+        </NavItem>
+        
+        {/* Show programs progress tab for all users */}
+        <NavItem>
+          <NavLink
+            className={activeTab === 'programs' ? 'active' : ''}
+            onClick={() => setActiveTab('programs')}
+            style={{ cursor: 'pointer' }}
+          >
+            <i className="bi bi-graph-up me-2"></i>
+            Progreso en Programas
           </NavLink>
         </NavItem>
       </Nav>
@@ -845,6 +869,25 @@ const UserProfile: React.FC = () => {
               </Alert>
             );
           })()}
+        </TabPane>
+
+        {/* Programs Progress Tab */}
+        <TabPane tabId="programs">
+          <Card>
+            <CardHeader>
+              <h5 className="mb-0">
+                <i className="bi bi-graph-up me-2"></i>
+                Progreso en Programas
+              </h5>
+            </CardHeader>
+            <CardBody>
+              <ProgramsProgressTab 
+                user={profile} 
+                showDetails={true} 
+                compact={false} 
+              />
+            </CardBody>
+          </Card>
         </TabPane>
       </TabContent>
 

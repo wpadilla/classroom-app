@@ -36,6 +36,7 @@ import { UserService } from '../../services/user/user.service';
 import { IProgram, IClassroom, IUser, ICustomCriterion, IClassroomRun } from '../../models';
 import ClassroomForm, { ClassroomFormData } from './components/ClassroomForm';
 import ClassroomRestartModal from './components/ClassroomRestartModal';
+import { ProgramPensumPdfDownloadButton } from '../../components/pdf/components/ProgramPensumPdfDownloadButton';
 
 const ProgramManagement: React.FC = () => {
   // State
@@ -484,6 +485,11 @@ const ProgramManagement: React.FC = () => {
                       <DropdownItem onClick={() => handleToggleProgramStatus(program)}>
                         <i className={`bi bi-${program.isActive ? 'pause' : 'play'}-circle me-2`}></i>
                         {program.isActive ? 'Desactivar' : 'Activar'}
+                      </DropdownItem>
+                      <DropdownItem>
+                        <ProgramPensumPdfDownloadButton program={program}>
+                          <span><i className="bi bi-file-earmark-pdf me-2"></i>Descargar Pensum</span>
+                        </ProgramPensumPdfDownloadButton>
                       </DropdownItem>
                       <DropdownItem divider />
                       <DropdownItem

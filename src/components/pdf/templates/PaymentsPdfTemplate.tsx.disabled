@@ -1,0 +1,94 @@
+// Refactored Payment PDF Template using new PDF system
+import React from 'react';
+import { IPayment } from '@/models/PaymentModel';
+import IUser from '@/models/interfaces/userModel';
+import { IClient } from '@/models/clientModel';
+import PDFDocument from '../core/PDFDocument';
+import PDFHeader from '../layout/PDFHeader';
+import PDFSection from '../layout/PDFSection';
+import PDFColumns from '../layout/PDFColumns';
+import PDFKeyValue from '../data/PDFKeyValue';
+import PDFTable from '../data/PDFTable';
+
+interface PaymentsPdfTemplateProps {
+  title: string | undefined;
+  client: IClient | undefined;
+  payments: IPayment[];
+  user: IUser | null;
+}
+
+const PaymentsPdfTemplate: React.FC<PaymentsPdfTemplateProps> = ({
+  title,
+  client,
+  payments,
+  user,
+}) => {
+  const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+  return (
+    <PDFDocument
+      metadata={{
+        title: 'Reporte de Pago',
+        author: user?.organization?.name || 'TravelM',
+        subject: `Pagos de ${client?.fullName || client?.firstName}`,
+      }}
+      context={{
+        user,
+        organization: user?.organization,
+      }}
+    >
+      {/* Header with logo and title */}
+      <PDFHeader
+        logo={user?.organization?.logo}
+        title="Reporte de Pago"
+      />
+
+      {/* Client and Payment Information in two columns */}
+      <PDFColumns columns={2} gap={10}>
+        <PDFSection title="Información del Cliente">
+          <PDFKeyValue
+            data={{
+              Nombre: `${client?.firstName || ''} ${client?.lastName || ''}`,
+              Teléfono: client?.phone || 'N/A',
+              Email: client?.email || 'N/A',
+            }}
+          />
+        </PDFSection>
+
+        <PDFSection title="Información de Pago">
+          <PDFKeyValue
+            data={{
+              Excursión: title || 'N/A',
+              Fecha: new Date().toLocaleDateString(),
+              'Monto Total': `$${totalAmount.toLocaleString()}`,
+            }}
+          />
+        </PDFSection>
+      </PDFColumns>
+
+      {/* Payments Table */}
+      <PDFSection title="Detalle de Pagos">
+        <PDFTable
+          columns={[
+            { key: 'date', label: 'Fecha', width: '20%' },
+            { key: 'type', label: 'Tipo de Pago', width: '20%' },
+            { key: 'amount', label: 'Monto', width: '15%' },
+            { key: 'media', label: 'Comprobante', width: '20%' },
+            { key: 'comment', label: 'Comentario', width: '25%' },
+          ]}
+          data={payments.map((payment) => ({
+            date: new Date(payment.date).toLocaleDateString(),
+            type: payment.type,
+            amount: `$${payment.amount.toLocaleString()}`,
+            media: payment.media ? 'Ver archivo' : 'Sin archivo',
+            comment: payment.comment || 'N/A',
+          }))}
+          stripe
+        />
+      </PDFSection>
+    </PDFDocument>
+  );
+};
+
+export default PaymentsPdfTemplate;
+

@@ -16,29 +16,27 @@ import {
   TabPane,
   Row,
   Col,
-  Form,
-  FormGroup,
-  Label,
-  Input,
-  FormFeedback,
-  Card,
-  CardBody,
-  Table,
   Badge,
-  Progress,
   Spinner,
-  Alert,
 } from 'reactstrap';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { IUser, IClassroomHistory, IClassroom, IProgram } from '../../../models';
+import { IUser, IClassroomHistory, IClassroom, IProgram, IUserDocument } from '../../../models';
+import { useAuth } from '../../../contexts/AuthContext';
 import { UserService } from '../../../services/user/user.service';
 import { ClassroomService } from '../../../services/classroom/classroom.service';
 import { ProgramService } from '../../../services/program/program.service';
+import { GCloudService } from '../../../services/gcloud/gcloud.service';
 import { userEditSchema, UserEditFormData } from '../../../schemas/user.schema';
-import { useProgramProgress, ProgramProgress } from '../../../hooks/useProgramProgress';
+import { useProgramProgress } from '../../../hooks/useProgramProgress';
 import { toast } from 'react-toastify';
 import { UserProfilePdfDownloadButton } from '../../../components/pdf/components/UserProfilePdfDownloadButton';
+import { validateFileSize } from '../../../utils/fileUtils';
+import InfoTab from './user-detail/InfoTab';
+import HistoryTab from './user-detail/HistoryTab';
+import ProgressTab from './user-detail/ProgressTab';
+import EnrolledTab from './user-detail/EnrolledTab';
+import DocumentsTab from './user-detail/DocumentsTab';
 import { 
   DOCUMENT_TYPE_OPTIONS, 
   ACADEMIC_LEVEL_OPTIONS,
@@ -60,6 +58,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onSave,
   mode = 'view',
 }) => {
+  const { user: authUser } = useAuth();
   // State
   const [activeTab, setActiveTab] = useState('info');
   const [loading, setLoading] = useState(false);
@@ -85,6 +84,12 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     status: 'completed' as 'completed' | 'dropped' | 'failed',
   });
 
+  const [documents, setDocuments] = useState<IUserDocument[]>([]);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+
+  const canManageDocuments = authUser?.role === 'admin' || authUser?.role === 'teacher';
+
   // Program progress hook
   const { programProgress, loading: loadingProgress, calculateProgress } = useProgramProgress();
 
@@ -103,6 +108,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       country: 'DO',
       churchName: '',
       academicLevel: '',
+      pastorName: '',
+      pastorPhone: '',
     }),
     []
   );
@@ -124,6 +131,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
             country: currentUser.country || 'DO',
             churchName: currentUser.churchName || '',
             academicLevel: currentUser.academicLevel || '',
+            pastorName: currentUser.pastor?.fullName || '',
+            pastorPhone: currentUser.pastor?.phone || '',
           }
         : defaultFormValues,
     [currentUser, defaultFormValues]
@@ -155,7 +164,15 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const { ref: countryRef, ...countryField } = register('country');
   const { ref: churchNameRef, ...churchNameField } = register('churchName');
   const { ref: academicLevelRef, ...academicLevelField } = register('academicLevel');
+  const { ref: pastorNameRef, ...pastorNameField } = register('pastorName');
+  const { ref: pastorPhoneRef, ...pastorPhoneField } = register('pastorPhone');
   const { ref: passwordRef, ...passwordField } = register('password');
+
+  const handleStartEdit = () => setEditMode(true);
+  const handleCancelEdit = useCallback(() => {
+    setEditMode(false);
+    reset(formValues);
+  }, [formValues, reset]);
 
   // Form watch is available if needed for debugging
   // const formData = watch();
@@ -176,6 +193,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
         country: targetUser.country || 'DO',
         churchName: targetUser.churchName || '',
         academicLevel: targetUser.academicLevel || '',
+        pastorName: targetUser.pastor?.fullName || '',
+        pastorPhone: targetUser.pastor?.phone || '',
       });
     },
     [reset]
@@ -187,12 +206,14 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       // Immediately reset form with user data (before async fetch)
       setCurrentUser(user);
       resetForm(user);
+      setDocuments(user.documents || []);
       setPhotoPreview(user.profilePhoto || '');
       // Then load fresh data from server
       void loadData(user.id);
     } else if (!isOpen) {
       // Reset state when modal closes
       setCurrentUser(null);
+      setDocuments([]);
       setEditMode(mode === 'edit');
       setActiveTab('info');
     }
@@ -203,10 +224,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     try {
       // Fetch fresh user data
       const freshUser = await UserService.getUserById(userId);
-      console.log('Fetched user data:', freshUser);
       if (freshUser) {
         setCurrentUser(freshUser);
         resetForm(freshUser);
+        setDocuments(freshUser.documents || []);
         setPhotoPreview(freshUser.profilePhoto || '');
       }
 
@@ -228,6 +249,97 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const getFilenameFromUrl = (url: string): string => {
+    const parts = url.split('/');
+    return parts[parts.length - 1] || '';
+  };
+
+  const handleUploadDocument = async (file: File) => {
+    if (!currentUser) return;
+
+    if (!validateFileSize(file, 50)) {
+      toast.error('El documento no debe superar los 50MB');
+      return;
+    }
+
+    setUploadingDocument(true);
+    try {
+      const url = await GCloudService.uploadFile(file, `user-${currentUser.id}`);
+      const newDoc: IUserDocument = {
+        id: `doc-${Date.now()}`,
+        name: file.name,
+        url,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        uploadedBy: authUser?.id || currentUser.id,
+        uploadedAt: new Date(),
+      };
+
+      const nextDocs = [...documents, newDoc];
+      setDocuments(nextDocs);
+      await UserService.updateUser(currentUser.id, { documents: nextDocs });
+      toast.success('Documento subido exitosamente');
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      toast.error('Error al subir el documento');
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
+
+  const handleRenameDocument = async (doc: IUserDocument) => {
+    if (!currentUser) return;
+    const nextName = window.prompt('Nombre del documento', doc.name)?.trim();
+    if (!nextName || nextName === doc.name) return;
+
+    const nextDocs = documents.map(d =>
+      d.id === doc.id ? { ...d, name: nextName, updatedAt: new Date() } : d
+    );
+
+    try {
+      setDocuments(nextDocs);
+      await UserService.updateUser(currentUser.id, { documents: nextDocs });
+      toast.success('Documento actualizado');
+    } catch (error) {
+      console.error('Error renaming document:', error);
+      toast.error('Error al actualizar el documento');
+    }
+  };
+
+  const handleDeleteDocument = async (doc: IUserDocument) => {
+    if (!currentUser) return;
+    if (!window.confirm('¿Desea eliminar este documento?')) return;
+
+    setDeletingDocumentId(doc.id);
+    try {
+      const nextDocs = documents.filter(d => d.id !== doc.id);
+      setDocuments(nextDocs);
+      await UserService.updateUser(currentUser.id, { documents: nextDocs });
+
+      const filename = getFilenameFromUrl(doc.url);
+      if (filename) {
+        await GCloudService.deletePhoto(filename);
+      }
+      toast.success('Documento eliminado');
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Error al eliminar el documento');
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  };
+
+  const handleDownloadDocument = (doc: IUserDocument) => {
+    const link = document.createElement('a');
+    link.href = doc.url;
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   // Handle photo upload
@@ -279,6 +391,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
         country: data.country || undefined,
         churchName: data.churchName || undefined,
         academicLevel: data.academicLevel || undefined,
+        pastor: data.pastorName || data.pastorPhone
+          ? { fullName: data.pastorName || '', phone: data.pastorPhone || '' }
+          : undefined,
       };
 
       if (data.password) {
@@ -516,598 +631,119 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   Clases Actuales
                 </NavLink>
               </NavItem>
+              <NavItem>
+                <NavLink
+                  className={activeTab === 'documents' ? 'active' : ''}
+                  onClick={() => setActiveTab('documents')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <i className="bi bi-folder me-1"></i>
+                  Documentos
+                </NavLink>
+              </NavItem>
             </Nav>
 
             <TabContent activeTab={activeTab}>
-              {/* Info Tab */}
               <TabPane tabId="info">
-                <Row>
-                  {/* Photo Column */}
-                  <Col md={3} className="text-center mb-3">
-                    <div className="position-relative d-inline-block">
-                      {photoPreview ? (
-                        <img
-                          src={photoPreview}
-                          alt="Profile"
-                          className="rounded-circle border"
-                          style={{ width: '150px', height: '150px', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div
-                          className="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center"
-                          style={{ width: '150px', height: '150px' }}
-                        >
-                          <i className="bi bi-person-fill text-white" style={{ fontSize: '4rem' }}></i>
-                        </div>
-                      )}
-                      
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoChange}
-                        style={{ display: 'none' }}
-                      />
-                      
-                      <Button
-                        color="primary"
-                        size="sm"
-                        className="position-absolute bottom-0 end-0"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingPhoto}
-                      >
-                        {uploadingPhoto ? (
-                          <Spinner size="sm" />
-                        ) : (
-                          <i className="bi bi-camera"></i>
-                        )}
-                      </Button>
-                    </div>
-                    <div className="mt-2">
-                      <small className="text-muted">ID: {currentUser.id.slice(0, 8)}...</small>
-                    </div>
-                  </Col>
-
-                  {/* Form Column */}
-                  <Col md={9}>
-                    <div className="d-flex justify-content-end mb-3">
-                      {!editMode ? (
-                        <Button color="primary" size="sm" onClick={() => setEditMode(true)}>
-                          <i className="bi bi-pencil me-1"></i>
-                          Editar
-                        </Button>
-                      ) : (
-                        <Button color="secondary" size="sm" onClick={() => {
-                          setEditMode(false);
-                          reset(formValues);
-                        }}>
-                          Cancelar
-                        </Button>
-                      )}
-                    </div>
-
-                    <Form key={currentUser?.id || 'new'} onSubmit={handleSubmit(onSubmit)}>
-                      <Row>
-                        <Col md={6}>
-                          <FormGroup>
-                            <Label>Nombre</Label>
-                            <Input
-                              {...firstNameField}
-                              innerRef={firstNameRef}
-                              invalid={!!errors.firstName}
-                              disabled={!editMode}
-                            />
-                            <FormFeedback>{errors.firstName?.message}</FormFeedback>
-                          </FormGroup>
-                        </Col>
-                        <Col md={6}>
-                          <FormGroup>
-                            <Label>Apellido</Label>
-                            <Input
-                              {...lastNameField}
-                              innerRef={lastNameRef}
-                              invalid={!!errors.lastName}
-                              disabled={!editMode}
-                            />
-                            <FormFeedback>{errors.lastName?.message}</FormFeedback>
-                          </FormGroup>
-                        </Col>
-                      </Row>
-                      <Row>
-                        <Col md={6}>
-                          <FormGroup>
-                            <Label>Teléfono</Label>
-                            <Input
-                              {...phoneField}
-                              innerRef={phoneRef}
-                              invalid={!!errors.phone}
-                              disabled={!editMode}
-                            />
-                            <FormFeedback>{errors.phone?.message}</FormFeedback>
-                          </FormGroup>
-                        </Col>
-                        <Col md={6}>
-                          <FormGroup>
-                            <Label>Email</Label>
-                            <Input
-                              {...emailField}
-                              innerRef={emailRef}
-                              invalid={!!errors.email}
-                              disabled={!editMode}
-                            />
-                            <FormFeedback>{String(errors.email?.message || '')}</FormFeedback>
-                          </FormGroup>
-                        </Col>
-                      </Row>
-                      <Row>
-                        <Col md={4}>
-                          <FormGroup>
-                            <Label>Rol</Label>
-                            <Input
-                              type="select"
-                              {...roleField}
-                              innerRef={roleRef}
-                              disabled={!editMode}
-                            >
-                              <option value="student">Estudiante</option>
-                              <option value="teacher">Profesor</option>
-                              <option value="admin">Administrador</option>
-                            </Input>
-                          </FormGroup>
-                        </Col>
-                        <Col md={4}>
-                          <FormGroup check className="mt-4">
-                            <Input
-                              type="checkbox"
-                              {...isTeacherField}
-                              innerRef={isTeacherRef}
-                              disabled={!editMode}
-                            />
-                            <Label check>Es Profesor</Label>
-                          </FormGroup>
-                        </Col>
-                        <Col md={4}>
-                          <FormGroup check className="mt-4">
-                            <Input
-                              type="checkbox"
-                              {...isActiveField}
-                              innerRef={isActiveRef}
-                              disabled={!editMode}
-                            />
-                            <Label check>Activo</Label>
-                          </FormGroup>
-                        </Col>
-                      </Row>
-
-                      {/* Extended Registration Fields */}
-                      <hr className="my-3" />
-                      <h6 className="text-muted mb-3">Información Adicional</h6>
-                      <Row>
-                        <Col md={4}>
-                          <FormGroup>
-                            <Label>Tipo de Documento</Label>
-                            <Input
-                              type="select"
-                              {...documentTypeField}
-                              innerRef={documentTypeRef}
-                              disabled={!editMode}
-                            >
-                              <option value="">Seleccionar...</option>
-                              {DOCUMENT_TYPE_OPTIONS.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </Input>
-                          </FormGroup>
-                        </Col>
-                        <Col md={4}>
-                          <FormGroup>
-                            <Label>Número de Documento</Label>
-                            <Input
-                              {...documentNumberField}
-                              innerRef={documentNumberRef}
-                              disabled={!editMode}
-                              placeholder="000-0000000-0"
-                            />
-                          </FormGroup>
-                        </Col>
-                        <Col md={4}>
-                          <FormGroup>
-                            <Label>País</Label>
-                            <Input
-                              type="select"
-                              {...countryField}
-                              innerRef={countryRef}
-                              disabled={!editMode}
-                            >
-                              <option value="">Seleccionar...</option>
-                              {COUNTRIES.map(c => (
-                                <option key={c.value} value={c.value}>{c.label}</option>
-                              ))}
-                            </Input>
-                          </FormGroup>
-                        </Col>
-                      </Row>
-                      <Row>
-                        <Col md={6}>
-                          <FormGroup>
-                            <Label>Iglesia</Label>
-                            <Input
-                              {...churchNameField}
-                              innerRef={churchNameRef}
-                              disabled={!editMode}
-                              placeholder="Nombre de la iglesia"
-                            />
-                          </FormGroup>
-                        </Col>
-                        <Col md={6}>
-                          <FormGroup>
-                            <Label>Nivel Académico</Label>
-                            <Input
-                              type="select"
-                              {...academicLevelField}
-                              innerRef={academicLevelRef}
-                              disabled={!editMode}
-                            >
-                              <option value="">Seleccionar...</option>
-                              {ACADEMIC_LEVEL_OPTIONS.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </Input>
-                          </FormGroup>
-                        </Col>
-                      </Row>
-
-                      {editMode && (
-                        <>
-                          <hr />
-                          <Row>
-                            <Col md={6}>
-                              <FormGroup>
-                                <Label>Nueva Contraseña (dejar vacío para no cambiar)</Label>
-                                <Input
-                                  type="password"
-                                  {...passwordField}
-                                  innerRef={passwordRef}
-                                  invalid={!!errors.password}
-                                  placeholder="••••••"
-                                />
-                                <FormFeedback>{String(errors.password?.message || '')}</FormFeedback>
-                              </FormGroup>
-                            </Col>
-                          </Row>
-                          <Button
-                            type="submit"
-                            color="success"
-                            disabled={saving || !isDirty}
-                          >
-                            {saving ? <Spinner size="sm" /> : <i className="bi bi-check me-1"></i>}
-                            Guardar Cambios
-                          </Button>
-                        </>
-                      )}
-                    </Form>
-                  </Col>
-                </Row>
+                <InfoTab
+                  currentUser={currentUser}
+                  photoPreview={photoPreview}
+                  uploadingPhoto={uploadingPhoto}
+                  fileInputRef={fileInputRef}
+                  onPhotoChange={handlePhotoChange}
+                  onStartEdit={handleStartEdit}
+                  onCancelEdit={handleCancelEdit}
+                  editMode={editMode}
+                  onSubmit={onSubmit}
+                  handleSubmit={handleSubmit}
+                  errors={errors}
+                  isDirty={isDirty}
+                  saving={saving}
+                  fields={{
+                    firstNameField,
+                    firstNameRef,
+                    lastNameField,
+                    lastNameRef,
+                    phoneField,
+                    phoneRef,
+                    emailField,
+                    emailRef,
+                    roleField,
+                    roleRef,
+                    isTeacherField,
+                    isTeacherRef,
+                    isActiveField,
+                    isActiveRef,
+                    documentTypeField,
+                    documentTypeRef,
+                    documentNumberField,
+                    documentNumberRef,
+                    countryField,
+                    countryRef,
+                    churchNameField,
+                    churchNameRef,
+                    academicLevelField,
+                    academicLevelRef,
+                    pastorNameField,
+                    pastorNameRef,
+                    pastorPhoneField,
+                    pastorPhoneRef,
+                    passwordField,
+                    passwordRef,
+                  }}
+                  documentTypeOptions={DOCUMENT_TYPE_OPTIONS}
+                  academicLevelOptions={ACADEMIC_LEVEL_OPTIONS}
+                  countries={COUNTRIES}
+                />
               </TabPane>
 
-              {/* History Tab */}
               <TabPane tabId="history">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h6 className="mb-0">Historial de Clases Completadas</h6>
-                  <Button color="success" size="sm" onClick={startAddHistory} disabled={addingHistory}>
-                    <i className="bi bi-plus me-1"></i>
-                    Agregar Clase
-                  </Button>
-                </div>
-
-                {/* Add/Edit Form */}
-                {(addingHistory || editingHistory) && (
-                  <Card className="mb-3 bg-light">
-                    <CardBody>
-                      <h6>{editingHistory ? 'Editar Clase' : 'Agregar Clase al Historial'}</h6>
-                      <Row>
-                        <Col md={4}>
-                          <FormGroup>
-                            <Label>Clase</Label>
-                            <Input
-                              type="select"
-                              value={historyForm.classroomId}
-                              onChange={e => setHistoryForm(prev => ({ ...prev, classroomId: e.target.value }))}
-                              disabled={!!editingHistory}
-                            >
-                              <option value="">Seleccionar...</option>
-                              {programs.map(program => {
-                                // Get history classroom IDs
-                                const historyClassroomIds = new Set(
-                                  (currentUser?.completedClassrooms || []).map(h => h.classroomId)
-                                );
-                                // Filter out classrooms already in history (unless editing)
-                                const availableClassrooms = classrooms
-                                  .filter(c => c.programId === program.id)
-                                  .filter(c => editingHistory || !historyClassroomIds.has(c.id));
-                                
-                                if (availableClassrooms.length === 0) return null;
-                                
-                                return (
-                                  <optgroup key={program.id} label={program.name}>
-                                    {availableClassrooms.map(c => (
-                                      <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                  </optgroup>
-                                );
-                              })}
-                            </Input>
-                          </FormGroup>
-                        </Col>
-                        <Col md={2}>
-                          <FormGroup>
-                            <Label>Fecha Inscripción</Label>
-                            <Input
-                              type="date"
-                              value={historyForm.enrollmentDate}
-                              onChange={e => setHistoryForm(prev => ({ ...prev, enrollmentDate: e.target.value }))}
-                            />
-                          </FormGroup>
-                        </Col>
-                        <Col md={2}>
-                          <FormGroup>
-                            <Label>Fecha Finalización</Label>
-                            <Input
-                              type="date"
-                              value={historyForm.completionDate}
-                              onChange={e => setHistoryForm(prev => ({ ...prev, completionDate: e.target.value }))}
-                            />
-                          </FormGroup>
-                        </Col>
-                        <Col md={2}>
-                          <FormGroup>
-                            <Label>Calificación</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={historyForm.finalGrade}
-                              onChange={e => setHistoryForm(prev => ({ ...prev, finalGrade: Number(e.target.value) }))}
-                            />
-                          </FormGroup>
-                        </Col>
-                        <Col md={2}>
-                          <FormGroup>
-                            <Label>Estado</Label>
-                            <Input
-                              type="select"
-                              value={historyForm.status}
-                              onChange={e => setHistoryForm(prev => ({ ...prev, status: e.target.value as any }))}
-                            >
-                              <option value="completed">Completado</option>
-                              <option value="dropped">Retirado</option>
-                              <option value="failed">Reprobado</option>
-                            </Input>
-                          </FormGroup>
-                        </Col>
-                      </Row>
-                      <div className="d-flex gap-2">
-                        <Button color="success" size="sm" onClick={saveHistoryEntry} disabled={saving || !historyForm.classroomId}>
-                          {saving ? <Spinner size="sm" /> : <i className="bi bi-check me-1"></i>}
-                          Guardar
-                        </Button>
-                        <Button color="secondary" size="sm" onClick={cancelHistoryEdit}>
-                          Cancelar
-                        </Button>
-                      </div>
-                    </CardBody>
-                  </Card>
-                )}
-
-                {/* History Table */}
-                {(currentUser.completedClassrooms?.length || 0) > 0 ? (
-                  <Table size="sm" bordered striped hover>
-                    <thead>
-                      <tr>
-                        <th>Clase</th>
-                        <th>Programa</th>
-                        <th>Inscripción</th>
-                        <th>Finalización</th>
-                        <th>Calificación</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentUser.completedClassrooms?.map((entry, idx) => (
-                        <tr key={idx}>
-                          <td>{entry.classroomName}</td>
-                          <td><small className="text-muted">{entry.programName}</small></td>
-                          <td>{new Date(entry.enrollmentDate).toLocaleDateString()}</td>
-                          <td>{new Date(entry.completionDate).toLocaleDateString()}</td>
-                          <td>
-                            {entry.finalGrade !== undefined && (
-                              <Badge color={getGradeColor(entry.finalGrade)}>
-                                {entry.finalGrade}%
-                              </Badge>
-                            )}
-                          </td>
-                          <td>{getStatusBadge(entry.status)}</td>
-                          <td>
-                            <Button
-                              color="link"
-                              size="sm"
-                              className="p-0 me-2"
-                              onClick={() => startEditHistory(entry)}
-                            >
-                              <i className="bi bi-pencil text-primary"></i>
-                            </Button>
-                            <Button
-                              color="link"
-                              size="sm"
-                              className="p-0"
-                              onClick={() => deleteHistoryEntry(entry.classroomId)}
-                            >
-                              <i className="bi bi-trash text-danger"></i>
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                ) : (
-                  <Alert color="info">No hay clases en el historial</Alert>
-                )}
+                <HistoryTab
+                  currentUser={currentUser}
+                  classrooms={classrooms}
+                  programs={programs}
+                  historyForm={historyForm}
+                  setHistoryForm={setHistoryForm}
+                  editingHistory={editingHistory}
+                  addingHistory={addingHistory}
+                  saving={saving}
+                  startAddHistory={startAddHistory}
+                  startEditHistory={startEditHistory}
+                  cancelHistoryEdit={cancelHistoryEdit}
+                  saveHistoryEntry={saveHistoryEntry}
+                  deleteHistoryEntry={deleteHistoryEntry}
+                  getGradeColor={getGradeColor}
+                  getStatusBadge={getStatusBadge}
+                />
               </TabPane>
 
-              {/* Progress Tab */}
               <TabPane tabId="progress">
-                {loadingProgress ? (
-                  <div className="text-center py-4">
-                    <Spinner color="primary" />
-                    <p className="mt-2">Calculando progreso...</p>
-                  </div>
-                ) : programProgress.length > 0 ? (
-                  <Row>
-                    {programProgress.map((prog: ProgramProgress) => (
-                      <Col md={6} key={prog.program.id} className="mb-3">
-                        <Card>
-                          <CardBody>
-                            <h6 className="mb-3">
-                              <i className="bi bi-journal-bookmark me-2"></i>
-                              {prog.program.name}
-                            </h6>
-                            
-                            <div className="mb-3">
-                              <div className="d-flex justify-content-between mb-1">
-                                <small>Progreso: {prog.completedClassrooms}/{prog.totalClassrooms} clases</small>
-                                <small className="fw-bold">{prog.progressPercentage}%</small>
-                              </div>
-                              <Progress
-                                value={prog.progressPercentage}
-                                color={prog.progressPercentage === 100 ? 'success' : 'primary'}
-                              />
-                            </div>
-
-                            {prog.averageGrade > 0 && (
-                              <div className="mb-3">
-                                <Badge color={getGradeColor(prog.averageGrade)} className="me-2">
-                                  Promedio: {prog.averageGrade}%
-                                </Badge>
-                                {prog.enrolledClassrooms > 0 && (
-                                  <Badge color="info">
-                                    {prog.enrolledClassrooms} en curso
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-
-                            <details>
-                              <summary className="text-muted small mb-2" style={{ cursor: 'pointer' }}>
-                                Ver detalle de clases
-                              </summary>
-                              <Table size="sm" borderless className="mb-0">
-                                <tbody>
-                                  {prog.classroomDetails.map((detail, idx) => (
-                                    <tr key={idx}>
-                                      <td className="ps-0">
-                                        {detail.status === 'completed' && <i className="bi bi-check-circle text-success me-1"></i>}
-                                        {detail.status === 'enrolled' && <i className="bi bi-play-circle text-primary me-1"></i>}
-                                        {detail.status === 'not-started' && <i className="bi bi-circle text-muted me-1"></i>}
-                                        <small>{detail.classroom.name}</small>
-                                      </td>
-                                      <td className="text-end pe-0">
-                                        {detail.finalGrade !== undefined && (
-                                          <Badge color={getGradeColor(detail.finalGrade)} size="sm">
-                                            {detail.finalGrade}%
-                                          </Badge>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </Table>
-                            </details>
-                          </CardBody>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-                ) : (
-                  <Alert color="info">
-                    No hay progreso en programas registrado
-                  </Alert>
-                )}
+                <ProgressTab
+                  loading={loadingProgress}
+                  programProgress={programProgress}
+                  getGradeColor={getGradeColor}
+                />
               </TabPane>
 
-              {/* Currently Enrolled Tab */}
               <TabPane tabId="enrolled">
-                <h6 className="mb-3">Clases en las que está inscrito actualmente</h6>
-                {(currentUser.enrolledClassrooms?.length || 0) > 0 ? (
-                  <Table size="sm" bordered striped>
-                    <thead>
-                      <tr>
-                        <th>Clase</th>
-                        <th>Programa</th>
-                        <th>Profesor</th>
-                        <th>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentUser.enrolledClassrooms?.map(classroomId => {
-                        const classroom = classrooms.find(c => c.id === classroomId);
-                        const program = programs.find(p => p.id === classroom?.programId);
-                        return classroom ? (
-                          <tr key={classroomId}>
-                            <td>{classroom.name}</td>
-                            <td><small className="text-muted">{program?.name || '-'}</small></td>
-                            <td><small>-</small></td>
-                            <td>
-                              <Badge color={classroom.isActive ? 'success' : 'secondary'}>
-                                {classroom.isActive ? 'Activa' : 'Inactiva'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ) : null;
-                      })}
-                    </tbody>
-                  </Table>
-                ) : (
-                  <Alert color="info">No está inscrito en ninguna clase actualmente</Alert>
-                )}
+                <EnrolledTab
+                  currentUser={currentUser}
+                  classrooms={classrooms}
+                  programs={programs}
+                />
+              </TabPane>
 
-                {currentUser.isTeacher && (
-                  <>
-                    <h6 className="mb-3 mt-4">Clases que imparte como profesor</h6>
-                    {(currentUser.teachingClassrooms?.length || 0) > 0 ? (
-                      <Table size="sm" bordered striped>
-                        <thead>
-                          <tr>
-                            <th>Clase</th>
-                            <th>Programa</th>
-                            <th>Estudiantes</th>
-                            <th>Estado</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {currentUser.teachingClassrooms?.map(classroomId => {
-                            const classroom = classrooms.find(c => c.id === classroomId);
-                            const program = programs.find(p => p.id === classroom?.programId);
-                            return classroom ? (
-                              <tr key={classroomId}>
-                                <td>{classroom.name}</td>
-                                <td><small className="text-muted">{program?.name || '-'}</small></td>
-                                <td>{classroom.studentIds?.length || 0}</td>
-                                <td>
-                                  <Badge color={classroom.isActive ? 'success' : 'secondary'}>
-                                    {classroom.isActive ? 'Activa' : 'Inactiva'}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            ) : null;
-                          })}
-                        </tbody>
-                      </Table>
-                    ) : (
-                      <Alert color="info">No imparte ninguna clase actualmente</Alert>
-                    )}
-                  </>
-                )}
+              <TabPane tabId="documents">
+                <DocumentsTab
+                  documents={documents}
+                  canManage={!!canManageDocuments}
+                  uploading={uploadingDocument}
+                  deletingId={deletingDocumentId}
+                  onUpload={handleUploadDocument}
+                  onDelete={handleDeleteDocument}
+                  onRename={handleRenameDocument}
+                  onDownload={handleDownloadDocument}
+                />
               </TabPane>
             </TabContent>
           </>

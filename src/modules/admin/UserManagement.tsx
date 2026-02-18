@@ -65,7 +65,6 @@ const UserManagement: React.FC = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailUser, setDetailUser] = useState<IUser | null>(null);
   const [showImporter, setShowImporter] = useState(false);
-console.log('detailUser', detailUser)
   // Form state
   const [formData, setFormData] = useState({
     firstName: '',
@@ -198,8 +197,6 @@ console.log('detailUser', detailUser)
   };
 
   const handleSaveUser = async () => {
-    console.log("formData",formData);
-    console.log("editingUser", editingUser);
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.phone) {
       toast.error('Por favor complete todos los campos requeridos');

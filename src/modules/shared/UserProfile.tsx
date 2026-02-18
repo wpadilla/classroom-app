@@ -1,6 +1,6 @@
 // Universal User Profile Component - Works for Students, Teachers, and Admins
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Container,
   Row,
@@ -13,6 +13,7 @@ import {
   FormGroup,
   Label,
   Input,
+  FormFeedback,
   Modal,
   ModalHeader,
   ModalBody,
@@ -28,6 +29,8 @@ import {
   TabContent,
   TabPane
 } from 'reactstrap';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
@@ -35,9 +38,17 @@ import { EvaluationService } from '../../services/evaluation/evaluation.service'
 import { GCloudService } from '../../services/gcloud/gcloud.service';
 import { ClassroomRestartService } from '../../services/classroom/classroom-restart.service';
 import { IUser, IClassroom, IStudentEvaluation, IClassroomHistory, UserRole, IClassroomRun } from '../../models';
+import { userSelfEditSchema, UserSelfEditFormData } from '../../schemas/user.schema';
 import { toast } from 'react-toastify';
 import ProgramsProgressTab from './components/ProgramsProgressTab';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
+import UserDocumentsSection from '../../components/user-documents/UserDocumentsSection';
+import {
+  DOCUMENT_TYPE_OPTIONS,
+  ACADEMIC_LEVEL_OPTIONS,
+  COUNTRIES,
+} from '../../constants/registration.constants';
+import { DocumentType, AcademicLevel } from '../../models/registration.model';
 
 const UserProfile: React.FC = () => {
   const { user, updatePassword, refreshUser } = useAuth();
@@ -53,6 +64,8 @@ const UserProfile: React.FC = () => {
   const [teacherRuns, setTeacherRuns] = useState<any[]>([]);
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [runDetailsModal, setRunDetailsModal] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   
   // Modal states
   const [passwordModal, setPasswordModal] = useState(false);
@@ -64,6 +77,45 @@ const UserProfile: React.FC = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+
+  const defaultFormValues = useMemo<UserSelfEditFormData>(
+    () => ({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      documentType: '',
+      documentNumber: '',
+      country: 'DO',
+      churchName: '',
+      academicLevel: '',
+      pastorName: '',
+      pastorPhone: '',
+    }),
+    []
+  );
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isDirty },
+  } = useForm<UserSelfEditFormData>({
+    resolver: zodResolver(userSelfEditSchema),
+    defaultValues: defaultFormValues,
+  });
+
+  const { ref: firstNameRef, ...firstNameField } = register('firstName');
+  const { ref: lastNameRef, ...lastNameField } = register('lastName');
+  const { ref: phoneRef, ...phoneField } = register('phone');
+  const { ref: emailRef, ...emailField } = register('email');
+  const { ref: documentTypeRef, ...documentTypeField } = register('documentType');
+  const { ref: documentNumberRef, ...documentNumberField } = register('documentNumber');
+  const { ref: countryRef, ...countryField } = register('country');
+  const { ref: churchNameRef, ...churchNameField } = register('churchName');
+  const { ref: academicLevelRef, ...academicLevelField } = register('academicLevel');
+  const { ref: pastorNameRef, ...pastorNameField } = register('pastorName');
+  const { ref: pastorPhoneRef, ...pastorPhoneField } = register('pastorPhone');
 
   useEffect(() => {
     loadProfileData();
@@ -79,6 +131,19 @@ const UserProfile: React.FC = () => {
       const userProfile = await UserService.getUserById(user.id);
       if (userProfile) {
         setProfile(userProfile);
+        reset({
+          firstName: userProfile.firstName,
+          lastName: userProfile.lastName,
+          email: userProfile.email || '',
+          phone: userProfile.phone,
+          documentType: userProfile.documentType || '',
+          documentNumber: userProfile.documentNumber || '',
+          country: userProfile.country || 'DO',
+          churchName: userProfile.churchName || '',
+          academicLevel: userProfile.academicLevel || '',
+          pastorName: userProfile.pastor?.fullName || '',
+          pastorPhone: userProfile.pastor?.phone || '',
+        });
         
         // Load enrolled classrooms (for students and teachers who are also students)
         if (userProfile.enrolledClassrooms && userProfile.enrolledClassrooms.length > 0) {
@@ -188,6 +253,58 @@ const UserProfile: React.FC = () => {
       toast.error('Error al subir la foto');
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (!profile) return;
+    reset({
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      email: profile.email || '',
+      phone: profile.phone,
+      documentType: profile.documentType || '',
+      documentNumber: profile.documentNumber || '',
+      country: profile.country || 'DO',
+      churchName: profile.churchName || '',
+      academicLevel: profile.academicLevel || '',
+      pastorName: profile.pastor?.fullName || '',
+      pastorPhone: profile.pastor?.phone || '',
+    });
+    setEditMode(false);
+  };
+
+  const handleProfileSave = async (data: UserSelfEditFormData) => {
+    if (!profile) return;
+
+    setSavingProfile(true);
+    try {
+      const updates: Partial<IUser> = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email || undefined,
+        phone: data.phone,
+        documentType: (data.documentType || undefined) as DocumentType,
+        documentNumber: data.documentNumber || undefined,
+        country: data.country || undefined,
+        churchName: data.churchName || undefined,
+        academicLevel: (data.academicLevel || undefined) as AcademicLevel,
+        pastor: data.pastorName || data.pastorPhone
+          ? { fullName: data.pastorName || '', phone: data.pastorPhone || '' }
+          : undefined,
+      };
+
+      await UserService.updateUser(profile.id, updates);
+      const nextProfile = { ...profile, ...updates } as IUser;
+      setProfile(nextProfile);
+      await refreshUser();
+      toast.success('Perfil actualizado');
+      setEditMode(false);
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(error.message || 'Error al actualizar el perfil');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -420,6 +537,17 @@ const UserProfile: React.FC = () => {
             Historial
           </NavLink>
         </NavItem>
+
+        <NavItem>
+          <NavLink
+            className={activeTab === 'documents' ? 'active' : ''}
+            onClick={() => setActiveTab('documents')}
+            style={{ cursor: 'pointer' }}
+          >
+            <i className="bi bi-folder2-open me-2"></i>
+            Documentos
+          </NavLink>
+        </NavItem>
         
         {/* Show programs progress tab for all users */}
         <NavItem>
@@ -438,60 +566,246 @@ const UserProfile: React.FC = () => {
         {/* Profile Tab */}
         <TabPane tabId="profile">
           <Card>
+            <Form onSubmit={handleSubmit(handleProfileSave)}>
+              <CardHeader>
+                <div className="d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0">Información Personal</h5>
+                  {!editMode ? (
+                    <Button color="primary" size="sm" onClick={() => setEditMode(true)}>
+                      <i className="bi bi-pencil me-1"></i>
+                      Editar
+                    </Button>
+                  ) : (
+                    <div className="d-flex gap-2">
+                      <Button color="secondary" size="sm" onClick={handleCancelEdit}>
+                        Cancelar
+                      </Button>
+                      <Button color="success" size="sm" type="submit" disabled={savingProfile || !isDirty}>
+                        {savingProfile ? <Spinner size="sm" className="me-1" /> : <i className="bi bi-check me-1"></i>}
+                        Guardar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardBody>
+                <Row>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Nombre</Label>
+                      {editMode ? (
+                        <>
+                          <Input
+                            {...firstNameField}
+                            innerRef={firstNameRef}
+                            invalid={!!errors.firstName}
+                          />
+                          <FormFeedback>{errors.firstName?.message}</FormFeedback>
+                        </>
+                      ) : (
+                        <p className="fw-bold">{profile.firstName}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Apellido</Label>
+                      {editMode ? (
+                        <>
+                          <Input
+                            {...lastNameField}
+                            innerRef={lastNameRef}
+                            invalid={!!errors.lastName}
+                          />
+                          <FormFeedback>{errors.lastName?.message}</FormFeedback>
+                        </>
+                      ) : (
+                        <p className="fw-bold">{profile.lastName}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Teléfono</Label>
+                      {editMode ? (
+                        <>
+                          <Input
+                            {...phoneField}
+                            innerRef={phoneRef}
+                            invalid={!!errors.phone}
+                          />
+                          <FormFeedback>{errors.phone?.message}</FormFeedback>
+                        </>
+                      ) : (
+                        <p className="fw-bold">{profile.phone}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Correo Electrónico</Label>
+                      {editMode ? (
+                        <>
+                          <Input
+                            {...emailField}
+                            innerRef={emailRef}
+                            invalid={!!errors.email}
+                          />
+                          <FormFeedback>{String(errors.email?.message || '')}</FormFeedback>
+                        </>
+                      ) : (
+                        <p className="fw-bold">{profile.email || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Rol</Label>
+                      <p className="fw-bold">{getRoleLabel(profile.role)}</p>
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Estado</Label>
+                      <p className="fw-bold">
+                        {profile.isActive ? (
+                          <Badge color="success">Activo</Badge>
+                        ) : (
+                          <Badge color="danger">Inactivo</Badge>
+                        )}
+                      </p>
+                    </FormGroup>
+                  </Col>
+                </Row>
+
+                <hr className="my-3" />
+                <h6 className="text-muted mb-3">Información Adicional</h6>
+                <Row>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label className="text-muted">Tipo de Documento</Label>
+                      {editMode ? (
+                        <Input type="select" {...documentTypeField} innerRef={documentTypeRef}>
+                          <option value="">Seleccionar...</option>
+                          {DOCUMENT_TYPE_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Input>
+                      ) : (
+                        <p className="fw-bold">{profile.documentType || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label className="text-muted">Número de Documento</Label>
+                      {editMode ? (
+                        <Input
+                          {...documentNumberField}
+                          innerRef={documentNumberRef}
+                          placeholder="000-0000000-0"
+                        />
+                      ) : (
+                        <p className="fw-bold">{profile.documentNumber || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={4}>
+                    <FormGroup>
+                      <Label className="text-muted">País</Label>
+                      {editMode ? (
+                        <Input type="select" {...countryField} innerRef={countryRef}>
+                          <option value="">Seleccionar...</option>
+                          {COUNTRIES.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Input>
+                      ) : (
+                        <p className="fw-bold">{profile.country || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Iglesia</Label>
+                      {editMode ? (
+                        <Input
+                          {...churchNameField}
+                          innerRef={churchNameRef}
+                          placeholder="Nombre de la iglesia"
+                        />
+                      ) : (
+                        <p className="fw-bold">{profile.churchName || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Nivel Académico</Label>
+                      {editMode ? (
+                        <Input type="select" {...academicLevelField} innerRef={academicLevelRef}>
+                          <option value="">Seleccionar...</option>
+                          {ACADEMIC_LEVEL_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </Input>
+                      ) : (
+                        <p className="fw-bold">{profile.academicLevel || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Nombre del Pastor</Label>
+                      {editMode ? (
+                        <Input
+                          {...pastorNameField}
+                          innerRef={pastorNameRef}
+                          placeholder="Nombre del pastor"
+                        />
+                      ) : (
+                        <p className="fw-bold">{profile.pastor?.fullName || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                  <Col md={6}>
+                    <FormGroup>
+                      <Label className="text-muted">Teléfono del Pastor</Label>
+                      {editMode ? (
+                        <>
+                          <Input
+                            {...pastorPhoneField}
+                            innerRef={pastorPhoneRef}
+                            invalid={!!errors.pastorPhone}
+                            placeholder="Número de teléfono"
+                          />
+                          <FormFeedback>{errors.pastorPhone?.message}</FormFeedback>
+                        </>
+                      ) : (
+                        <p className="fw-bold">{profile.pastor?.phone || 'No registrado'}</p>
+                      )}
+                    </FormGroup>
+                  </Col>
+                </Row>
+              </CardBody>
+            </Form>
+          </Card>
+        </TabPane>
+
+        <TabPane tabId="documents">
+          <Card>
             <CardHeader>
-              <h5 className="mb-0">Información Personal</h5>
+              <h5 className="mb-0">Documentos</h5>
             </CardHeader>
             <CardBody>
-              <Row>
-                <Col md={6}>
-                  <FormGroup>
-                    <Label className="text-muted">Nombre Completo</Label>
-                    <p className="fw-bold">{profile.firstName} {profile.lastName}</p>
-                  </FormGroup>
-                </Col>
-                <Col md={6}>
-                  <FormGroup>
-                    <Label className="text-muted">Rol</Label>
-                    <p className="fw-bold">{getRoleLabel(profile.role)}</p>
-                  </FormGroup>
-                </Col>
-                <Col md={6}>
-                  <FormGroup>
-                    <Label className="text-muted">Teléfono</Label>
-                    <p className="fw-bold">{profile.phone}</p>
-                  </FormGroup>
-                </Col>
-                <Col md={6}>
-                  <FormGroup>
-                    <Label className="text-muted">Correo Electrónico</Label>
-                    <p className="fw-bold">{profile.email || 'No registrado'}</p>
-                  </FormGroup>
-                </Col>
-                <Col md={6}>
-                  <FormGroup>
-                    <Label className="text-muted">Fecha de Registro</Label>
-                    <p className="fw-bold">
-                      {new Date(profile.createdAt).toLocaleDateString('es-ES', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </FormGroup>
-                </Col>
-                <Col md={6}>
-                  <FormGroup>
-                    <Label className="text-muted">Estado</Label>
-                    <p className="fw-bold">
-                      {profile.isActive ? (
-                        <Badge color="success">Activo</Badge>
-                      ) : (
-                        <Badge color="danger">Inactivo</Badge>
-                      )}
-                    </p>
-                  </FormGroup>
-                </Col>
-              </Row>
+              <UserDocumentsSection
+                documents={profile.documents || []}
+                canManage={false}
+              />
             </CardBody>
           </Card>
         </TabPane>

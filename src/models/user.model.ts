@@ -21,6 +21,17 @@ export interface IClassroomHistory {
   status: 'completed' | 'dropped' | 'failed';
 }
 
+export interface IUserDocument {
+  id: string;
+  name: string;
+  url: string;
+  type: string; // MIME type (e.g., 'application/pdf')
+  size: number; // in bytes
+  uploadedBy: string; // userId
+  uploadedAt: Date;
+  updatedAt?: Date;
+}
+
 export interface IUser {
   id: string;
   firstName: string;
@@ -58,6 +69,9 @@ export interface IUser {
   pastor?: IContact;
   academicLevel?: AcademicLevel;
   enrollmentType?: EnrollmentType;
+
+  // User documents (uploaded files)
+  documents?: IUserDocument[];
 }
 
 // Helper type for user creation

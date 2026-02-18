@@ -112,15 +112,7 @@ const ClassroomList: React.FC = () => {
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h4 className="mb-0">Gestión de Clases</h4>
             <div>
-              <Button
-                color="info"
-                size="sm"
-                className="me-2 text-white"
-                onClick={() => setShowImporter(true)}
-              >
-                <i className="bi bi-upload me-1"></i>
-                <span className="d-none d-sm-inline">Importar Estudiantes</span>
-              </Button>
+            
               <Button
                 color="primary"
                 size="sm"

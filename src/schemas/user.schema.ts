@@ -43,6 +43,17 @@ const optionalPasswordSchema = z
   .optional();
 
 /**
+ * Optional phone that allows empty string
+ */
+const optionalPhoneSchema = z
+  .string()
+  .refine(
+    (val) => val === '' || VALIDATION_PATTERNS.PHONE_DIGITS.test(val.replace(/\D/g, '')),
+    'Ingrese un número de teléfono válido'
+  )
+  .optional();
+
+/**
  * Classroom history entry schema
  */
 export const classroomHistorySchema = z.object({
@@ -95,9 +106,42 @@ export const userEditSchema = z.object({
   country: z.string().optional(),
   churchName: z.string().optional(),
   academicLevel: z.string().optional(),
+  pastorName: z.string().optional(),
+  pastorPhone: optionalPhoneSchema,
 });
 
 export type UserEditFormData = z.infer<typeof userEditSchema>;
+
+/**
+ * User self-edit schema (no role or teacher fields)
+ */
+export const userSelfEditSchema = z.object({
+  firstName: z
+    .string()
+    .min(2, 'El nombre debe tener al menos 2 caracteres')
+    .max(50, 'El nombre no puede exceder 50 caracteres'),
+  lastName: z
+    .string()
+    .min(2, 'El apellido debe tener al menos 2 caracteres')
+    .max(50, 'El apellido no puede exceder 50 caracteres'),
+  email: optionalEmailSchema,
+  phone: z
+    .string()
+    .min(10, 'El teléfono debe tener al menos 10 dígitos')
+    .refine(
+      (val) => VALIDATION_PATTERNS.PHONE_DIGITS.test(val.replace(/\D/g, '')),
+      'Ingrese un número de teléfono válido'
+    ),
+  documentType: z.string().optional(),
+  documentNumber: z.string().optional(),
+  country: z.string().optional(),
+  churchName: z.string().optional(),
+  academicLevel: z.string().optional(),
+  pastorName: z.string().optional(),
+  pastorPhone: optionalPhoneSchema,
+});
+
+export type UserSelfEditFormData = z.infer<typeof userSelfEditSchema>;
 
 /**
  * User creation schema (requires password)

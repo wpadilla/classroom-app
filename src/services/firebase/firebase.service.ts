@@ -37,6 +37,34 @@ export const COLLECTIONS = {
 
 export class FirebaseService {
   /**
+   * Remove undefined values to satisfy Firestore constraints
+   */
+  private static removeUndefined(data: any): any {
+    if (data === undefined) {
+      return undefined;
+    }
+
+    if (data === null || typeof data !== 'object') {
+      return data;
+    }
+
+    if (Array.isArray(data)) {
+      return data
+        .map(item => this.removeUndefined(item))
+        .filter(item => item !== undefined);
+    }
+
+    const cleaned: any = {};
+    Object.keys(data).forEach((key) => {
+      const value = this.removeUndefined(data[key]);
+      if (value !== undefined) {
+        cleaned[key] = value;
+      }
+    });
+    return cleaned;
+  }
+
+  /**
    * Convert Firestore Timestamps to JavaScript Date objects
    * Recursively processes nested objects and arrays
    */
@@ -135,8 +163,9 @@ export class FirebaseService {
   ): Promise<string> {
     try {
       const collectionRef = collection(firebaseStoreDB, collectionName);
+      const cleanedData = this.removeUndefined(data);
       const docRef = await addDoc(collectionRef, {
-        ...data,
+        ...cleanedData,
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -157,8 +186,9 @@ export class FirebaseService {
   ): Promise<void> {
     try {
       const docRef = doc(firebaseStoreDB, collectionName, docId);
+      const cleanedData = this.removeUndefined(data);
       await updateDoc(docRef, {
-        ...data,
+        ...cleanedData,
         updatedAt: new Date()
       });
     } catch (error) {

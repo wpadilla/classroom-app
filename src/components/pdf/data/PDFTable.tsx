@@ -104,6 +104,22 @@ export function PDFTable<T = any>({
               ? column.render(value, row, rowIndex)
               : renderCellValue(value);
 
+            const content = React.isValidElement(displayValue)
+              ? displayValue
+              : (
+                  <Text
+                    style={{
+                      fontSize: fontSize || 9,
+                      color: TEXT_COLOR,
+                      textAlign: column.align || 'left',
+                    }}
+                  >
+                    {typeof displayValue === 'string'
+                      ? displayValue
+                      : renderCellValue(displayValue)}
+                  </Text>
+                );
+
             return (
               <View
                 key={colIndex}
@@ -114,15 +130,7 @@ export function PDFTable<T = any>({
                   justifyContent: 'center',
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: fontSize || 9,
-                    color: TEXT_COLOR,
-                    textAlign: column.align || 'left',
-                  }}
-                >
-                  {typeof displayValue === 'string' ? displayValue : ''}
-                </Text>
+                {content}
               </View>
             );
           })}

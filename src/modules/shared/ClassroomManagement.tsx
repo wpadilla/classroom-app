@@ -43,12 +43,29 @@ import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
-import { IClassroom, IUser, IModule, IStudentEvaluation, IAttendanceRecord, IClassroomResource } from '../../models';
+import { ProgramService } from '../../services/program/program.service';
+import { PaymentService } from '../../services/payment/payment.service';
+import {
+  IClassroom,
+  IUser,
+  IModule,
+  IStudentEvaluation,
+  IAttendanceRecord,
+  IClassroomResource,
+  IClassroomPaymentCost,
+  IClassroomPaymentCostItem,
+  IClassroomStudentPayment,
+  IClassroomStudentPaymentStatus,
+  PaymentMethod,
+  PaymentItemStatus,
+  PaymentItemType,
+} from '../../models';
 
 import { useOffline } from '../../contexts/OfflineContext';
 import { GCloudService } from '../../services/gcloud/gcloud.service';
-import { getFileIcon, formatFileSize, getFileTypeColor } from '../../utils/fileUtils';
+import { getFileIcon, formatFileSize, getFileTypeColor, validateFileSize } from '../../utils/fileUtils';
 import { ClassroomReportPdfDownloadButton } from '../../components/pdf/components/ClassroomReportPdfDownloadButton';
+import PaymentReceiptPdfDownloadButton from '../../components/pdf/components/PaymentReceiptPdfDownloadButton';
 
 const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -88,6 +105,36 @@ const ClassroomManagement: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [downloadingFileName, setDownloadingFileName] = useState('');
+
+  // Payments state (admin-only)
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentCosts, setPaymentCosts] = useState<IClassroomPaymentCost | null>(null);
+  const [paymentCostItems, setPaymentCostItems] = useState<IClassroomPaymentCostItem[]>([]);
+  const [studentPayments, setStudentPayments] = useState<IClassroomStudentPayment[]>([]);
+  const [paymentStatuses, setPaymentStatuses] = useState<IClassroomStudentPaymentStatus[]>([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentProgramName, setPaymentProgramName] = useState('');
+  const [paymentFilterStudentId, setPaymentFilterStudentId] = useState('');
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editingPaymentReceiptUrl, setEditingPaymentReceiptUrl] = useState<string | undefined>(undefined);
+  const [editingPaymentReceiptName, setEditingPaymentReceiptName] = useState<string | undefined>(undefined);
+  const [paymentsTab, setPaymentsTab] = useState<'students' | 'payments'>('students');
+  const [paymentForm, setPaymentForm] = useState({
+    studentId: '',
+    amount: '',
+    method: 'cash' as PaymentMethod,
+    comment: '',
+    appliedItemIds: [] as string[],
+    receiptFile: null as File | null,
+  });
+  const [costForm, setCostForm] = useState({
+    title: '',
+    description: '',
+    amount: '',
+    required: true,
+    type: 'custom' as PaymentItemType,
+  });
+  const [editingCostId, setEditingCostId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id && user) { // Keep user in dependency for permission checks
@@ -186,6 +233,10 @@ const ClassroomManagement: React.FC = () => {
       setAttendanceRecords(attendanceMap);
       setParticipationTotals(participationMap);
 
+      if (user.role === 'admin') {
+        await loadPayments(classroomData);
+      }
+
     } catch (error) {
       console.error('Error loading classroom data:', error);
       toast.error('Error al cargar los datos de la clase');
@@ -221,6 +272,405 @@ const ClassroomManagement: React.FC = () => {
     });
 
     setParticipationTotals(totalsMap);
+  };
+
+  const buildDefaultCostItems = (targetClassroom: IClassroom, monthlyFee?: number) => {
+    const items: IClassroomPaymentCostItem[] = [];
+    const now = new Date();
+
+    if (targetClassroom.materialPrice && targetClassroom.materialPrice > 0) {
+      items.push({
+        id: `cost-material-${Date.now()}`,
+        title: 'Material',
+        description: 'Costo de material',
+        amount: targetClassroom.materialPrice,
+        required: true,
+        type: 'material',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    if (monthlyFee && monthlyFee > 0) {
+      items.push({
+        id: `cost-fee-${Date.now() + 1}`,
+        title: 'Cuota mensual',
+        description: 'Cuota mensual del programa',
+        amount: monthlyFee,
+        required: true,
+        type: 'fee',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return items;
+  };
+
+  const loadPayments = async (targetClassroom: IClassroom) => {
+    if (!user || user.role !== 'admin') return;
+
+    setPaymentsLoading(true);
+    try {
+      const [costDoc, payments, statuses, program] = await Promise.all([
+        PaymentService.getClassroomPaymentCosts(targetClassroom.id),
+        PaymentService.getClassroomPayments(targetClassroom.id),
+        PaymentService.getClassroomPaymentStatuses(targetClassroom.id),
+        ProgramService.getProgramById(targetClassroom.programId),
+      ]);
+
+      setPaymentProgramName(program?.name || '');
+
+      let nextCostDoc = costDoc;
+      if (!nextCostDoc) {
+        const defaultItems = buildDefaultCostItems(targetClassroom, program?.monthlyFee || 0);
+        if (defaultItems.length > 0) {
+          const newId = await PaymentService.saveClassroomPaymentCosts(targetClassroom.id, defaultItems);
+          nextCostDoc = {
+            id: newId,
+            classroomId: targetClassroom.id,
+            items: defaultItems,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        }
+      }
+
+      setPaymentCosts(nextCostDoc || null);
+      setPaymentCostItems(nextCostDoc?.items || []);
+      setStudentPayments(payments);
+      setPaymentStatuses(statuses);
+    } catch (error) {
+      console.error('Error loading payments:', error);
+      toast.error('Error al cargar pagos');
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
+  const getPaymentMethodLabel = (method: PaymentMethod) => {
+    const map: Record<PaymentMethod, string> = {
+      cash: 'Efectivo',
+      transfer: 'Transferencia',
+      card: 'Tarjeta',
+      check: 'Cheque',
+      mobile: 'Pago movil',
+      other: 'Otro',
+    };
+    return map[method] || method;
+  };
+
+  const getTotalDue = (items: IClassroomPaymentCostItem[]) =>
+    items.reduce((sum, item) => sum + item.amount, 0);
+
+  const getTotalPaid = (studentId: string) =>
+    studentPayments
+      .filter(payment => payment.studentId === studentId)
+      .reduce((sum, payment) => sum + payment.amount, 0);
+
+  const filteredPayments = paymentFilterStudentId
+    ? studentPayments.filter(payment => payment.studentId === paymentFilterStudentId)
+    : studentPayments;
+
+  const getStatusForItem = (studentId: string, itemId: string): PaymentItemStatus => {
+    const statusDoc = paymentStatuses.find(s => s.studentId === studentId);
+    const itemStatus = statusDoc?.items.find(i => i.itemId === itemId);
+    return itemStatus?.status || 'unpaid';
+  };
+
+  const handleStatusChange = async (studentId: string, itemId: string, status: PaymentItemStatus) => {
+    if (!user || user.role !== 'admin' || !classroom) return;
+
+    const existing = paymentStatuses.find(s => s.studentId === studentId);
+    const nextItems = existing
+      ? existing.items.map(item =>
+          item.itemId === itemId
+            ? { ...item, status, updatedAt: new Date(), updatedBy: user.id }
+            : item
+        )
+      : [];
+
+    if (!existing || !existing.items.some(item => item.itemId === itemId)) {
+      nextItems.push({ itemId, status, updatedAt: new Date(), updatedBy: user.id });
+    }
+
+    try {
+      const id = await PaymentService.saveStudentPaymentStatus(
+        classroom.id,
+        studentId,
+        nextItems,
+        existing?.id
+      );
+
+      const nextStatuses = existing
+        ? paymentStatuses.map(s => (s.studentId === studentId ? { ...s, items: nextItems } : s))
+        : [
+            ...paymentStatuses,
+            {
+              id,
+              classroomId: classroom.id,
+              studentId,
+              items: nextItems,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ];
+
+      setPaymentStatuses(nextStatuses);
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast.error('Error al actualizar estado');
+    }
+  };
+
+  const resetCostForm = () => {
+    setCostForm({
+      title: '',
+      description: '',
+      amount: '',
+      required: true,
+      type: 'custom',
+    });
+    setEditingCostId(null);
+  };
+
+  const handleSaveCostItem = async () => {
+    if (!classroom) return;
+    if (!costForm.title.trim() || !costForm.amount) {
+      toast.error('Complete el titulo y el monto');
+      return;
+    }
+
+    const amount = Number(costForm.amount);
+    if (Number.isNaN(amount) || amount < 0) {
+      toast.error('Monto invalido');
+      return;
+    }
+
+    const now = new Date();
+    const nextItems = editingCostId
+      ? paymentCostItems.map(item =>
+          item.id === editingCostId
+            ? {
+                ...item,
+                title: costForm.title.trim(),
+                description: costForm.description.trim() || undefined,
+                amount,
+                required: costForm.required,
+                type: costForm.type,
+                updatedAt: now,
+              }
+            : item
+        )
+      : [
+          ...paymentCostItems,
+          {
+            id: `cost-${Date.now()}`,
+            title: costForm.title.trim(),
+            description: costForm.description.trim() || undefined,
+            amount,
+            required: costForm.required,
+            type: costForm.type,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ];
+
+    try {
+      const savedId = await PaymentService.saveClassroomPaymentCosts(
+        classroom.id,
+        nextItems,
+        paymentCosts?.id
+      );
+
+      setPaymentCosts(
+        paymentCosts
+          ? { ...paymentCosts, items: nextItems }
+          : { id: savedId, classroomId: classroom.id, items: nextItems, createdAt: now, updatedAt: now }
+      );
+      setPaymentCostItems(nextItems);
+      resetCostForm();
+      toast.success('Costo guardado');
+    } catch (error) {
+      console.error('Error saving cost item:', error);
+      toast.error('Error al guardar el costo');
+    }
+  };
+
+  const handleEditCostItem = (item: IClassroomPaymentCostItem) => {
+    setCostForm({
+      title: item.title,
+      description: item.description || '',
+      amount: String(item.amount),
+      required: item.required,
+      type: item.type,
+    });
+    setEditingCostId(item.id);
+  };
+
+  const handleDeleteCostItem = async (itemId: string) => {
+    if (!classroom) return;
+    if (!window.confirm('Desea eliminar este costo?')) return;
+
+    const nextItems = paymentCostItems.filter(item => item.id !== itemId);
+    try {
+      const savedId = await PaymentService.saveClassroomPaymentCosts(
+        classroom.id,
+        nextItems,
+        paymentCosts?.id
+      );
+      setPaymentCosts(
+        paymentCosts
+          ? { ...paymentCosts, items: nextItems }
+          : { id: savedId, classroomId: classroom.id, items: nextItems, createdAt: new Date(), updatedAt: new Date() }
+      );
+      setPaymentCostItems(nextItems);
+      toast.success('Costo eliminado');
+    } catch (error) {
+      console.error('Error deleting cost item:', error);
+      toast.error('Error al eliminar el costo');
+    }
+  };
+
+  const handlePaymentItemToggle = (itemId: string) => {
+    setPaymentForm(prev => {
+      const exists = prev.appliedItemIds.includes(itemId);
+      return {
+        ...prev,
+        appliedItemIds: exists
+          ? prev.appliedItemIds.filter(id => id !== itemId)
+          : [...prev.appliedItemIds, itemId],
+      };
+    });
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!classroom || !user) return;
+    if (!paymentForm.studentId || !paymentForm.amount) {
+      toast.error('Complete estudiante y monto');
+      return;
+    }
+
+    const amount = Number(paymentForm.amount);
+    if (Number.isNaN(amount) || amount <= 0) {
+      toast.error('Monto invalido');
+      return;
+    }
+
+    try {
+      let receiptUrl = editingPaymentReceiptUrl;
+      let receiptName = editingPaymentReceiptName;
+      if (paymentForm.receiptFile) {
+        if (!validateFileSize(paymentForm.receiptFile, 20)) {
+          toast.error('El comprobante no debe superar los 20MB');
+          return;
+        }
+        receiptUrl = await GCloudService.uploadFile(
+          paymentForm.receiptFile,
+          `payment-${classroom.id}-${paymentForm.studentId}`
+        );
+        receiptName = paymentForm.receiptFile.name;
+      }
+
+      if (editingPaymentId) {
+        await PaymentService.updateStudentPayment(editingPaymentId, {
+          studentId: paymentForm.studentId,
+          amount,
+          method: paymentForm.method,
+          comment: paymentForm.comment.trim() || undefined,
+          receiptUrl,
+          receiptName,
+          appliedItemIds: paymentForm.appliedItemIds,
+        });
+
+        setStudentPayments(prev =>
+          prev.map(payment =>
+            payment.id === editingPaymentId
+              ? {
+                  ...payment,
+                  studentId: paymentForm.studentId,
+                  amount,
+                  method: paymentForm.method,
+                  comment: paymentForm.comment.trim() || undefined,
+                  receiptUrl,
+                  receiptName,
+                  appliedItemIds: paymentForm.appliedItemIds,
+                  updatedAt: new Date(),
+                }
+              : payment
+          )
+        );
+        toast.success('Pago actualizado');
+      } else {
+        const newPayment: Omit<IClassroomStudentPayment, 'id' | 'createdAt' | 'updatedAt'> = {
+          classroomId: classroom.id,
+          studentId: paymentForm.studentId,
+          amount,
+          method: paymentForm.method,
+          comment: paymentForm.comment.trim() || undefined,
+          receiptUrl,
+          receiptName,
+          appliedItemIds: paymentForm.appliedItemIds,
+          createdBy: user.id,
+        };
+
+        const id = await PaymentService.addStudentPayment(newPayment);
+        setStudentPayments(prev => [
+          {
+            ...newPayment,
+            id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          ...prev,
+        ]);
+        toast.success('Pago registrado');
+      }
+
+      setPaymentModalOpen(false);
+      setEditingPaymentId(null);
+      setEditingPaymentReceiptUrl(undefined);
+      setEditingPaymentReceiptName(undefined);
+      setPaymentForm({
+        studentId: '',
+        amount: '',
+        method: 'cash',
+        comment: '',
+        appliedItemIds: [],
+        receiptFile: null,
+      });
+    } catch (error) {
+      console.error('Error saving payment:', error);
+      toast.error('Error al guardar pago');
+    }
+  };
+
+  const handleEditPayment = (payment: IClassroomStudentPayment) => {
+    setEditingPaymentId(payment.id);
+    setEditingPaymentReceiptUrl(payment.receiptUrl);
+    setEditingPaymentReceiptName(payment.receiptName);
+    setPaymentForm({
+      studentId: payment.studentId,
+      amount: String(payment.amount),
+      method: payment.method,
+      comment: payment.comment || '',
+      appliedItemIds: payment.appliedItemIds || [],
+      receiptFile: null,
+    });
+    setPaymentModalOpen(true);
+  };
+
+  const handleDeletePayment = async (payment: IClassroomStudentPayment) => {
+    if (!window.confirm('Desea eliminar este pago?')) return;
+
+    try {
+      await PaymentService.deleteStudentPayment(payment.id);
+      setStudentPayments(prev => prev.filter(item => item.id !== payment.id));
+      toast.success('Pago eliminado');
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast.error('Error al eliminar pago');
+    }
   };
 
   const handleCreateWhatsappGroup = async () => {
@@ -866,6 +1316,18 @@ const ClassroomManagement: React.FC = () => {
             <span className="d-none d-sm-inline">Recursos</span>
           </NavLink>
         </NavItem>
+        {user?.role === 'admin' && (
+          <NavItem>
+            <NavLink
+              className={activeTab === 'payments' ? 'active' : ''}
+              onClick={() => setActiveTab('payments')}
+              style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              <i className="bi bi-cash-coin me-1"></i>
+              <span className="d-none d-sm-inline">Pagos</span>
+            </NavLink>
+          </NavItem>
+        )}
       </Nav>
 
       <TabContent activeTab={activeTab}>
@@ -1284,6 +1746,332 @@ const ClassroomManagement: React.FC = () => {
             </CardBody>
           </Card>
         </TabPane>
+
+        {user?.role === 'admin' && (
+          <TabPane tabId="payments">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="bg-white d-flex justify-content-between align-items-center">
+                <h6 className="mb-0">
+                  <i className="bi bi-cash-coin me-2"></i>
+                  Gestion de Pagos
+                </h6>
+                <Button color="primary" size="sm" onClick={() => setPaymentModalOpen(true)}>
+                  <i className="bi bi-plus-circle me-1"></i>
+                  Registrar Pago
+                </Button>
+              </CardHeader>
+              <CardBody>
+                {paymentsLoading ? (
+                  <div className="text-center py-4">
+                    <Spinner color="primary" />
+                    <p className="mt-2">Cargando pagos...</p>
+                  </div>
+                ) : (
+                  <>
+                    <Row className="mb-4">
+                      <Col md={5}>
+                        <h6 className="mb-3">Costos de la Clase</h6>
+                        <Form>
+                          <FormGroup>
+                            <Label>Titulo</Label>
+                            <Input
+                              value={costForm.title}
+                              onChange={(e) => setCostForm(prev => ({ ...prev, title: e.target.value }))}
+                            />
+                          </FormGroup>
+                          <FormGroup>
+                            <Label>Descripcion</Label>
+                            <Input
+                              value={costForm.description}
+                              onChange={(e) => setCostForm(prev => ({ ...prev, description: e.target.value }))}
+                            />
+                          </FormGroup>
+                          <Row>
+                            <Col md={6}>
+                              <FormGroup>
+                                <Label>Monto</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={costForm.amount}
+                                  onChange={(e) => setCostForm(prev => ({ ...prev, amount: e.target.value }))}
+                                />
+                              </FormGroup>
+                            </Col>
+                            <Col md={6}>
+                              <FormGroup>
+                                <Label>Tipo</Label>
+                                <Input
+                                  type="select"
+                                  value={costForm.type}
+                                  onChange={(e) => setCostForm(prev => ({ ...prev, type: e.target.value as PaymentItemType }))}
+                                >
+                                  <option value="material">Material</option>
+                                  <option value="fee">Cuota</option>
+                                  <option value="custom">Otro</option>
+                                </Input>
+                              </FormGroup>
+                            </Col>
+                          </Row>
+                          <FormGroup check className="mb-3">
+                            <Input
+                              type="checkbox"
+                              checked={costForm.required}
+                              onChange={(e) => setCostForm(prev => ({ ...prev, required: e.target.checked }))}
+                            />
+                            <Label check>Obligatorio</Label>
+                          </FormGroup>
+                          <div className="d-flex gap-2">
+                            <Button color="success" onClick={handleSaveCostItem}>
+                              {editingCostId ? 'Actualizar' : 'Agregar'}
+                            </Button>
+                            {editingCostId && (
+                              <Button color="secondary" onClick={resetCostForm}>
+                                Cancelar
+                              </Button>
+                            )}
+                          </div>
+                        </Form>
+                      </Col>
+                      <Col md={7}>
+                        {paymentCostItems.length === 0 ? (
+                          <Alert color="info">No hay costos registrados</Alert>
+                        ) : (
+                          <div className="table-responsive">
+                            <Table size="sm" bordered>
+                              <thead className="table-light">
+                                <tr>
+                                  <th>Titulo</th>
+                                  <th>Monto</th>
+                                  <th>Tipo</th>
+                                  <th>Obligatorio</th>
+                                  <th>Acciones</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paymentCostItems.map(item => (
+                                  <tr key={item.id}>
+                                    <td>
+                                      <div className="fw-bold">{item.title}</div>
+                                      {item.description && <small className="text-muted">{item.description}</small>}
+                                    </td>
+                                    <td>${item.amount.toFixed(2)}</td>
+                                    <td>
+                                      <Badge color={item.type === 'material' ? 'info' : item.type === 'fee' ? 'primary' : 'secondary'}>
+                                        {item.type === 'material' ? 'Material' : item.type === 'fee' ? 'Cuota' : 'Otro'}
+                                      </Badge>
+                                    </td>
+                                    <td>{item.required ? 'Si' : 'No'}</td>
+                                    <td>
+                                      <div className="d-flex gap-2">
+                                        <Button size="sm" color="link" onClick={() => handleEditCostItem(item)}>
+                                          <i className="bi bi-pencil"></i>
+                                        </Button>
+                                        <Button size="sm" color="link" onClick={() => handleDeleteCostItem(item.id)}>
+                                          <i className="bi bi-trash text-danger"></i>
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </Table>
+                          </div>
+                        )}
+                      </Col>
+                    </Row>
+
+                    <Nav tabs className="mb-3">
+                      <NavItem>
+                        <NavLink
+                          className={paymentsTab === 'students' ? 'active' : ''}
+                          onClick={() => setPaymentsTab('students')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Estudiantes
+                        </NavLink>
+                      </NavItem>
+                      <NavItem>
+                        <NavLink
+                          className={paymentsTab === 'payments' ? 'active' : ''}
+                          onClick={() => setPaymentsTab('payments')}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Pagos
+                        </NavLink>
+                      </NavItem>
+                    </Nav>
+
+                    <TabContent activeTab={paymentsTab}>
+                      <TabPane tabId="students">
+                        <h6 className="mb-3">Progreso por Estudiante</h6>
+                        {students.length === 0 ? (
+                          <Alert color="info">No hay estudiantes inscritos</Alert>
+                        ) : (
+                          <div className="table-responsive mb-4">
+                            <Table bordered hover>
+                              <thead className="table-light">
+                                <tr>
+                                  <th>Estudiante</th>
+                                  <th className="text-center">Total Adeudado</th>
+                                  <th className="text-center">Total Pagado</th>
+                                  <th className="text-center">Balance</th>
+                                  <th className="text-center">Comprobante</th>
+                                  {paymentCostItems.map(item => (
+                                    <th key={item.id} className="text-center">
+                                      {item.title}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {students.map(student => {
+                                  const totalDue = getTotalDue(paymentCostItems);
+                                  const totalPaid = getTotalPaid(student.id);
+                                  const balance = totalDue - totalPaid;
+
+                                  return (
+                                    <tr key={student.id}>
+                                      <td>
+                                        <div className="fw-bold">{student.firstName} {student.lastName}</div>
+                                        <small className="text-muted">{student.phone}</small>
+                                      </td>
+                                      <td className="text-center">${totalDue.toFixed(2)}</td>
+                                      <td className="text-center">${totalPaid.toFixed(2)}</td>
+                                      <td className="text-center">
+                                        <Badge color={balance <= 0 ? 'success' : 'warning'}>
+                                          ${balance.toFixed(2)}
+                                        </Badge>
+                                      </td>
+                                      <td className="text-center">
+                                        <PaymentReceiptPdfDownloadButton
+                                          title="Comprobante de Pagos"
+                                          studentName={`${student.firstName} ${student.lastName}`}
+                                          studentPhone={student.phone}
+                                          studentEmail={student.email}
+                                          classroomName={classroom?.name || ''}
+                                          classroomSubject={classroom?.subject || ''}
+                                          programName={paymentProgramName}
+                                          generatedBy={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Administrador'}
+                                          costs={paymentCostItems}
+                                          payments={studentPayments.filter(payment => payment.studentId === student.id)}
+                                          statuses={
+                                            paymentStatuses.find(s => s.studentId === student.id)?.items || []
+                                          }
+                                        >
+                                          <Button color="link" className="p-0">
+                                            PDF
+                                          </Button>
+                                        </PaymentReceiptPdfDownloadButton>
+                                      </td>
+                                      {paymentCostItems.map(item => (
+                                        <td key={item.id} className="text-center">
+                                          <Input
+                                            type="select"
+                                            value={getStatusForItem(student.id, item.id)}
+                                            onChange={(e) => handleStatusChange(student.id, item.id, e.target.value as PaymentItemStatus)}
+                                          >
+                                            <option value="paid">Pagado</option>
+                                            <option value="pending">Pendiente</option>
+                                            <option value="unpaid">No pagado</option>
+                                          </Input>
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </Table>
+                          </div>
+                        )}
+                      </TabPane>
+
+                      <TabPane tabId="payments">
+                        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+                          <h6 className="mb-0">Pagos Registrados</h6>
+                          <Input
+                            type="select"
+                            value={paymentFilterStudentId}
+                            onChange={(e) => setPaymentFilterStudentId(e.target.value)}
+                            style={{ maxWidth: '280px' }}
+                          >
+                            <option value="">Todos los estudiantes</option>
+                            {students.map(student => (
+                              <option key={student.id} value={student.id}>
+                                {student.firstName} {student.lastName}
+                              </option>
+                            ))}
+                          </Input>
+                        </div>
+                        {studentPayments.length === 0 ? (
+                          <Alert color="info">No hay pagos registrados</Alert>
+                        ) : (
+                          <div className="table-responsive">
+                            <Table bordered hover>
+                              <thead className="table-light">
+                                <tr>
+                                  <th>Estudiante</th>
+                                  <th>Monto</th>
+                                  <th>Metodo</th>
+                                  <th>Items</th>
+                                  <th>Comentario</th>
+                                  <th>Comprobante</th>
+                                  <th>Fecha</th>
+                                  <th>Acciones</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filteredPayments.map(payment => {
+                                  const student = students.find(s => s.id === payment.studentId);
+                                  const itemLabels = payment.appliedItemIds
+                                    .map(itemId => paymentCostItems.find(item => item.id === itemId)?.title)
+                                    .filter(Boolean)
+                                    .join(', ');
+
+                                  return (
+                                    <tr key={payment.id}>
+                                      <td>{student ? `${student.firstName} ${student.lastName}` : payment.studentId}</td>
+                                      <td>${payment.amount.toFixed(2)}</td>
+                                      <td>{getPaymentMethodLabel(payment.method)}</td>
+                                      <td>{itemLabels || 'No asociado'}</td>
+                                      <td>{payment.comment || '-'}</td>
+                                      <td>
+                                        {payment.receiptUrl ? (
+                                          <Button
+                                            color="link"
+                                            className="p-0"
+                                            onClick={() => handleDownloadResource(payment.receiptUrl!, payment.receiptName || 'comprobante')}
+                                          >
+                                            Ver
+                                          </Button>
+                                        ) : (
+                                          <span className="text-muted">N/A</span>
+                                        )}
+                                      </td>
+                                      <td>{new Date(payment.createdAt).toLocaleDateString('es-ES')}</td>
+                                      <td>
+                                        <Button color="link" className="p-0" onClick={() => handleEditPayment(payment)}>
+                                          Editar
+                                        </Button>
+                                        <Button color="link" className="p-0 ms-2" onClick={() => handleDeletePayment(payment)}>
+                                          Eliminar
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </Table>
+                          </div>
+                        )}
+                      </TabPane>
+                    </TabContent>
+                  </>
+                )}
+              </CardBody>
+            </Card>
+          </TabPane>
+        )}
       </TabContent>
 
       {/* WhatsApp Message Modal */}
@@ -1344,6 +2132,127 @@ const ClassroomManagement: React.FC = () => {
           loadClassroomData();
         }}
       />
+
+      {/* Payment Modal */}
+      <Modal
+        isOpen={paymentModalOpen}
+        toggle={() => {
+          setPaymentModalOpen(false);
+          setEditingPaymentId(null);
+          setEditingPaymentReceiptUrl(undefined);
+          setEditingPaymentReceiptName(undefined);
+          setPaymentForm({
+            studentId: '',
+            amount: '',
+            method: 'cash',
+            comment: '',
+            appliedItemIds: [],
+            receiptFile: null,
+          });
+        }}
+      >
+        <ModalHeader toggle={() => setPaymentModalOpen(false)}>
+          {editingPaymentId ? 'Editar Pago' : 'Registrar Pago'}
+        </ModalHeader>
+        <ModalBody>
+          <Form>
+            <FormGroup>
+              <Label>Estudiante</Label>
+              <Input
+                type="select"
+                value={paymentForm.studentId}
+                onChange={(e) => setPaymentForm(prev => ({ ...prev, studentId: e.target.value }))}
+              >
+                <option value="">Seleccionar...</option>
+                {students.map(student => (
+                  <option key={student.id} value={student.id}>
+                    {student.firstName} {student.lastName}
+                  </option>
+                ))}
+              </Input>
+            </FormGroup>
+            <Row>
+              <Col md={6}>
+                <FormGroup>
+                  <Label>Monto</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={6}>
+                <FormGroup>
+                  <Label>Metodo</Label>
+                  <Input
+                    type="select"
+                    value={paymentForm.method}
+                    onChange={(e) => setPaymentForm(prev => ({ ...prev, method: e.target.value as PaymentMethod }))}
+                  >
+                    <option value="cash">Efectivo</option>
+                    <option value="transfer">Transferencia</option>
+                    <option value="card">Tarjeta</option>
+                    <option value="check">Cheque</option>
+                    <option value="mobile">Pago movil</option>
+                    <option value="other">Otro</option>
+                  </Input>
+                </FormGroup>
+              </Col>
+            </Row>
+            <FormGroup>
+              <Label>Items Asociados</Label>
+              {paymentCostItems.length === 0 ? (
+                <Alert color="info">No hay costos para asociar</Alert>
+              ) : (
+                <div className="d-flex flex-wrap gap-3">
+                  {paymentCostItems.map(item => (
+                    <FormGroup check key={item.id} className="mb-0">
+                      <Input
+                        type="checkbox"
+                        checked={paymentForm.appliedItemIds.includes(item.id)}
+                        onChange={() => handlePaymentItemToggle(item.id)}
+                      />
+                      <Label check>{item.title}</Label>
+                    </FormGroup>
+                  ))}
+                </div>
+              )}
+            </FormGroup>
+            <FormGroup>
+              <Label>Comentario</Label>
+              <Input
+                type="textarea"
+                rows={2}
+                value={paymentForm.comment}
+                onChange={(e) => setPaymentForm(prev => ({ ...prev, comment: e.target.value }))}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Comprobante (opcional)</Label>
+              <Input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) =>
+                  setPaymentForm(prev => ({ ...prev, receiptFile: e.target.files?.[0] || null }))
+                }
+              />
+              {editingPaymentReceiptUrl && !paymentForm.receiptFile && (
+                <small className="text-muted">Comprobante actual: {editingPaymentReceiptName || 'adjunto'}</small>
+              )}
+            </FormGroup>
+          </Form>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={() => setPaymentModalOpen(false)}>
+            Cancelar
+          </Button>
+          <Button color="primary" onClick={handlePaymentSubmit}>
+            Guardar Pago
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Download Progress Modal */}
       <Modal isOpen={downloadModalOpen} centered>

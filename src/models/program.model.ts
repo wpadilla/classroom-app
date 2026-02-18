@@ -28,6 +28,9 @@ export interface IProgram {
     resources?: string[];
     cost?: number;
   };
+
+  // Billing
+  monthlyFee?: number; // Monthly fee (0 = free)
 }
 
 // Helper types

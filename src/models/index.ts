@@ -8,6 +8,7 @@ export * from './classroom-run.model';
 export * from './resource.model';
 export * from './registration.model';
 export * from './statistics.model';
+export * from './payment.model';
 
 // Re-export commonly used types for convenience
 export type { UserRole, IUser, IClassroomHistory, IUserDocument } from './user.model';
@@ -27,3 +28,14 @@ export type {
   IAcademyInscriptionPayload
 } from './registration.model';
 export type { IStatisticsDashboard } from './statistics.model';
+export type {
+  PaymentMethod,
+  PaymentItemType,
+  PaymentItemStatus,
+  IClassroomPaymentCostItem,
+  IClassroomPaymentCost,
+  IClassroomStudentPayment,
+  IClassroomStudentPaymentStatusItem,
+  IClassroomStudentPaymentStatus,
+  IClassroomPaymentsSnapshot,
+} from './payment.model';

@@ -16,11 +16,13 @@ import {
   IClassroomRun, 
   IStudentRunRecord, 
   IUser, 
-  IStudentEvaluation 
+  IStudentEvaluation,
+  IClassroomPaymentsSnapshot
 } from '../../models';
 import { UserService } from '../user/user.service';
 import { EvaluationService } from '../evaluation/evaluation.service';
 import { ProgramService } from '../program/program.service';
+import { PaymentService } from '../payment/payment.service';
 
 /**
  * Result of restart operation
@@ -110,6 +112,13 @@ export class ClassroomRestartService {
     // Get all evaluations for this classroom
     const evaluations = await EvaluationService.getClassroomEvaluations(classroom.id);
 
+    let paymentsSnapshot: IClassroomPaymentsSnapshot | undefined;
+    try {
+      paymentsSnapshot = await PaymentService.getClassroomPaymentsSnapshot(classroom.id);
+    } catch (error) {
+      console.warn('Error loading payments snapshot:', error);
+    }
+
     // Build student records
     const studentRecords: IStudentRunRecord[] = [];
     
@@ -185,7 +194,8 @@ export class ClassroomRestartService {
       // Metadata
       runNumber,
       createdAt: new Date(),
-      createdBy
+      createdBy,
+      paymentsSnapshot
     };
 
     return classroomRun;

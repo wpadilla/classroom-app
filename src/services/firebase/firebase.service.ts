@@ -32,7 +32,10 @@ export const COLLECTIONS = {
   ATTENDANCE: 'attendance',
   PARTICIPATION: 'participation',
   CLASSROOM_RUNS: 'classroom_runs',
-  FINALIZATION_SNAPSHOTS: 'finalization_snapshots'
+  FINALIZATION_SNAPSHOTS: 'finalization_snapshots',
+  CLASSROOM_PAYMENT_COSTS: 'classroom_payment_costs',
+  CLASSROOM_STUDENT_PAYMENTS: 'classroom_student_payments',
+  CLASSROOM_PAYMENT_STATUSES: 'classroom_payment_statuses'
 } as const;
 
 export class FirebaseService {

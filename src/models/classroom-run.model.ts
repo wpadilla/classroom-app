@@ -7,6 +7,8 @@
  * Each time a classroom is finalized and restarted, a new run is created
  */
 
+import { IClassroomPaymentsSnapshot } from './payment.model';
+
 export interface IStudentRunRecord {
   studentId: string;
   studentName: string;
@@ -93,6 +95,9 @@ export interface IClassroomRun {
   createdAt: Date;
   createdBy: string; // User ID who finalized/restarted
   notes?: string; // Optional notes about this run
+
+  // Payments snapshot for this run
+  paymentsSnapshot?: IClassroomPaymentsSnapshot;
 }
 
 // Helper type for creating a new run

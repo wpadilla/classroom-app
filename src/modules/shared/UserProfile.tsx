@@ -43,6 +43,7 @@ import { toast } from 'react-toastify';
 import ProgramsProgressTab from './components/ProgramsProgressTab';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
 import UserDocumentsSection from '../../components/user-documents/UserDocumentsSection';
+import ClassroomRunDetailsModal from '../../components/classroom-runs/ClassroomRunDetailsModal';
 import {
   DOCUMENT_TYPE_OPTIONS,
   ACADEMIC_LEVEL_OPTIONS,
@@ -61,8 +62,8 @@ const UserProfile: React.FC = () => {
   const [evaluations, setEvaluations] = useState<IStudentEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
-  const [teacherRuns, setTeacherRuns] = useState<any[]>([]);
-  const [selectedRun, setSelectedRun] = useState<any>(null);
+  const [teacherRuns, setTeacherRuns] = useState<IClassroomRun[]>([]);
+  const [selectedRun, setSelectedRun] = useState<IClassroomRun | null>(null);
   const [runDetailsModal, setRunDetailsModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -1280,230 +1281,11 @@ const UserProfile: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Classroom Run Details Modal */}
-      <Modal isOpen={runDetailsModal} toggle={() => setRunDetailsModal(false)} size="xl">
-        <ModalHeader toggle={() => setRunDetailsModal(false)}>
-          <i className="bi bi-archive me-2"></i>
-          Detalles de Ejecución {selectedRun && `#${selectedRun.runNumber}`}
-        </ModalHeader>
-        <ModalBody>
-          {selectedRun && (
-            <>
-              {/* Header Info */}
-              <Row className="mb-4">
-                <Col md={8}>
-                  <h4>{selectedRun.classroomSubject}</h4>
-                  <p className="text-muted mb-2">{selectedRun.classroomName} - {selectedRun.programName}</p>
-                  <div className="d-flex gap-2">
-                    <Badge color="secondary">Ejecución #{selectedRun.runNumber}</Badge>
-                    <Badge color="info">{selectedRun.totalStudents} Estudiantes</Badge>
-                    {selectedRun.room && (
-                      <Badge color="secondary">
-                        <i className="bi bi-door-open me-1"></i>
-                        {selectedRun.room}
-                      </Badge>
-                    )}
-                  </div>
-                </Col>
-                <Col md={4} className="text-md-end">
-                  <small className="text-muted d-block">Período</small>
-                  <strong>
-                    {new Date(selectedRun.startDate).toLocaleDateString('es-ES')}
-                  </strong>
-                  {' - '}
-                  <strong>
-                    {new Date(selectedRun.endDate).toLocaleDateString('es-ES')}
-                  </strong>
-                </Col>
-              </Row>
-
-              {/* Statistics Cards */}
-              <Row className="mb-4">
-                <Col md={3}>
-                  <Card className="text-center bg-light">
-                    <CardBody>
-                      <h3 className="mb-0">
-                        <Badge color={getGradeColor(selectedRun.statistics.averageGrade)}>
-                          {selectedRun.statistics.averageGrade.toFixed(1)}%
-                        </Badge>
-                      </h3>
-                      <small className="text-muted">Promedio General</small>
-                    </CardBody>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center bg-light">
-                    <CardBody>
-                      <h3 className="mb-0 text-success">{selectedRun.statistics.passRate.toFixed(0)}%</h3>
-                      <small className="text-muted">Tasa de Aprobación</small>
-                    </CardBody>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center bg-light">
-                    <CardBody>
-                      <h3 className="mb-0 text-info">{selectedRun.statistics.attendanceRate.toFixed(0)}%</h3>
-                      <small className="text-muted">Asistencia Promedio</small>
-                    </CardBody>
-                  </Card>
-                </Col>
-                <Col md={3}>
-                  <Card className="text-center bg-light">
-                    <CardBody>
-                      <h3 className="mb-0">{selectedRun.completedModules}/{selectedRun.totalModules}</h3>
-                      <small className="text-muted">Módulos Completados</small>
-                    </CardBody>
-                  </Card>
-                </Col>
-              </Row>
-
-              {/* Distribution Chart */}
-              <Card className="mb-3">
-                <CardHeader>
-                  <h6 className="mb-0">Distribución de Calificaciones</h6>
-                </CardHeader>
-                <CardBody>
-                  <Row>
-                    <Col md={3}>
-                      <div className="text-center mb-2">
-                        <div className="mb-1">
-                          <Badge color="success" style={{ fontSize: '1.2rem' }}>
-                            {selectedRun.statistics.distribution.excellent}
-                          </Badge>
-                        </div>
-                        <Progress
-                          value={(selectedRun.statistics.distribution.excellent / selectedRun.totalStudents) * 100}
-                          color="success"
-                        />
-                        <small className="text-muted">Excelente (90-100)</small>
-                      </div>
-                    </Col>
-                    <Col md={3}>
-                      <div className="text-center mb-2">
-                        <div className="mb-1">
-                          <Badge color="info" style={{ fontSize: '1.2rem' }}>
-                            {selectedRun.statistics.distribution.good}
-                          </Badge>
-                        </div>
-                        <Progress
-                          value={(selectedRun.statistics.distribution.good / selectedRun.totalStudents) * 100}
-                          color="info"
-                        />
-                        <small className="text-muted">Bueno (80-89)</small>
-                      </div>
-                    </Col>
-                    <Col md={3}>
-                      <div className="text-center mb-2">
-                        <div className="mb-1">
-                          <Badge color="warning" style={{ fontSize: '1.2rem' }}>
-                            {selectedRun.statistics.distribution.regular}
-                          </Badge>
-                        </div>
-                        <Progress
-                          value={(selectedRun.statistics.distribution.regular / selectedRun.totalStudents) * 100}
-                          color="warning"
-                        />
-                        <small className="text-muted">Regular (70-79)</small>
-                      </div>
-                    </Col>
-                    <Col md={3}>
-                      <div className="text-center mb-2">
-                        <div className="mb-1">
-                          <Badge color="danger" style={{ fontSize: '1.2rem' }}>
-                            {selectedRun.statistics.distribution.poor}
-                          </Badge>
-                        </div>
-                        <Progress
-                          value={(selectedRun.statistics.distribution.poor / selectedRun.totalStudents) * 100}
-                          color="danger"
-                        />
-                        <small className="text-muted">Deficiente (&lt;70)</small>
-                      </div>
-                    </Col>
-                  </Row>
-                </CardBody>
-              </Card>
-
-              {/* Student List */}
-              <Card>
-                <CardHeader>
-                  <h6 className="mb-0">Estudiantes de esta Ejecución</h6>
-                </CardHeader>
-                <CardBody>
-                  <Table responsive hover size="sm">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th className="text-center">Calificación</th>
-                        <th className="text-center">Asistencia</th>
-                        <th className="text-center">Participación</th>
-                        <th className="text-center">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedRun.students.map((student: any, index: number) => (
-                        <tr key={student.studentId}>
-                          <td>{index + 1}</td>
-                          <td>
-                            <strong>{student.studentName}</strong>
-                            {student.studentEmail && (
-                              <>
-                                <br />
-                                <small className="text-muted">{student.studentEmail}</small>
-                              </>
-                            )}
-                          </td>
-                          <td>{student.studentPhone}</td>
-                          <td className="text-center">
-                            {student.finalGrade !== undefined ? (
-                              <Badge color={getGradeColor(student.finalGrade)}>
-                                {student.finalGrade.toFixed(1)}%
-                              </Badge>
-                            ) : (
-                              <span className="text-muted">N/A</span>
-                            )}
-                          </td>
-                          <td className="text-center">
-                            <Badge color={student.attendanceRate >= 80 ? 'success' : 'warning'}>
-                              {student.attendanceRate.toFixed(0)}%
-                            </Badge>
-                          </td>
-                          <td className="text-center">
-                            <Badge color="info">
-                              {student.participationPoints} pts
-                            </Badge>
-                          </td>
-                          <td className="text-center">
-                            <Badge color={
-                              student.status === 'completed' ? 'success' : 'danger'
-                            }>
-                              {student.status === 'completed' ? 'Aprobado' : 'Reprobado'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </CardBody>
-              </Card>
-
-              {/* Notes if any */}
-              {selectedRun.notes && (
-                <Alert color="info" className="mt-3">
-                  <strong>Notas:</strong> {selectedRun.notes}
-                </Alert>
-              )}
-            </>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setRunDetailsModal(false)}>
-            Cerrar
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <ClassroomRunDetailsModal
+        isOpen={runDetailsModal}
+        onClose={() => setRunDetailsModal(false)}
+        run={selectedRun}
+      />
     </Container>
   );
 };

@@ -4,7 +4,6 @@ import { UserService } from '../user/user.service';
 import { ProgramService } from '../program/program.service';
 import { ClassroomService } from '../classroom/classroom.service';
 import { EvaluationService } from '../evaluation/evaluation.service';
-import { ClassroomRestartService } from '../classroom/classroom-restart.service';
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
 import {
   IUser,
@@ -23,6 +22,10 @@ import {
   IHistoricalTrends,
   IGradeDistribution,
   IMonthlyCount,
+  IClassroomPaymentCost,
+  IClassroomStudentPayment,
+  IFinancialEnrollmentEntry,
+  PaymentMethod,
 } from '../../models';
 
 export class StatisticsService {
@@ -48,7 +51,7 @@ export class StatisticsService {
         this.computeProgramAnalytics(programs, classrooms),
         this.computeTeacherAnalytics(users, classrooms, evaluations),
         this.computeDemographicAnalytics(users),
-        this.computeFinancialOverview(programs, classrooms),
+        this.computeFinancialOverview(users, programs, classrooms, runs),
         this.computeHistoricalTrends(runs),
       ]);
 
@@ -173,14 +176,7 @@ export class StatisticsService {
       programGrades.set(programId, existing);
     });
 
-    // Resolve program names
-    const programMap = new Map<string, IProgram>();
-    classrooms.forEach((c) => {
-      // We don't have direct program objects here for all, but we can try
-    });
-
     const averageByProgram = Array.from(programGrades.entries()).map(([programId, data]) => {
-      const program = classrooms.find((c) => c.programId === programId);
       return {
         programId,
         programName: data.name || programId,
@@ -422,49 +418,567 @@ export class StatisticsService {
   // ─── Financial ─────────────────────────────────────────────
 
   private static async computeFinancialOverview(
+    users: IUser[],
     programs: IProgram[],
-    classrooms: IClassroom[]
+    classrooms: IClassroom[],
+    runs: IClassroomRun[]
   ): Promise<IFinancialOverview> {
-    const revenueByClassroom = classrooms.map((c) => {
-      const students = c.studentIds?.length || 0;
+    const [costDocs, payments] = await Promise.all([
+      FirebaseService.getDocuments<IClassroomPaymentCost>(COLLECTIONS.CLASSROOM_PAYMENT_COSTS),
+      FirebaseService.getDocuments<IClassroomStudentPayment>(COLLECTIONS.CLASSROOM_STUDENT_PAYMENTS),
+    ]);
+
+    console.log('Cost docs:', costDocs);
+    console.log('Payments:', payments);
+
+    const programMap = new Map(programs.map((program) => [program.id, program]));
+    const userMap = new Map(users.map((user) => [user.id, user]));
+    const costMap = new Map(costDocs.map((doc) => [doc.classroomId, doc.items]));
+
+    const totals = {
+      expected: 0,
+      collected: 0,
+      outstanding: 0,
+      collectionRate: 0,
+      totalEnrollments: 0,
+      uniqueStudents: 0,
+      averageExpectedPerEnrollment: 0,
+      averageCollectedPerEnrollment: 0,
+      averageOutstandingPerEnrollment: 0,
+      averageExpectedPerUniqueStudent: 0,
+      averageCollectedPerUniqueStudent: 0,
+      averageOutstandingPerUniqueStudent: 0,
+    };
+
+    const requiredOptional = {
+      requiredExpected: 0,
+      requiredCollected: 0,
+      requiredOutstanding: 0,
+      optionalExpected: 0,
+      optionalCollected: 0,
+      optionalOutstanding: 0,
+      unassignedCollected: 0,
+    };
+
+    const byProgramMap = new Map<
+      string,
+      {
+        programId: string;
+        programName: string;
+        expected: number;
+        collected: number;
+        outstanding: number;
+        enrollmentCount: number;
+        uniqueStudents: Set<string>;
+      }
+    >();
+
+    const byClassroomMap = new Map<
+      string,
+      {
+        classroomId: string;
+        classroomName: string;
+        programId: string;
+        programName: string;
+        expected: number;
+        collected: number;
+        outstanding: number;
+        studentCount: number;
+      }
+    >();
+
+    const byStudentMap = new Map<
+      string,
+      {
+        studentId: string;
+        studentName: string;
+        expected: number;
+        collected: number;
+        outstanding: number;
+        enrollmentCount: number;
+      }
+    >();
+
+    const methodMap = new Map<PaymentMethod, { method: PaymentMethod; amount: number; count: number }>();
+    const monthlyMap = new Map<string, { expected: number; collected: number }>();
+    const monthlyExpectedTracker = new Set<string>();
+    const uniqueStudents = new Set<string>();
+    const enrollments: IFinancialEnrollmentEntry[] = [];
+
+    const parseObjectDate = (value: { toDate?: () => Date; seconds?: number }): Date | null => {
+      if (value.toDate) {
+        const parsed = value.toDate();
+        return parsed instanceof Date ? parsed : null;
+      }
+      if (typeof value.seconds === 'number') {
+        const parsed = new Date(value.seconds * 1000);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+      return null;
+    };
+
+    const normalizeDate = (value: unknown): Date | null => {
+      if (!value) return null;
+      if (value instanceof Date) return value;
+      if (typeof value === 'string' || typeof value === 'number') {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+      if (typeof value === 'object') {
+        return parseObjectDate(value as { toDate?: () => Date; seconds?: number });
+      }
+      return null;
+    };
+
+    const getMonthKey = (value: unknown): string => {
+      const date = normalizeDate(value);
+      if (!date) return 'invalid';
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    const getCostTotals = (items: IClassroomPaymentCost['items']) => {
+      const requiredTotal = items.filter((item) => item.required).reduce((sum, item) => sum + item.amount, 0);
+      const optionalTotal = items.filter((item) => !item.required).reduce((sum, item) => sum + item.amount, 0);
       return {
-        classroomId: c.id,
-        classroomName: `${c.subject} - ${c.name}`,
-        revenue: c.materialPrice * students,
-        students,
+        total: requiredTotal + optionalTotal,
+        requiredTotal,
+        optionalTotal,
       };
-    });
+    };
 
-    const totalMaterialRevenue = revenueByClassroom.reduce((s, c) => s + c.revenue, 0);
+    const getCostSummary = (items: IClassroomPaymentCost['items']) =>
+      items.map((item) => ({
+        id: item.id,
+        amount: item.amount,
+        required: item.required,
+      }));
 
-    // Revenue by program
-    const programRevMap = new Map<string, { revenue: number; count: number; name: string }>();
-    classrooms.forEach((c) => {
-      const existing = programRevMap.get(c.programId) || { revenue: 0, count: 0, name: '' };
-      existing.revenue += c.materialPrice * (c.studentIds?.length || 0);
-      existing.count += c.studentIds?.length || 0;
-      programRevMap.set(c.programId, existing);
-    });
+    const groupPaymentsByStudent = (entries: IClassroomStudentPayment[]) => {
+      return entries.reduce<Record<string, IClassroomStudentPayment[]>>((acc, payment) => {
+        if (!acc[payment.studentId]) {
+          acc[payment.studentId] = [];
+        }
+        acc[payment.studentId].push(payment);
+        return acc;
+      }, {});
+    };
 
-    // Resolve program names
-    const programMap = new Map<string, IProgram>();
-    programs.forEach((p) => programMap.set(p.id, p));
+    const trackMonthlyExpected = (
+      monthKey: string,
+      classroomId: string,
+      studentId: string,
+      totalDuePerStudent: number
+    ) => {
+      if (!totalDuePerStudent) return;
+      const trackerKey = `${monthKey}::${classroomId}::${studentId}`;
+      if (monthlyExpectedTracker.has(trackerKey)) return;
+      monthlyExpectedTracker.add(trackerKey);
+      const monthly = monthlyMap.get(monthKey) || { expected: 0, collected: 0 };
+      monthly.expected += totalDuePerStudent;
+      monthlyMap.set(monthKey, monthly);
+    };
 
-    const revenueByProgram = Array.from(programRevMap.entries()).map(([programId, data]) => ({
-      programId,
-      programName: programMap.get(programId)?.name || programId,
-      revenue: data.revenue,
-      studentCount: data.count,
-    }));
+    const allocatePayment = (
+      payment: IClassroomStudentPayment,
+      costItems: IClassroomPaymentCost['items']
+    ) => {
+      if (!payment.appliedItemIds || payment.appliedItemIds.length === 0) {
+        requiredOptional.unassignedCollected += payment.amount;
+        return;
+      }
 
-    const totalStudents = classrooms.reduce((s, c) => s + (c.studentIds?.length || 0), 0);
-    const averageCostPerStudent = totalStudents > 0 ? totalMaterialRevenue / totalStudents : 0;
+      const appliedItems = costItems.filter((item) => payment.appliedItemIds.includes(item.id));
+      const totalApplied = appliedItems.reduce((sum, item) => sum + item.amount, 0);
+      if (!totalApplied) {
+        requiredOptional.unassignedCollected += payment.amount;
+        return;
+      }
+
+      appliedItems.forEach((item) => {
+        const portion = payment.amount * (item.amount / totalApplied);
+        if (item.required) {
+          requiredOptional.requiredCollected += portion;
+        } else {
+          requiredOptional.optionalCollected += portion;
+        }
+      });
+    };
+
+    const registerMethod = (method: PaymentMethod, amount: number) => {
+      const existing = methodMap.get(method) || { method, amount: 0, count: 0 };
+      existing.amount += amount;
+      existing.count += 1;
+      methodMap.set(method, existing);
+    };
+
+    const updateProgram = (
+      programId: string,
+      programName: string,
+      expected: number,
+      collected: number,
+      outstanding: number,
+      studentIds: string[]
+    ) => {
+      const entry = byProgramMap.get(programId) || {
+        programId,
+        programName,
+        expected: 0,
+        collected: 0,
+        outstanding: 0,
+        enrollmentCount: 0,
+        uniqueStudents: new Set<string>(),
+      };
+
+      entry.expected += expected;
+      entry.collected += collected;
+      entry.outstanding += outstanding;
+      entry.enrollmentCount += studentIds.length;
+      studentIds.forEach((studentId) => entry.uniqueStudents.add(studentId));
+      byProgramMap.set(programId, entry);
+    };
+
+    const updateClassroom = (payload: {
+      classroomId: string;
+      classroomName: string;
+      programId: string;
+      programName: string;
+      expected: number;
+      collected: number;
+      outstanding: number;
+      studentCount: number;
+    }) => {
+      byClassroomMap.set(payload.classroomId, payload);
+    };
+
+    const updateStudent = (
+      studentId: string,
+      studentName: string,
+      expected: number,
+      collected: number,
+      outstanding: number
+    ) => {
+      const entry = byStudentMap.get(studentId) || {
+        studentId,
+        studentName,
+        expected: 0,
+        collected: 0,
+        outstanding: 0,
+        enrollmentCount: 0,
+      };
+
+      entry.expected += expected;
+      entry.collected += collected;
+      entry.outstanding += outstanding;
+      entry.enrollmentCount += 1;
+      byStudentMap.set(studentId, entry);
+    };
+
+    const addCurrentClassroom = (classroom: IClassroom) => {
+      const costItems = costMap.get(classroom.id) || [];
+      const costTotals = getCostTotals(costItems);
+      const costSummary = getCostSummary(costItems);
+      const studentIds = classroom.studentIds || [];
+      const totalDuePerStudent = costTotals.total;
+      const expected = totalDuePerStudent * studentIds.length;
+
+      const classroomPayments = payments.filter((payment) => {
+        if (payment.classroomId !== classroom.id) return false;
+        if (!classroom.startDate) return true;
+        const paymentDate = normalizeDate(payment.createdAt);
+        const startDate = normalizeDate(classroom.startDate);
+        if (!paymentDate || !startDate) return false;
+        return paymentDate >= startDate;
+      });
+      const collected = classroomPayments.reduce((sum, payment) => sum + payment.amount, 0);
+      const outstanding = Math.max(expected - collected, 0);
+
+      totals.totalEnrollments += studentIds.length;
+      studentIds.forEach((studentId) => uniqueStudents.add(studentId));
+
+      totals.expected += expected;
+      totals.collected += collected;
+      totals.outstanding += outstanding;
+
+      requiredOptional.requiredExpected += costTotals.requiredTotal * studentIds.length;
+      requiredOptional.optionalExpected += costTotals.optionalTotal * studentIds.length;
+
+      const program = programMap.get(classroom.programId);
+      const programName = program?.name || classroom.programId;
+      const classroomName = `${classroom.subject} - ${classroom.name}`;
+
+      updateProgram(
+        classroom.programId,
+        programName,
+        expected,
+        collected,
+        outstanding,
+        studentIds
+      );
+      updateClassroom({
+        classroomId: classroom.id,
+        classroomName,
+        programId: classroom.programId,
+        programName,
+        expected,
+        collected,
+        outstanding,
+        studentCount: studentIds.length,
+      });
+
+      const paymentsByStudent = new Map<string, number>();
+      const groupedPayments = groupPaymentsByStudent(classroomPayments);
+      classroomPayments.forEach((payment) => {
+        paymentsByStudent.set(
+          payment.studentId,
+          (paymentsByStudent.get(payment.studentId) || 0) + payment.amount
+        );
+        registerMethod(payment.method, payment.amount);
+        allocatePayment(payment, costItems);
+
+        const monthKey = getMonthKey(payment.createdAt);
+        if (monthKey !== 'invalid') {
+          const monthly = monthlyMap.get(monthKey) || { expected: 0, collected: 0 };
+          monthly.collected += payment.amount;
+          monthlyMap.set(monthKey, monthly);
+          trackMonthlyExpected(monthKey, classroom.id, payment.studentId, totalDuePerStudent);
+        }
+      });
+
+      studentIds.forEach((studentId) => {
+        const user = userMap.get(studentId);
+        const studentName = user ? `${user.firstName} ${user.lastName}` : 'Desconocido';
+        const studentCollected = paymentsByStudent.get(studentId) || 0;
+        const studentExpected = totalDuePerStudent;
+        const studentOutstanding = Math.max(studentExpected - studentCollected, 0);
+        updateStudent(studentId, studentName, studentExpected, studentCollected, studentOutstanding);
+
+        const studentPayments = groupedPayments[studentId] || [];
+        enrollments.push({
+          enrollmentId: `current:${classroom.id}:${studentId}`,
+          source: 'current',
+          classroomId: classroom.id,
+          classroomName,
+          programId: classroom.programId,
+          programName,
+          studentId,
+          studentName,
+          totalDue: totalDuePerStudent,
+          requiredDue: costTotals.requiredTotal,
+          optionalDue: costTotals.optionalTotal,
+          costItems: costSummary,
+          payments: studentPayments
+            .map((payment) => {
+              const createdAt = normalizeDate(payment.createdAt);
+              if (!createdAt) return null;
+              return {
+                id: payment.id,
+                amount: payment.amount,
+                method: payment.method,
+                createdAt,
+                appliedItemIds: payment.appliedItemIds || [],
+              };
+            })
+            .filter((payment): payment is IFinancialEnrollmentEntry['payments'][number] => !!payment),
+        });
+      });
+    };
+
+    const addRunSnapshot = (run: IClassroomRun) => {
+      if (!run.paymentsSnapshot) {
+        return;
+      }
+
+      const costItems = run.paymentsSnapshot.costs || [];
+      const costTotals = getCostTotals(costItems);
+      const costSummary = getCostSummary(costItems);
+      const studentIds = run.students.map((student) => student.studentId);
+      const totalDuePerStudent = costTotals.total;
+      const expected = totalDuePerStudent * studentIds.length;
+      const collected = run.paymentsSnapshot.payments.reduce(
+        (sum, payment) => sum + payment.amount,
+        0
+      );
+      const outstanding = Math.max(expected - collected, 0);
+
+      totals.totalEnrollments += studentIds.length;
+      studentIds.forEach((studentId) => uniqueStudents.add(studentId));
+
+      totals.expected += expected;
+      totals.collected += collected;
+      totals.outstanding += outstanding;
+
+      requiredOptional.requiredExpected += costTotals.requiredTotal * studentIds.length;
+      requiredOptional.optionalExpected += costTotals.optionalTotal * studentIds.length;
+
+      updateProgram(
+        run.programId,
+        run.programName,
+        expected,
+        collected,
+        outstanding,
+        studentIds
+      );
+      updateClassroom({
+        classroomId: run.classroomId,
+        classroomName: `${run.classroomSubject} - ${run.classroomName}`,
+        programId: run.programId,
+        programName: run.programName,
+        expected,
+        collected,
+        outstanding,
+        studentCount: studentIds.length,
+      });
+
+      const paymentsByStudent = new Map<string, number>();
+      const groupedPayments = groupPaymentsByStudent(run.paymentsSnapshot.payments);
+      run.paymentsSnapshot.payments.forEach((payment) => {
+        paymentsByStudent.set(
+          payment.studentId,
+          (paymentsByStudent.get(payment.studentId) || 0) + payment.amount
+        );
+        registerMethod(payment.method, payment.amount);
+        allocatePayment(payment, costItems);
+
+        const monthKey = getMonthKey(payment.createdAt);
+        if (monthKey !== 'invalid') {
+          const monthly = monthlyMap.get(monthKey) || { expected: 0, collected: 0 };
+          monthly.collected += payment.amount;
+          monthlyMap.set(monthKey, monthly);
+          trackMonthlyExpected(monthKey, run.id, payment.studentId, totalDuePerStudent);
+        }
+      });
+
+      run.students.forEach((student) => {
+        const studentCollected = paymentsByStudent.get(student.studentId) || 0;
+        const studentExpected = totalDuePerStudent;
+        const studentOutstanding = Math.max(studentExpected - studentCollected, 0);
+        updateStudent(
+          student.studentId,
+          student.studentName || 'Desconocido',
+          studentExpected,
+          studentCollected,
+          studentOutstanding
+        );
+
+        const studentPayments = groupedPayments[student.studentId] || [];
+        enrollments.push({
+          enrollmentId: `run:${run.id}:${student.studentId}`,
+          source: 'run',
+          classroomId: run.classroomId,
+          classroomName: `${run.classroomSubject} - ${run.classroomName}`,
+          programId: run.programId,
+          programName: run.programName,
+          studentId: student.studentId,
+          studentName: student.studentName || 'Desconocido',
+          totalDue: totalDuePerStudent,
+          requiredDue: costTotals.requiredTotal,
+          optionalDue: costTotals.optionalTotal,
+          costItems: costSummary,
+          payments: studentPayments
+            .map((payment) => {
+              const createdAt = normalizeDate(payment.createdAt);
+              if (!createdAt) return null;
+              return {
+                id: payment.id,
+                amount: payment.amount,
+                method: payment.method,
+                createdAt,
+                appliedItemIds: payment.appliedItemIds || [],
+              };
+            })
+            .filter((payment): payment is IFinancialEnrollmentEntry['payments'][number] => !!payment),
+        });
+      });
+    };
+
+    classrooms.forEach(addCurrentClassroom);
+    runs.forEach(addRunSnapshot);
+
+    requiredOptional.requiredOutstanding = Math.max(
+      requiredOptional.requiredExpected - requiredOptional.requiredCollected,
+      0
+    );
+    requiredOptional.optionalOutstanding = Math.max(
+      requiredOptional.optionalExpected - requiredOptional.optionalCollected,
+      0
+    );
+
+    totals.outstanding = Math.max(totals.expected - totals.collected, 0);
+
+    totals.uniqueStudents = uniqueStudents.size;
+    totals.collectionRate = totals.expected > 0 ? (totals.collected / totals.expected) * 100 : 0;
+    totals.averageExpectedPerEnrollment =
+      totals.totalEnrollments > 0 ? totals.expected / totals.totalEnrollments : 0;
+    totals.averageCollectedPerEnrollment =
+      totals.totalEnrollments > 0 ? totals.collected / totals.totalEnrollments : 0;
+    totals.averageOutstandingPerEnrollment =
+      totals.totalEnrollments > 0 ? totals.outstanding / totals.totalEnrollments : 0;
+    totals.averageExpectedPerUniqueStudent =
+      totals.uniqueStudents > 0 ? totals.expected / totals.uniqueStudents : 0;
+    totals.averageCollectedPerUniqueStudent =
+      totals.uniqueStudents > 0 ? totals.collected / totals.uniqueStudents : 0;
+    totals.averageOutstandingPerUniqueStudent =
+      totals.uniqueStudents > 0 ? totals.outstanding / totals.uniqueStudents : 0;
+
+    const byProgram = Array.from(byProgramMap.values())
+      .map((entry) => ({
+        programId: entry.programId,
+        programName: entry.programName,
+        expected: entry.expected,
+        collected: entry.collected,
+        outstanding: entry.outstanding,
+        collectionRate: entry.expected > 0 ? (entry.collected / entry.expected) * 100 : 0,
+        enrollmentCount: entry.enrollmentCount,
+        uniqueStudentCount: entry.uniqueStudents.size,
+      }))
+      .sort((a, b) => b.expected - a.expected);
+
+    const byClassroom = Array.from(byClassroomMap.values())
+      .map((entry) => ({
+        classroomId: entry.classroomId,
+        classroomName: entry.classroomName,
+        programId: entry.programId,
+        programName: entry.programName,
+        expected: entry.expected,
+        collected: entry.collected,
+        outstanding: entry.outstanding,
+        collectionRate: entry.expected > 0 ? (entry.collected / entry.expected) * 100 : 0,
+        studentCount: entry.studentCount,
+      }))
+      .sort((a, b) => b.expected - a.expected);
+
+    const byStudent = Array.from(byStudentMap.values())
+      .map((entry) => ({
+        studentId: entry.studentId,
+        studentName: entry.studentName,
+        expected: entry.expected,
+        collected: entry.collected,
+        outstanding: entry.outstanding,
+        collectionRate: entry.expected > 0 ? (entry.collected / entry.expected) * 100 : 0,
+        enrollmentCount: entry.enrollmentCount,
+      }))
+      .sort((a, b) => b.outstanding - a.outstanding);
+
+    const byMethod = Array.from(methodMap.values()).sort((a, b) => b.amount - a.amount);
+
+    const monthly = Array.from(monthlyMap.entries())
+      .map(([month, values]) => ({
+        month,
+        expected: values.expected,
+        collected: values.collected,
+        outstanding: Math.max(values.expected - values.collected, 0),
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
 
     return {
-      totalMaterialRevenue,
-      revenueByProgram,
-      revenueByClassroom: revenueByClassroom.filter((c) => c.revenue > 0),
-      averageCostPerStudent,
+      totals,
+      byProgram,
+      byClassroom,
+      byStudent,
+      byMethod,
+      requiredOptional,
+      monthly,
+      enrollments,
     };
   }
 
@@ -479,12 +993,12 @@ export class StatisticsService {
       classroomRuns.set(r.classroomId, existing);
     });
 
-    const runComparisons = Array.from(classroomRuns.entries()).map(([classroomId, cruns]) => ({
-      classroomId,
-      classroomName: cruns[0]?.classroomName || classroomId,
-      runs: cruns
-        .sort((a, b) => a.runNumber - b.runNumber)
-        .map((r) => ({
+    const runComparisons = Array.from(classroomRuns.entries()).map(([classroomId, cruns]) => {
+      const sortedRuns = [...cruns].sort((a, b) => a.runNumber - b.runNumber);
+      return {
+        classroomId,
+        classroomName: cruns[0]?.classroomName || classroomId,
+        runs: sortedRuns.map((r) => ({
           runNumber: r.runNumber,
           averageGrade: r.statistics.averageGrade,
           passRate: r.statistics.passRate,
@@ -493,7 +1007,8 @@ export class StatisticsService {
           startDate: r.startDate,
           endDate: r.endDate,
         })),
-    }));
+      };
+    });
 
     const allGrades = runs.map((r) => r.statistics.averageGrade).filter((g) => g > 0);
     const averageRunGrade = allGrades.length > 0 ? allGrades.reduce((s, g) => s + g, 0) / allGrades.length : 0;

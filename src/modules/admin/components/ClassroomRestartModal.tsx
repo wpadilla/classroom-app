@@ -26,8 +26,13 @@ import {
 } from 'reactstrap';
 import { ClassroomService } from '../../../services/classroom/classroom.service';
 import { ClassroomRestartService } from '../../../services/classroom/classroom-restart.service';
-import { IClassroom, IClassroomRun } from '../../../models';
+import { PaymentService } from '../../../services/payment/payment.service';
+import { IClassroom, IClassroomRun, IClassroomPaymentsSnapshot } from '../../../models';
 import { useAuth } from '../../../contexts/AuthContext';
+import {
+  buildPaymentsSnapshotSummary,
+  formatCurrency,
+} from '../../../utils/paymentSnapshotUtils';
 
 interface ClassroomRestartModalProps {
   isOpen: boolean;
@@ -56,6 +61,9 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
   const [notes, setNotes] = useState('');
   const [processMessage, setProcessMessage] = useState('');
   const [nextRunNumber, setNextRunNumber] = useState(1);
+  const [paymentsSnapshot, setPaymentsSnapshot] = useState<IClassroomPaymentsSnapshot | null>(null);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && classroom) {
@@ -72,6 +80,9 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
     setNotes('');
     setProcessMessage('');
     setNextRunNumber(1);
+    setPaymentsSnapshot(null);
+    setPaymentsLoading(false);
+    setPaymentsError(null);
   };
 
   const validateAndLoadHistory = async () => {
@@ -90,12 +101,29 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
       setRuns(classroomRuns);
       setNextRunNumber(classroomRuns.length + 1);
 
+      await loadPaymentsSnapshot(classroom.id);
+
       setState(validationResult.isValid ? 'ready' : 'initial');
       setProcessMessage('');
     } catch (error) {
       console.error('Error validating:', error);
       setState('error');
       setProcessMessage('Error al validar el reinicio');
+    }
+  };
+
+  const loadPaymentsSnapshot = async (classroomId: string) => {
+    setPaymentsLoading(true);
+    setPaymentsError(null);
+    try {
+      const snapshot = await PaymentService.getClassroomPaymentsSnapshot(classroomId);
+      setPaymentsSnapshot(snapshot);
+    } catch (error) {
+      console.error('Error loading payments snapshot:', error);
+      setPaymentsError('No se pudieron cargar los datos de pagos');
+      setPaymentsSnapshot(null);
+    } finally {
+      setPaymentsLoading(false);
     }
   };
 
@@ -297,6 +325,104 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
                 El historial completo se preservará en: <strong>Ejecución #{nextRunNumber}</strong>
               </p>
             </Alert>
+
+            <Card className="mb-3">
+              <CardBody>
+                <h6 className="mb-2">Resumen de Pagos que se Guardará</h6>
+                {paymentsLoading && (
+                  <Alert color="info" className="mb-0">
+                    <Spinner size="sm" className="me-2" />
+                    Cargando resumen de pagos...
+                  </Alert>
+                )}
+                {!paymentsLoading && paymentsError && (
+                  <Alert color="warning" className="mb-0">
+                    <i className="bi bi-exclamation-triangle me-2"></i>
+                    {paymentsError}
+                  </Alert>
+                )}
+                {!paymentsLoading && !paymentsError && !paymentsSnapshot && (
+                  <Alert color="info" className="mb-0">
+                    <i className="bi bi-info-circle me-2"></i>
+                    No hay información de pagos para esta clase.
+                  </Alert>
+                )}
+                {!paymentsLoading && paymentsSnapshot && (
+                  (() => {
+                    const studentCount = classroom.studentIds?.length || 0;
+                    const summary = buildPaymentsSnapshotSummary(
+                      paymentsSnapshot,
+                      classroom.studentIds || []
+                    );
+                    return paymentsSnapshot.costs.length === 0 ? (
+                      <Alert color="info" className="mb-0">
+                        <i className="bi bi-info-circle me-2"></i>
+                        No se registraron costos en esta clase.
+                      </Alert>
+                    ) : (
+                      <Row className="g-3">
+                        <Col md={3}>
+                          <Card className="text-center bg-light">
+                            <CardBody>
+                              <h6 className="mb-0 text-primary">
+                                {formatCurrency(summary.totalDuePerStudent)}
+                              </h6>
+                              <small className="text-muted">Adeudado por Estudiante</small>
+                            </CardBody>
+                          </Card>
+                        </Col>
+                        <Col md={3}>
+                          <Card className="text-center bg-light">
+                            <CardBody>
+                              <h6 className="mb-0 text-primary">
+                                {formatCurrency(summary.totalDue)}
+                              </h6>
+                              <small className="text-muted">
+                                Adeudado Total ({studentCount} estudiantes)
+                              </small>
+                            </CardBody>
+                          </Card>
+                        </Col>
+                        <Col md={3}>
+                          <Card className="text-center bg-light">
+                            <CardBody>
+                              <h6 className="mb-0 text-success">
+                                {formatCurrency(summary.totalPaid)}
+                              </h6>
+                              <small className="text-muted">Pagado Total</small>
+                            </CardBody>
+                          </Card>
+                        </Col>
+                        <Col md={3}>
+                          <Card className="text-center bg-light">
+                            <CardBody>
+                              <h6 className="mb-0 text-danger">
+                                {formatCurrency(summary.balance)}
+                              </h6>
+                              <small className="text-muted">Saldo Total</small>
+                            </CardBody>
+                          </Card>
+                        </Col>
+                        <Col md={12}>
+                          <div className="d-flex flex-wrap gap-2">
+                            <Badge color="success">Pagados: {summary.statusCounts.paid}</Badge>
+                            <Badge color="warning">Pendientes: {summary.statusCounts.pending}</Badge>
+                            <Badge color="danger">No pagados: {summary.statusCounts.unpaid}</Badge>
+                          </div>
+                        </Col>
+                        <Col md={12}>
+                          <Alert color="warning" className="mb-0">
+                            <i className="bi bi-exclamation-triangle me-2"></i>
+                            Este resumen se guardará como parte de la ejecución #{nextRunNumber}.
+                            Los pagos quedarán como referencia histórica.
+                          </Alert>
+                        </Col>
+                      </Row>
+                    );
+                  })()
+                )}
+              </CardBody>
+            </Card>
 
             <FormGroup>
               <Label for="restartNotes">

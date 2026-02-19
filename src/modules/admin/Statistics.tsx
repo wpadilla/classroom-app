@@ -60,6 +60,8 @@ const Statistics: React.FC = () => {
     loadData();
   }, []);
 
+  console.log('Statistics data financial:', data?.financial);
+
   if (loading) {
     return (
       <Container className="py-5 text-center">

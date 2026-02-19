@@ -1,0 +1,3533 @@
+{
+    "totals": {
+        "expected": 35650,
+        "collected": 4200,
+        "outstanding": 31450,
+        "collectionRate": 11.781206171107995,
+        "totalEnrollments": 127,
+        "uniqueStudents": 118,
+        "averageExpectedPerEnrollment": 280.70866141732284,
+        "averageCollectedPerEnrollment": 33.07086614173228,
+        "averageOutstandingPerEnrollment": 247.63779527559055,
+        "averageExpectedPerUniqueStudent": 302.1186440677966,
+        "averageCollectedPerUniqueStudent": 35.59322033898305,
+        "averageOutstandingPerUniqueStudent": 266.52542372881356
+    },
+    "byProgram": [
+        {
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 35650,
+            "collected": 4200,
+            "outstanding": 31450,
+            "collectionRate": 11.781206171107995,
+            "enrollmentCount": 114,
+            "uniqueStudentCount": 105
+        },
+        {
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 13,
+            "uniqueStudentCount": 13
+        }
+    ],
+    "byClassroom": [
+        {
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 35650,
+            "collected": 4200,
+            "outstanding": 31450,
+            "collectionRate": 11.781206171107995,
+            "studentCount": 23
+        },
+        {
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 13
+        },
+        {
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 17
+        },
+        {
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 8
+        },
+        {
+            "classroomId": "wu4hsyQFQCCAMuZPpiRe",
+            "classroomName": "Taller de Predicación - Taller de Predicación",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 6
+        },
+        {
+            "classroomId": "IWlmb8sqePJ3JyRioHZ9",
+            "classroomName": "Educación Financiera - Educación Financiera",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 0
+        },
+        {
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 12
+        },
+        {
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 7
+        },
+        {
+            "classroomId": "AtHLleJs1XXxfnI717Pz",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 4 - Compendio de Teologia pastoral SEAN Nivel 4",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 4
+        },
+        {
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 14
+        },
+        {
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 13
+        },
+        {
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "studentCount": 10
+        }
+    ],
+    "byStudent": [
+        {
+            "studentId": "mjI9UK37g6fcW6xyl8n8",
+            "studentName": "Emelin valdez frias",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 2
+        },
+        {
+            "studentId": "VPIGuzIfT86cpNt4ohDj",
+            "studentName": "Emelyn Mendez",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "uanZDHtlAGEZqsOJwy75",
+            "studentName": "Estudiante Nuevo",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "HUrnex6n2vTnGqy7dgTf",
+            "studentName": "Eladio Corniel",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "1qhqRcTFB9WxKcXjJMUE",
+            "studentName": "Genesis Hernandez",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "YAnjErjtoXbXo2XYOn2w",
+            "studentName": "Juan Miguel Polancol",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "xHLF4PZOxxAiHP1CfsSo",
+            "studentName": "Alanny Michel",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "YFWGT5pDFaqDECs6fIM3",
+            "studentName": "Israel Marte Frias",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "F4rqVjpweHoSTxpllmQe",
+            "studentName": "Melvin Muñoz",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "hGxdKJ0Lkf7NZMF7SuFc",
+            "studentName": "Abdiel  Ferrer",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "0RiD3cyzlcOKsddSnbeL",
+            "studentName": "Nicole Polanco",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "nOLMaUVC2x8wmt92XzAR",
+            "studentName": "Ana Gabriela Mateo",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "s5ly40yPrQd69rhYUki7",
+            "studentName": "Jayko .",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "NAFc7qdLmj0WnyWCuP82",
+            "studentName": "Adriana .",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "ER7Hr3OzCAho6dsZezlW",
+            "studentName": "Zurisadai .",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "DGFqvXyL1P6gfBqbCkaV",
+            "studentName": "Monica .",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "JmDuF70YkPSWeivX7B5N",
+            "studentName": "Rubi .",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "1vadVxFi5LcfqHlo3O9K",
+            "studentName": "Smailin Marte",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "n1tZwlP45aEYXS2o6vwQ",
+            "studentName": "Alexa Peña Moncada",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "fUm0FRdRA9vZl1Jp60Lp",
+            "studentName": "Debora Henriquez",
+            "expected": 1550,
+            "collected": 0,
+            "outstanding": 1550,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "rFv6vlYAd52nNGaNQkPj",
+            "studentName": "Juan Miguel Polanco Paulino",
+            "expected": 1550,
+            "collected": 1150,
+            "outstanding": 400,
+            "collectionRate": 74.19354838709677,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "WgyxREO968aBgmGUII8I",
+            "studentName": "Altagracia Reyes infante",
+            "expected": 1550,
+            "collected": 1500,
+            "outstanding": 50,
+            "collectionRate": 96.7741935483871,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "Yx9WGF63wSPgMQRTCi8k",
+            "studentName": "Wilber Padilla",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "DPABrK8uNFdtnWviYfqt",
+            "studentName": "Nohemi Heredia",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "tiWHT3eGharUT0LMAriy",
+            "studentName": "Aracelis Brea",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "gL3ggmfNE7OXw4o9TQ6A",
+            "studentName": "Natalia Pimentel Figuereo",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "gsWRybqve3DhDQjN8DBj",
+            "studentName": "Cruz María  Espiritusanto Encarnación ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "zH0cawfMbMU5IZIIGiuJ",
+            "studentName": "Sthalin Gerónimo",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "E8kyWKcLGLXM7wnWAfl7",
+            "studentName": "Nelson Yeuri Javier Peña ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "c9esNKdLNNqq51qxP1v3",
+            "studentName": "Kenia Yulisa Nina Díaz ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "fbDyM7TGoAUkKgfCdPy1",
+            "studentName": "Vanessa Fernanda Rodriguez Alcántara",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "H0tvvll5BM40nr3In5t7",
+            "studentName": "Ancerma Mariel Guzmán",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "gXXT7EOA6gvRZUlgNwYT",
+            "studentName": "Ysaila Carolay Fermín Guzmán ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "EJZX6AR1FdNwMosRYIUg",
+            "studentName": "Besabeth Dayanara  Medina Perdomo ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "5ervAj5PJ2MlJD9KH77C",
+            "studentName": "Gregori Robles Ramirez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "x3XpjoBKEHED6W4e1PnH",
+            "studentName": "Melkys Anneris Feliz Suero",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "ysmnZAPYj9Ws9dZiopEl",
+            "studentName": "Madelyne Peralta",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "TgOuSdY8kOweR3ijFVko",
+            "studentName": "Charlotte J. Lebron Peralta",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "5gG5HkWXKgFHzxO5ailB",
+            "studentName": "María Fernanda Séptimo Gómez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "jmRG0oiixZnydOfSHtd5",
+            "studentName": "Alexandra Cabrera",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "6kZM5bq8aACcCLcVzGvi",
+            "studentName": "Yunelky Guillot Holguin",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "oROFfrSsaRaSCEBW0FBH",
+            "studentName": "Pedro J. López",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "50upBsGiyMGroKJBCq1f",
+            "studentName": "Sherlyne De Los Santos Peralta",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "imZTXcdeJSqjEDtIQqgx",
+            "studentName": "Albert Berliza",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "kK7NjffhUpuWc0dneu9n",
+            "studentName": "Aileen Genesis Vasquez Ventura",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "lT9K00KHPU8j2uI67OBW",
+            "studentName": "Minerva De Los santos.",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "EKUvPxNkTKSpCbtChv1H",
+            "studentName": "Rosalba Liriano",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 2
+        },
+        {
+            "studentId": "aW87WBLtLBVg9nJ9zgFZ",
+            "studentName": "Sory de la Rosa",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "",
+            "studentName": "Desconocido",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 5
+        },
+        {
+            "studentId": "UOggzZT6Nbepf27Vx4Q4",
+            "studentName": "David ogando frometa",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "axkugNbc3z8fVipZBJnY",
+            "studentName": "Rubenny Patricia Disla",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "ItrKisNJdnhZcn7oECgj",
+            "studentName": "Jorge Luis Ramos",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "PdYpaX2PWMChJ5pwaucQ",
+            "studentName": "Lourdes María Liriano",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 2
+        },
+        {
+            "studentId": "qhJKlXZ9Z9HNflwdqXN8",
+            "studentName": "Jorge Luis Ramos",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "PGjLVcu5UyYNi4b3j1Tv",
+            "studentName": "Anderson Montero De Los Santos",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "nXY7zvwNtuU5Wxi3UHFp",
+            "studentName": "Angela Torres",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "TOy0VGmbAzbqIRTlTuCl",
+            "studentName": "Evelyn del Carmen Vasquez Diaz",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "5UwTSh8PqBqEBIjrIfHx",
+            "studentName": "Carmen Grecia",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "s0fqkaN4JHKYh3CJH5SL",
+            "studentName": "Dary Perdomo",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "OkbqfdIynm49wPzCRpXS",
+            "studentName": "Milagros Medina",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "vmhjFl72K0X8rBeh6hES",
+            "studentName": "Ronny Enrique peña Santos",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "BfsiJXziQecfWZVymQqk",
+            "studentName": "Lic. Yamilka Vallejo Rivera",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "asG85W1825HuPHgPtTSP",
+            "studentName": "Aideé Pérez Mateo",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "OB0mczdkqwxNbLAIOdzF",
+            "studentName": "Alexi Hernandez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "GuGTCc2zGPyO0Ubsg83y",
+            "studentName": "Sahira Reyes",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "eXwHiVaZyhkMJPDLVA9X",
+            "studentName": "Santa Monica Jimenez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "VfgboLH3yBpmyX7mSrjx",
+            "studentName": "Andreina Batista Ventura",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "OdTf9lvuRgXtmnI9gODK",
+            "studentName": "José Perez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "e6RPIJrqj4cm2d3b7hml",
+            "studentName": "Marisol Perez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "ZRU4HI6pEwzOPA8lhqG5",
+            "studentName": "Noelia Peña",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 2
+        },
+        {
+            "studentId": "2JygB4RVANUVvZHk8O6J",
+            "studentName": "Johanni Cruceta",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "6GjqCSbRoyUApFerCWVA",
+            "studentName": "María Josefina Suero Feliz",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "5LVpXP1rLrjLdfzO8maa",
+            "studentName": "Fabian Castillo",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "6wxKBhiEFGDl3Sp5JNUu",
+            "studentName": "Steicy Castillo",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "m2EoytRIRvDQh3okk56C",
+            "studentName": "Lic. Luz Peña",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "zqlMVt3VWYSAkwgMsME9",
+            "studentName": "Maribel frometa",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "xl73jnYQmdf4N8igYqHg",
+            "studentName": "Yerelin Arias",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "HaUZOmcGSFw6BUBYtVql",
+            "studentName": "Jemmy princessa",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "CzE09SYrq1y5UIsRSpSS",
+            "studentName": "Vickiana Elvera",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "9wEFJjVzAz3RQoVbwSpb",
+            "studentName": "Virlene Elvera",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "yeavCYn2ZCXw8sjzIvGf",
+            "studentName": "Emely Columna",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "r4Wb0Tc6tnDxtaZgQFZu",
+            "studentName": "Pamela Suero",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "s5kncRSZJyvFgLYN037n",
+            "studentName": "Ramón de la cruz",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "0bOS5hKTPMVmKGXi6gud",
+            "studentName": "Félix Manuel De La Rosa rosa",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "AuseXnBAewyHv5Erf7B8",
+            "studentName": "SOLAINY ELIZABETH ORTIZ MATOS",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 2
+        },
+        {
+            "studentId": "SKcQzVH7SiY3r78ofpxW",
+            "studentName": "Carlos Manuel Mora cuello",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "LYUqsw3OwK2rbyiNF6gF",
+            "studentName": "Pablo Moya",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "byGHtkQjhvUD9WP4U0Gm",
+            "studentName": "Francia Esther Ferrer Saldaña",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "P0TyPY6CsgkgpWT9Nyto",
+            "studentName": "Veronica Rodriguez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "2N4SsPnOjDNYIY0KMYY5",
+            "studentName": "Josué Augusto Puntiel Mena",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "ZIYloB0lDcLoU94FX1Ah",
+            "studentName": "Daneisis Nicol Jacobs Peralta",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "xJmbcxp6HeXlwp7sRqkJ",
+            "studentName": "Freddy Alexander Félix Adames",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "Km9bR0NXTeGm9bEAuOFF",
+            "studentName": "Yenifer jose",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "oZpgo43kBAQChs3DsWIi",
+            "studentName": "Braudy Méndez Trinidad",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "vomnJbWQmN1vnbHYjbcV",
+            "studentName": "Mary jimenez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "N1OlsbulaznO5GqWCESd",
+            "studentName": "FRANKLIN CANDELARIO",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "04n6qtXnyXDhqAUXPE1H",
+            "studentName": "Ricardo Marte",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "CeHXpjfQE1rIf98KENi1",
+            "studentName": "Asistente Biblico",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "8sl7BZZiPD2B4i674xYB",
+            "studentName": "Eridania jacinto",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "bcG8ZTbow1EYneTRY72y",
+            "studentName": "Rony Américo Pérez peña",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "rmWkYpIWoClvNFEyO2kB",
+            "studentName": "Aniuberca Bonilla",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "wFb1phAmZP5SgLd0Ee7h",
+            "studentName": "Ysabel Morillo Cruz",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "aLvXa3WbaWUiXfgIaHyG",
+            "studentName": "Evelyn Y. Terrero Santana",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "KSwtlVloCzZJgQab0HXO",
+            "studentName": "Sergio  Tejeda",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "4bqcEcR0SNrCVZlAMbSY",
+            "studentName": "Maris  Ovalle ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "XDomLdv7RLVSug1JYJyu",
+            "studentName": "Gabriela  Holguín ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "Fi487EEQpZmujqIN5Bst",
+            "studentName": "José  Montero ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "yhzNauYNGjnwEPyFLrOh",
+            "studentName": "Argentina  Jacinto ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "wAD94QhDdJPXOCrxmY6k",
+            "studentName": "Erika  Sánchez ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "Mt3iPUeufrYemV7XDvBt",
+            "studentName": "Yirardy  Adames ",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "lOVyLW8QVyTMJcn9HJAK",
+            "studentName": "Lic. Loida Saldaña",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "kbQmJtXb03xafUohpFwV",
+            "studentName": "Felicia Rodriguez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "JNYMZFP06swJFzi4o7p4",
+            "studentName": "Ambiorix de Jesús Regalado",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "5dvFiWHytAcBirScMuz9",
+            "studentName": "Wanda Yadira Espinal colòn",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "gHBozqqiCVMQ3gFvXmfh",
+            "studentName": "Eberli Benjamin Dalmasi Pérez",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "w1s28gu8tJb1Tq1xrvfF",
+            "studentName": "Geri Cuevas",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "yu78WBDXaUAGAjKKdsKW",
+            "studentName": "Marisol Guerrero",
+            "expected": 0,
+            "collected": 0,
+            "outstanding": 0,
+            "collectionRate": 0,
+            "enrollmentCount": 1
+        },
+        {
+            "studentId": "SOkGPAU59It4mrCLABWn",
+            "studentName": "José de León tejada",
+            "expected": 1550,
+            "collected": 1550,
+            "outstanding": 0,
+            "collectionRate": 100,
+            "enrollmentCount": 1
+        }
+    ],
+    "byMethod": [
+        {
+            "method": "cash",
+            "amount": 2550,
+            "count": 3
+        },
+        {
+            "method": "transfer",
+            "amount": 1650,
+            "count": 2
+        }
+    ],
+    "requiredOptional": {
+        "requiredExpected": 28750,
+        "requiredCollected": 3177.4193548387098,
+        "requiredOutstanding": 25572.58064516129,
+        "optionalExpected": 6900,
+        "optionalCollected": 1022.5806451612902,
+        "optionalOutstanding": 5877.41935483871,
+        "unassignedCollected": 0
+    },
+    "monthly": [],
+    "enrollments": [
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:Yx9WGF63wSPgMQRTCi8k",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "Yx9WGF63wSPgMQRTCi8k",
+            "studentName": "Wilber Padilla",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:DPABrK8uNFdtnWviYfqt",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "DPABrK8uNFdtnWviYfqt",
+            "studentName": "Nohemi Heredia",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:tiWHT3eGharUT0LMAriy",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "tiWHT3eGharUT0LMAriy",
+            "studentName": "Aracelis Brea",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:gL3ggmfNE7OXw4o9TQ6A",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "gL3ggmfNE7OXw4o9TQ6A",
+            "studentName": "Natalia Pimentel Figuereo",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:gsWRybqve3DhDQjN8DBj",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "gsWRybqve3DhDQjN8DBj",
+            "studentName": "Cruz María  Espiritusanto Encarnación ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:zH0cawfMbMU5IZIIGiuJ",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "zH0cawfMbMU5IZIIGiuJ",
+            "studentName": "Sthalin Gerónimo",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:E8kyWKcLGLXM7wnWAfl7",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "E8kyWKcLGLXM7wnWAfl7",
+            "studentName": "Nelson Yeuri Javier Peña ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:c9esNKdLNNqq51qxP1v3",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "c9esNKdLNNqq51qxP1v3",
+            "studentName": "Kenia Yulisa Nina Díaz ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:fbDyM7TGoAUkKgfCdPy1",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "fbDyM7TGoAUkKgfCdPy1",
+            "studentName": "Vanessa Fernanda Rodriguez Alcántara",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:H0tvvll5BM40nr3In5t7",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "H0tvvll5BM40nr3In5t7",
+            "studentName": "Ancerma Mariel Guzmán",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:gXXT7EOA6gvRZUlgNwYT",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "gXXT7EOA6gvRZUlgNwYT",
+            "studentName": "Ysaila Carolay Fermín Guzmán ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:EJZX6AR1FdNwMosRYIUg",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "EJZX6AR1FdNwMosRYIUg",
+            "studentName": "Besabeth Dayanara  Medina Perdomo ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:XlqwWFanF8p3TDZRgcf9:5ervAj5PJ2MlJD9KH77C",
+            "source": "current",
+            "classroomId": "XlqwWFanF8p3TDZRgcf9",
+            "classroomName": "Historia de la Iglesia - Historia de la Iglesia",
+            "programId": "Dn9howqvaV2aJ5sq5mOD",
+            "programName": "Instituto Biblico Oasis de Amor",
+            "studentId": "5ervAj5PJ2MlJD9KH77C",
+            "studentName": "Gregori Robles Ramirez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:x3XpjoBKEHED6W4e1PnH",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "x3XpjoBKEHED6W4e1PnH",
+            "studentName": "Melkys Anneris Feliz Suero",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:ysmnZAPYj9Ws9dZiopEl",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "ysmnZAPYj9Ws9dZiopEl",
+            "studentName": "Madelyne Peralta",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:TgOuSdY8kOweR3ijFVko",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "TgOuSdY8kOweR3ijFVko",
+            "studentName": "Charlotte J. Lebron Peralta",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:5gG5HkWXKgFHzxO5ailB",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "5gG5HkWXKgFHzxO5ailB",
+            "studentName": "María Fernanda Séptimo Gómez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:jmRG0oiixZnydOfSHtd5",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "jmRG0oiixZnydOfSHtd5",
+            "studentName": "Alexandra Cabrera",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:6kZM5bq8aACcCLcVzGvi",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "6kZM5bq8aACcCLcVzGvi",
+            "studentName": "Yunelky Guillot Holguin",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:mjI9UK37g6fcW6xyl8n8",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "mjI9UK37g6fcW6xyl8n8",
+            "studentName": "Emelin valdez frias",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:oROFfrSsaRaSCEBW0FBH",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "oROFfrSsaRaSCEBW0FBH",
+            "studentName": "Pedro J. López",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:50upBsGiyMGroKJBCq1f",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "50upBsGiyMGroKJBCq1f",
+            "studentName": "Sherlyne De Los Santos Peralta",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:imZTXcdeJSqjEDtIQqgx",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "imZTXcdeJSqjEDtIQqgx",
+            "studentName": "Albert Berliza",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:kK7NjffhUpuWc0dneu9n",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "kK7NjffhUpuWc0dneu9n",
+            "studentName": "Aileen Genesis Vasquez Ventura",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:lT9K00KHPU8j2uI67OBW",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "lT9K00KHPU8j2uI67OBW",
+            "studentName": "Minerva De Los santos.",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:EKUvPxNkTKSpCbtChv1H",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "EKUvPxNkTKSpCbtChv1H",
+            "studentName": "Rosalba Liriano",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:aW87WBLtLBVg9nJ9zgFZ",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "aW87WBLtLBVg9nJ9zgFZ",
+            "studentName": "Sory de la Rosa",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "",
+            "studentName": "Desconocido",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:UOggzZT6Nbepf27Vx4Q4",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "UOggzZT6Nbepf27Vx4Q4",
+            "studentName": "David ogando frometa",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:MwrLpEpz9ad4hmZPZpi7:axkugNbc3z8fVipZBJnY",
+            "source": "current",
+            "classroomId": "MwrLpEpz9ad4hmZPZpi7",
+            "classroomName": "Taller de Sanidad Interior - Taller de Sanidad Interior",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "axkugNbc3z8fVipZBJnY",
+            "studentName": "Rubenny Patricia Disla",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:ItrKisNJdnhZcn7oECgj",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "ItrKisNJdnhZcn7oECgj",
+            "studentName": "Jorge Luis Ramos",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:PdYpaX2PWMChJ5pwaucQ",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "PdYpaX2PWMChJ5pwaucQ",
+            "studentName": "Lourdes María Liriano",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:qhJKlXZ9Z9HNflwdqXN8",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "qhJKlXZ9Z9HNflwdqXN8",
+            "studentName": "Jorge Luis Ramos",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:PGjLVcu5UyYNi4b3j1Tv",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "PGjLVcu5UyYNi4b3j1Tv",
+            "studentName": "Anderson Montero De Los Santos",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:nXY7zvwNtuU5Wxi3UHFp",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "nXY7zvwNtuU5Wxi3UHFp",
+            "studentName": "Angela Torres",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:TOy0VGmbAzbqIRTlTuCl",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "TOy0VGmbAzbqIRTlTuCl",
+            "studentName": "Evelyn del Carmen Vasquez Diaz",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:5UwTSh8PqBqEBIjrIfHx",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "5UwTSh8PqBqEBIjrIfHx",
+            "studentName": "Carmen Grecia",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:uRwrOfNf139LftzigHN7:s0fqkaN4JHKYh3CJH5SL",
+            "source": "current",
+            "classroomId": "uRwrOfNf139LftzigHN7",
+            "classroomName": "Libro Especial - Libro Especial",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "s0fqkaN4JHKYh3CJH5SL",
+            "studentName": "Dary Perdomo",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:wu4hsyQFQCCAMuZPpiRe:OkbqfdIynm49wPzCRpXS",
+            "source": "current",
+            "classroomId": "wu4hsyQFQCCAMuZPpiRe",
+            "classroomName": "Taller de Predicación - Taller de Predicación",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "OkbqfdIynm49wPzCRpXS",
+            "studentName": "Milagros Medina",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:wu4hsyQFQCCAMuZPpiRe:vmhjFl72K0X8rBeh6hES",
+            "source": "current",
+            "classroomId": "wu4hsyQFQCCAMuZPpiRe",
+            "classroomName": "Taller de Predicación - Taller de Predicación",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "vmhjFl72K0X8rBeh6hES",
+            "studentName": "Ronny Enrique peña Santos",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:wu4hsyQFQCCAMuZPpiRe:BfsiJXziQecfWZVymQqk",
+            "source": "current",
+            "classroomId": "wu4hsyQFQCCAMuZPpiRe",
+            "classroomName": "Taller de Predicación - Taller de Predicación",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "BfsiJXziQecfWZVymQqk",
+            "studentName": "Lic. Yamilka Vallejo Rivera",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:wu4hsyQFQCCAMuZPpiRe:asG85W1825HuPHgPtTSP",
+            "source": "current",
+            "classroomId": "wu4hsyQFQCCAMuZPpiRe",
+            "classroomName": "Taller de Predicación - Taller de Predicación",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "asG85W1825HuPHgPtTSP",
+            "studentName": "Aideé Pérez Mateo",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:wu4hsyQFQCCAMuZPpiRe:",
+            "source": "current",
+            "classroomId": "wu4hsyQFQCCAMuZPpiRe",
+            "classroomName": "Taller de Predicación - Taller de Predicación",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "",
+            "studentName": "Desconocido",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:wu4hsyQFQCCAMuZPpiRe:OB0mczdkqwxNbLAIOdzF",
+            "source": "current",
+            "classroomId": "wu4hsyQFQCCAMuZPpiRe",
+            "classroomName": "Taller de Predicación - Taller de Predicación",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "OB0mczdkqwxNbLAIOdzF",
+            "studentName": "Alexi Hernandez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:GuGTCc2zGPyO0Ubsg83y",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "GuGTCc2zGPyO0Ubsg83y",
+            "studentName": "Sahira Reyes",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "",
+            "studentName": "Desconocido",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:eXwHiVaZyhkMJPDLVA9X",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "eXwHiVaZyhkMJPDLVA9X",
+            "studentName": "Santa Monica Jimenez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:VfgboLH3yBpmyX7mSrjx",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "VfgboLH3yBpmyX7mSrjx",
+            "studentName": "Andreina Batista Ventura",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:OdTf9lvuRgXtmnI9gODK",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "OdTf9lvuRgXtmnI9gODK",
+            "studentName": "José Perez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:e6RPIJrqj4cm2d3b7hml",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "e6RPIJrqj4cm2d3b7hml",
+            "studentName": "Marisol Perez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:ZRU4HI6pEwzOPA8lhqG5",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "ZRU4HI6pEwzOPA8lhqG5",
+            "studentName": "Noelia Peña",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:2JygB4RVANUVvZHk8O6J",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "2JygB4RVANUVvZHk8O6J",
+            "studentName": "Johanni Cruceta",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:6GjqCSbRoyUApFerCWVA",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "6GjqCSbRoyUApFerCWVA",
+            "studentName": "María Josefina Suero Feliz",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:5LVpXP1rLrjLdfzO8maa",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "5LVpXP1rLrjLdfzO8maa",
+            "studentName": "Fabian Castillo",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:6wxKBhiEFGDl3Sp5JNUu",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "6wxKBhiEFGDl3Sp5JNUu",
+            "studentName": "Steicy Castillo",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:JcbuljZLGL7ZBLUBcPxW:m2EoytRIRvDQh3okk56C",
+            "source": "current",
+            "classroomId": "JcbuljZLGL7ZBLUBcPxW",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 6 - Compendio de Teologia pastoral SEAN Nivel 6",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "m2EoytRIRvDQh3okk56C",
+            "studentName": "Lic. Luz Peña",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:nTCp8GNtq4UIp0ht1YH3:ZRU4HI6pEwzOPA8lhqG5",
+            "source": "current",
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "ZRU4HI6pEwzOPA8lhqG5",
+            "studentName": "Noelia Peña",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:nTCp8GNtq4UIp0ht1YH3:zqlMVt3VWYSAkwgMsME9",
+            "source": "current",
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "zqlMVt3VWYSAkwgMsME9",
+            "studentName": "Maribel frometa",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:nTCp8GNtq4UIp0ht1YH3:xl73jnYQmdf4N8igYqHg",
+            "source": "current",
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "xl73jnYQmdf4N8igYqHg",
+            "studentName": "Yerelin Arias",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:nTCp8GNtq4UIp0ht1YH3:HaUZOmcGSFw6BUBYtVql",
+            "source": "current",
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "HaUZOmcGSFw6BUBYtVql",
+            "studentName": "Jemmy princessa",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:nTCp8GNtq4UIp0ht1YH3:CzE09SYrq1y5UIsRSpSS",
+            "source": "current",
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "CzE09SYrq1y5UIsRSpSS",
+            "studentName": "Vickiana Elvera",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:nTCp8GNtq4UIp0ht1YH3:9wEFJjVzAz3RQoVbwSpb",
+            "source": "current",
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "9wEFJjVzAz3RQoVbwSpb",
+            "studentName": "Virlene Elvera",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:nTCp8GNtq4UIp0ht1YH3:yeavCYn2ZCXw8sjzIvGf",
+            "source": "current",
+            "classroomId": "nTCp8GNtq4UIp0ht1YH3",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 5 - Compendio de Teologia pastoral SEAN Nivel 5",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "yeavCYn2ZCXw8sjzIvGf",
+            "studentName": "Emely Columna",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:AtHLleJs1XXxfnI717Pz:r4Wb0Tc6tnDxtaZgQFZu",
+            "source": "current",
+            "classroomId": "AtHLleJs1XXxfnI717Pz",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 4 - Compendio de Teologia pastoral SEAN Nivel 4",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "r4Wb0Tc6tnDxtaZgQFZu",
+            "studentName": "Pamela Suero",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:AtHLleJs1XXxfnI717Pz:s5kncRSZJyvFgLYN037n",
+            "source": "current",
+            "classroomId": "AtHLleJs1XXxfnI717Pz",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 4 - Compendio de Teologia pastoral SEAN Nivel 4",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "s5kncRSZJyvFgLYN037n",
+            "studentName": "Ramón de la cruz",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:AtHLleJs1XXxfnI717Pz:0bOS5hKTPMVmKGXi6gud",
+            "source": "current",
+            "classroomId": "AtHLleJs1XXxfnI717Pz",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 4 - Compendio de Teologia pastoral SEAN Nivel 4",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "0bOS5hKTPMVmKGXi6gud",
+            "studentName": "Félix Manuel De La Rosa rosa",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:AtHLleJs1XXxfnI717Pz:AuseXnBAewyHv5Erf7B8",
+            "source": "current",
+            "classroomId": "AtHLleJs1XXxfnI717Pz",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 4 - Compendio de Teologia pastoral SEAN Nivel 4",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "AuseXnBAewyHv5Erf7B8",
+            "studentName": "SOLAINY ELIZABETH ORTIZ MATOS",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:SKcQzVH7SiY3r78ofpxW",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "SKcQzVH7SiY3r78ofpxW",
+            "studentName": "Carlos Manuel Mora cuello",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:LYUqsw3OwK2rbyiNF6gF",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "LYUqsw3OwK2rbyiNF6gF",
+            "studentName": "Pablo Moya",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:byGHtkQjhvUD9WP4U0Gm",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "byGHtkQjhvUD9WP4U0Gm",
+            "studentName": "Francia Esther Ferrer Saldaña",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:P0TyPY6CsgkgpWT9Nyto",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "P0TyPY6CsgkgpWT9Nyto",
+            "studentName": "Veronica Rodriguez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:2N4SsPnOjDNYIY0KMYY5",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "2N4SsPnOjDNYIY0KMYY5",
+            "studentName": "Josué Augusto Puntiel Mena",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:ZIYloB0lDcLoU94FX1Ah",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "ZIYloB0lDcLoU94FX1Ah",
+            "studentName": "Daneisis Nicol Jacobs Peralta",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:xJmbcxp6HeXlwp7sRqkJ",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "xJmbcxp6HeXlwp7sRqkJ",
+            "studentName": "Freddy Alexander Félix Adames",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "",
+            "studentName": "Desconocido",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:Km9bR0NXTeGm9bEAuOFF",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "Km9bR0NXTeGm9bEAuOFF",
+            "studentName": "Yenifer jose",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:oZpgo43kBAQChs3DsWIi",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "oZpgo43kBAQChs3DsWIi",
+            "studentName": "Braudy Méndez Trinidad",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:vomnJbWQmN1vnbHYjbcV",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "vomnJbWQmN1vnbHYjbcV",
+            "studentName": "Mary jimenez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:N1OlsbulaznO5GqWCESd",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "N1OlsbulaznO5GqWCESd",
+            "studentName": "FRANKLIN CANDELARIO",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:04n6qtXnyXDhqAUXPE1H",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "04n6qtXnyXDhqAUXPE1H",
+            "studentName": "Ricardo Marte",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:CYgv3Ishc6T6rC7jsFbU:CeHXpjfQE1rIf98KENi1",
+            "source": "current",
+            "classroomId": "CYgv3Ishc6T6rC7jsFbU",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 3 - Compendio de Teologia pastoral SEAN Nivel 3",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "CeHXpjfQE1rIf98KENi1",
+            "studentName": "Asistente Biblico",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:8sl7BZZiPD2B4i674xYB",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "8sl7BZZiPD2B4i674xYB",
+            "studentName": "Eridania jacinto",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:bcG8ZTbow1EYneTRY72y",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "bcG8ZTbow1EYneTRY72y",
+            "studentName": "Rony Américo Pérez peña",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:rmWkYpIWoClvNFEyO2kB",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "rmWkYpIWoClvNFEyO2kB",
+            "studentName": "Aniuberca Bonilla",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "",
+            "studentName": "Desconocido",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:wFb1phAmZP5SgLd0Ee7h",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "wFb1phAmZP5SgLd0Ee7h",
+            "studentName": "Ysabel Morillo Cruz",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:aLvXa3WbaWUiXfgIaHyG",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "aLvXa3WbaWUiXfgIaHyG",
+            "studentName": "Evelyn Y. Terrero Santana",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:KSwtlVloCzZJgQab0HXO",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "KSwtlVloCzZJgQab0HXO",
+            "studentName": "Sergio  Tejeda",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:4bqcEcR0SNrCVZlAMbSY",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "4bqcEcR0SNrCVZlAMbSY",
+            "studentName": "Maris  Ovalle ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:XDomLdv7RLVSug1JYJyu",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "XDomLdv7RLVSug1JYJyu",
+            "studentName": "Gabriela  Holguín ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:Fi487EEQpZmujqIN5Bst",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "Fi487EEQpZmujqIN5Bst",
+            "studentName": "José  Montero ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:yhzNauYNGjnwEPyFLrOh",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "yhzNauYNGjnwEPyFLrOh",
+            "studentName": "Argentina  Jacinto ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:wAD94QhDdJPXOCrxmY6k",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "wAD94QhDdJPXOCrxmY6k",
+            "studentName": "Erika  Sánchez ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:De1q0QxwJa3dguelp5LE:Mt3iPUeufrYemV7XDvBt",
+            "source": "current",
+            "classroomId": "De1q0QxwJa3dguelp5LE",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 2 - Compendio de Teologia pastoral SEAN Nivel 2",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "Mt3iPUeufrYemV7XDvBt",
+            "studentName": "Yirardy  Adames ",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:lOVyLW8QVyTMJcn9HJAK",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "lOVyLW8QVyTMJcn9HJAK",
+            "studentName": "Lic. Loida Saldaña",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:AuseXnBAewyHv5Erf7B8",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "AuseXnBAewyHv5Erf7B8",
+            "studentName": "SOLAINY ELIZABETH ORTIZ MATOS",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:kbQmJtXb03xafUohpFwV",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "kbQmJtXb03xafUohpFwV",
+            "studentName": "Felicia Rodriguez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:JNYMZFP06swJFzi4o7p4",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "JNYMZFP06swJFzi4o7p4",
+            "studentName": "Ambiorix de Jesús Regalado",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:5dvFiWHytAcBirScMuz9",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "5dvFiWHytAcBirScMuz9",
+            "studentName": "Wanda Yadira Espinal colòn",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:gHBozqqiCVMQ3gFvXmfh",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "gHBozqqiCVMQ3gFvXmfh",
+            "studentName": "Eberli Benjamin Dalmasi Pérez",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:w1s28gu8tJb1Tq1xrvfF",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "w1s28gu8tJb1Tq1xrvfF",
+            "studentName": "Geri Cuevas",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:PdYpaX2PWMChJ5pwaucQ",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "PdYpaX2PWMChJ5pwaucQ",
+            "studentName": "Lourdes María Liriano",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:EKUvPxNkTKSpCbtChv1H",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "EKUvPxNkTKSpCbtChv1H",
+            "studentName": "Rosalba Liriano",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "current:m7K6M0QusADHQeAYjCih:yu78WBDXaUAGAjKKdsKW",
+            "source": "current",
+            "classroomId": "m7K6M0QusADHQeAYjCih",
+            "classroomName": "Compendio de Teologia Pastoral Nivel 1 - Compendio de Teologia pastoral SEAN Nivel 1",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "yu78WBDXaUAGAjKKdsKW",
+            "studentName": "Marisol Guerrero",
+            "totalDue": 0,
+            "requiredDue": 0,
+            "optionalDue": 0,
+            "costItems": [],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:WgyxREO968aBgmGUII8I",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "WgyxREO968aBgmGUII8I",
+            "studentName": "Altagracia Reyes infante",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:SOkGPAU59It4mrCLABWn",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "SOkGPAU59It4mrCLABWn",
+            "studentName": "José de León tejada",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:rFv6vlYAd52nNGaNQkPj",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "rFv6vlYAd52nNGaNQkPj",
+            "studentName": "Juan Miguel Polanco Paulino",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:VPIGuzIfT86cpNt4ohDj",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "VPIGuzIfT86cpNt4ohDj",
+            "studentName": "Emelyn Mendez",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:uanZDHtlAGEZqsOJwy75",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "uanZDHtlAGEZqsOJwy75",
+            "studentName": "Estudiante Nuevo",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:mjI9UK37g6fcW6xyl8n8",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "mjI9UK37g6fcW6xyl8n8",
+            "studentName": "Emelin valdez frias",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:HUrnex6n2vTnGqy7dgTf",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "HUrnex6n2vTnGqy7dgTf",
+            "studentName": "Eladio Corniel",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:1qhqRcTFB9WxKcXjJMUE",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "1qhqRcTFB9WxKcXjJMUE",
+            "studentName": "Genesis Hernandez",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:YAnjErjtoXbXo2XYOn2w",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "YAnjErjtoXbXo2XYOn2w",
+            "studentName": "Juan Miguel Polancol",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:xHLF4PZOxxAiHP1CfsSo",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "xHLF4PZOxxAiHP1CfsSo",
+            "studentName": "Alanny Michel",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:YFWGT5pDFaqDECs6fIM3",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "YFWGT5pDFaqDECs6fIM3",
+            "studentName": "Israel Marte Frias",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:F4rqVjpweHoSTxpllmQe",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "F4rqVjpweHoSTxpllmQe",
+            "studentName": "Melvin Muñoz",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:hGxdKJ0Lkf7NZMF7SuFc",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "hGxdKJ0Lkf7NZMF7SuFc",
+            "studentName": "Abdiel  Ferrer",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:0RiD3cyzlcOKsddSnbeL",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "0RiD3cyzlcOKsddSnbeL",
+            "studentName": "Nicole Polanco",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:nOLMaUVC2x8wmt92XzAR",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "nOLMaUVC2x8wmt92XzAR",
+            "studentName": "Ana Gabriela Mateo",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:s5ly40yPrQd69rhYUki7",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "s5ly40yPrQd69rhYUki7",
+            "studentName": "Jayko .",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:NAFc7qdLmj0WnyWCuP82",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "NAFc7qdLmj0WnyWCuP82",
+            "studentName": "Adriana .",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:ER7Hr3OzCAho6dsZezlW",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "ER7Hr3OzCAho6dsZezlW",
+            "studentName": "Zurisadai .",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:DGFqvXyL1P6gfBqbCkaV",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "DGFqvXyL1P6gfBqbCkaV",
+            "studentName": "Monica .",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:JmDuF70YkPSWeivX7B5N",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "JmDuF70YkPSWeivX7B5N",
+            "studentName": "Rubi .",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:1vadVxFi5LcfqHlo3O9K",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "1vadVxFi5LcfqHlo3O9K",
+            "studentName": "Smailin Marte",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:n1tZwlP45aEYXS2o6vwQ",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "n1tZwlP45aEYXS2o6vwQ",
+            "studentName": "Alexa Peña Moncada",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        },
+        {
+            "enrollmentId": "run:1diz0osZDoRLN1NxkVLB:fUm0FRdRA9vZl1Jp60Lp",
+            "source": "run",
+            "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+            "classroomName": "Discipulado - Discipulado",
+            "programId": "wSKFKPVA4ZhngwONYquQ",
+            "programName": "Formacion Oasis de Amor",
+            "studentId": "fUm0FRdRA9vZl1Jp60Lp",
+            "studentName": "Debora Henriquez",
+            "totalDue": 1550,
+            "requiredDue": 1250,
+            "optionalDue": 300,
+            "costItems": [
+                {
+                    "id": "cost-material-1771451900054",
+                    "amount": 250,
+                    "required": true
+                },
+                {
+                    "id": "cost-1771452249552",
+                    "amount": 300,
+                    "required": false
+                },
+                {
+                    "id": "cost-1771520458364",
+                    "amount": 1000,
+                    "required": true
+                }
+            ],
+            "payments": []
+        }
+    ]
+}

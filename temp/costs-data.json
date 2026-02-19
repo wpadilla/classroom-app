@@ -1,0 +1,40 @@
+[
+    {
+        "createdAt": "2026-02-18T21:58:20.055Z",
+        "items": [
+            {
+                "amount": 250,
+                "updatedAt": {},
+                "title": "Material",
+                "createdAt": {},
+                "description": "Costo de material",
+                "id": "cost-material-1771451900054",
+                "required": true,
+                "type": "material"
+            },
+            {
+                "required": false,
+                "id": "cost-1771452249552",
+                "updatedAt": {},
+                "createdAt": {},
+                "title": "segundo material",
+                "type": "custom",
+                "amount": 300,
+                "description": "grs"
+            },
+            {
+                "updatedAt": {},
+                "required": true,
+                "description": "Pago mensual",
+                "id": "cost-1771520458364",
+                "type": "fee",
+                "title": "Cuota",
+                "amount": 1000,
+                "createdAt": {}
+            }
+        ],
+        "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+        "updatedAt": "2026-02-19T17:00:58.364Z",
+        "id": "NJpuFwOJXk94LPAOiPWZ"
+    }
+]

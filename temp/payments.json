@@ -1,0 +1,73 @@
+[
+    {
+        "method": "transfer",
+        "updatedAt": "2026-02-19T17:02:10.637Z",
+        "createdBy": "CTE0xHgZ9OXnkAiuYJBy",
+        "appliedItemIds": [
+            "cost-1771520458364",
+            "cost-1771452249552",
+            "cost-material-1771451900054"
+        ],
+        "amount": 1150,
+        "classroomIdz": "iF6aUkPXVOpbR5WrZCN6",
+        "studentId": "rFv6vlYAd52nNGaNQkPj",
+        "createdAt": "2026-02-19T17:02:10.637Z",
+        "id": "BoesuyywWYclrEpiXgZF"
+    },
+    {
+        "createdBy": "CTE0xHgZ9OXnkAiuYJBy",
+        "method": "cash",
+        "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+        "studentId": "WgyxREO968aBgmGUII8I",
+        "createdAt": "2026-02-19T17:01:15.748Z",
+        "appliedItemIds": [
+            "cost-material-1771451900054"
+        ],
+        "updatedAt": "2026-02-19T17:01:15.748Z",
+        "amount": 1000,
+        "id": "JJLVbeekq9fjo78C0lnj"
+    },
+    {
+        "studentId": "WgyxREO968aBgmGUII8I",
+        "createdBy": "CTE0xHgZ9OXnkAiuYJBy",
+        "createdAt": "2026-02-18T22:04:37.907Z",
+        "amount": 500,
+        "receiptName": "WhatsApp Image 2026-02-11 at 11.32.17 AM.jpeg",
+        "comment": "ssdsdsd",
+        "appliedItemIds": [
+            "cost-1771452249552"
+        ],
+        "method": "transfer",
+        "receiptUrl": "https://storage.googleapis.com/betuel-tech-photos/payment-iF6aUkPXVOpbR5WrZCN6-WgyxREO968aBgmGUII8I-1771452276455-jz5onyt.jpeg",
+        "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+        "updatedAt": "2026-02-18T22:24:36.875Z",
+        "id": "g7lPZdnZ1S7irNyqlRuQ"
+    },
+    {
+        "method": "cash",
+        "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+        "studentId": "SOkGPAU59It4mrCLABWn",
+        "appliedItemIds": [
+            "cost-1771520458364"
+        ],
+        "createdAt": "2026-02-19T17:01:26.143Z",
+        "createdBy": "CTE0xHgZ9OXnkAiuYJBy",
+        "updatedAt": "2026-02-19T17:01:26.143Z",
+        "amount": 1000,
+        "id": "hZhZYna2PpeQYIUlDeoB"
+    },
+    {
+        "createdBy": "CTE0xHgZ9OXnkAiuYJBy",
+        "amount": 550,
+        "classroomId": "iF6aUkPXVOpbR5WrZCN6",
+        "updatedAt": "2026-02-18T22:25:03.527Z",
+        "method": "cash",
+        "studentId": "SOkGPAU59It4mrCLABWn",
+        "createdAt": "2026-02-18T22:25:03.527Z",
+        "appliedItemIds": [
+            "cost-1771452249552",
+            "cost-material-1771451900054"
+        ],
+        "id": "uuniEv72EnZQQ6cRWbXW"
+    }
+]

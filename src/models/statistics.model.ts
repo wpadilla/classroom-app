@@ -1,5 +1,7 @@
 // Statistics Models for Academy Dashboard
 
+import { PaymentMethod } from './payment.model';
+
 export interface IMonthlyCount {
   month: string; // e.g., "2024-01"
   count: number;
@@ -129,18 +131,116 @@ export interface IDemographicAnalytics {
 }
 
 // Financial Overview
-export interface IRevenueByProgram {
+export interface IFinancialTotals {
+  expected: number;
+  collected: number;
+  outstanding: number;
+  collectionRate: number;
+  totalEnrollments: number;
+  uniqueStudents: number;
+  averageExpectedPerEnrollment: number;
+  averageCollectedPerEnrollment: number;
+  averageOutstandingPerEnrollment: number;
+  averageExpectedPerUniqueStudent: number;
+  averageCollectedPerUniqueStudent: number;
+  averageOutstandingPerUniqueStudent: number;
+}
+
+export interface IFinancialMethodBreakdown {
+  method: PaymentMethod;
+  amount: number;
+  count: number;
+}
+
+export interface IFinancialCostItemSummary {
+  id: string;
+  amount: number;
+  required: boolean;
+}
+
+export interface IFinancialPaymentEntry {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  createdAt: Date;
+  appliedItemIds: string[];
+}
+
+export interface IFinancialEnrollmentEntry {
+  enrollmentId: string;
+  source: 'current' | 'run';
+  classroomId: string;
+  classroomName: string;
   programId: string;
   programName: string;
-  revenue: number;
+  studentId: string;
+  studentName: string;
+  totalDue: number;
+  requiredDue: number;
+  optionalDue: number;
+  costItems: IFinancialCostItemSummary[];
+  payments: IFinancialPaymentEntry[];
+}
+
+export interface IFinancialRequiredOptionalTotals {
+  requiredExpected: number;
+  requiredCollected: number;
+  requiredOutstanding: number;
+  optionalExpected: number;
+  optionalCollected: number;
+  optionalOutstanding: number;
+  unassignedCollected: number;
+}
+
+export interface IFinancialMonthlySummary {
+  month: string; // e.g., "2024-01"
+  expected: number;
+  collected: number;
+  outstanding: number;
+}
+
+export interface IFinancialProgramSummary {
+  programId: string;
+  programName: string;
+  expected: number;
+  collected: number;
+  outstanding: number;
+  collectionRate: number;
+  enrollmentCount: number;
+  uniqueStudentCount: number;
+}
+
+export interface IFinancialClassroomSummary {
+  classroomId: string;
+  classroomName: string;
+  programId: string;
+  programName: string;
+  expected: number;
+  collected: number;
+  outstanding: number;
+  collectionRate: number;
   studentCount: number;
 }
 
+export interface IFinancialStudentSummary {
+  studentId: string;
+  studentName: string;
+  expected: number;
+  collected: number;
+  outstanding: number;
+  collectionRate: number;
+  enrollmentCount: number;
+}
+
 export interface IFinancialOverview {
-  totalMaterialRevenue: number;
-  revenueByProgram: IRevenueByProgram[];
-  revenueByClassroom: { classroomId: string; classroomName: string; revenue: number; students: number }[];
-  averageCostPerStudent: number;
+  totals: IFinancialTotals;
+  byProgram: IFinancialProgramSummary[];
+  byClassroom: IFinancialClassroomSummary[];
+  byStudent: IFinancialStudentSummary[];
+  byMethod: IFinancialMethodBreakdown[];
+  requiredOptional: IFinancialRequiredOptionalTotals;
+  monthly: IFinancialMonthlySummary[];
+  enrollments: IFinancialEnrollmentEntry[];
 }
 
 // Historical Trends

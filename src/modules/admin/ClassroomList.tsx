@@ -21,7 +21,7 @@ import { ProgramService } from '../../services/program/program.service';
 import { UserService } from '../../services/user/user.service';
 import { IClassroom, IProgram, IUser } from '../../models';
 import { toast } from 'react-toastify';
-
+import ClassroomForm, { ClassroomFormData } from './components/ClassroomForm';
 import StudentImporter from './components/StudentImporter';
 
 const ClassroomList: React.FC = () => {
@@ -35,6 +35,11 @@ const ClassroomList: React.FC = () => {
   const [filterProgram, setFilterProgram] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showImporter, setShowImporter] = useState(false);
+  
+  // Edit modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingClassroom, setEditingClassroom] = useState<IClassroom | null>(null);
+  const [teachersList, setTeachersList] = useState<IUser[]>([]);
 
   useEffect(() => {
     loadData();
@@ -63,6 +68,7 @@ const ClassroomList: React.FC = () => {
         teachersMap.set(teacher.id, teacher);
       });
       setTeachers(teachersMap);
+      setTeachersList(teachersData);
 
     } catch (error) {
       console.error('Error loading classrooms:', error);
@@ -92,6 +98,53 @@ const ClassroomList: React.FC = () => {
 
     return matchesSearch && matchesProgram && matchesStatus;
   });
+
+  // Handle opening edit modal
+  const handleEditClassroom = (classroom: IClassroom, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation to detail page
+    setEditingClassroom(classroom);
+    setEditModalOpen(true);
+  };
+
+  // Handle saving classroom edits
+  const handleSaveClassroom = async (formData: ClassroomFormData) => {
+    if (!editingClassroom) return;
+
+    try {
+      // Update classroom
+      await ClassroomService.updateClassroom(editingClassroom.id, {
+        ...formData,
+        programId: editingClassroom.programId
+      });
+
+      // Update teacher assignment if changed
+      if (formData.teacherId !== editingClassroom.teacherId) {
+        await UserService.removeTeacherFromClassroom(editingClassroom.teacherId, editingClassroom.id);
+        await UserService.assignTeacherToClassroom(formData.teacherId, editingClassroom.id);
+      }
+
+      toast.success('Clase actualizada exitosamente');
+      setEditModalOpen(false);
+      setEditingClassroom(null);
+      await loadData(); // Reload data
+    } catch (error) {
+      console.error('Error updating classroom:', error);
+      toast.error('Error al actualizar la clase');
+      throw error;
+    }
+  };
+
+  // Handle closing edit modal
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setEditingClassroom(null);
+  };
+
+  // Get program for editing classroom
+  const getEditingProgram = (): IProgram | null => {
+    if (!editingClassroom) return null;
+    return programs.get(editingClassroom.programId) || null;
+  };
 
   if (loading) {
     return (
@@ -227,9 +280,20 @@ const ClassroomList: React.FC = () => {
                         <h6 className="mb-1 fw-bold">{classroom.subject}</h6>
                         <p className="text-muted small mb-0">{classroom.name}</p>
                       </div>
-                      <Badge color={classroom.isActive ? 'success' : 'secondary'}>
-                        {classroom.isActive ? 'Activa' : 'Inactiva'}
-                      </Badge>
+                      <div className="d-flex align-items-center gap-1">
+                        <Button
+                          color="light"
+                          size="sm"
+                          className="p-1"
+                          onClick={(e) => handleEditClassroom(classroom, e)}
+                          title="Editar clase"
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </Button>
+                        <Badge color={classroom.isActive ? 'success' : 'secondary'}>
+                          {classroom.isActive ? 'Activa' : 'Inactiva'}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="mb-2">
@@ -267,6 +331,16 @@ const ClassroomList: React.FC = () => {
       )}
 
       <StudentImporter isOpen={showImporter} toggle={() => setShowImporter(!showImporter)} />
+
+      {/* Edit Classroom Modal */}
+      <ClassroomForm
+        isOpen={editModalOpen}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveClassroom}
+        classroom={editingClassroom}
+        program={getEditingProgram()}
+        teachers={teachersList}
+      />
     </Container>
   );
 };

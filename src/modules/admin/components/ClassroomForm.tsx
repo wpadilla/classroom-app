@@ -16,7 +16,9 @@ import {
   Row,
   Col
 } from 'reactstrap';
-import { IClassroom, IUser, IProgram, ICustomCriterion } from '../../../models';
+import { IClassroom, IUser, IProgram, ICustomCriterion, IModule } from '../../../models';
+import ModuleManager from './ModuleManager';
+import { generateDefaultModules, validateModules } from '../../../utils/moduleUtils';
 
 // Props Interface following Interface Segregation Principle
 interface ClassroomFormProps {
@@ -52,6 +54,7 @@ export interface ClassroomFormData {
     customCriteria: ICustomCriterion[];
     participationRecords: any[];
   };
+  modules: IModule[];
 }
 
 // Initial form state factory - Factory Pattern
@@ -80,7 +83,10 @@ const createInitialFormState = (classroom?: IClassroom | null, initialData?: ICl
         finalExam: sourceData.evaluationCriteria?.finalExam || 25,
         customCriteria: sourceData.evaluationCriteria?.customCriteria || [],
         participationRecords: [] // Reset records for new/duplicated classes
-      }
+      },
+      modules: classroom 
+        ? sourceData.modules || generateDefaultModules(8)
+        : generateDefaultModules(8) // Fresh modules for duplication
     };
   }
 
@@ -106,7 +112,8 @@ const createInitialFormState = (classroom?: IClassroom | null, initialData?: ICl
       finalExam: 25,
       customCriteria: [] as ICustomCriterion[],
       participationRecords: []
-    }
+    },
+    modules: generateDefaultModules(8)
   };
 };
 
@@ -153,6 +160,11 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
     }));
   };
 
+  // Update modules array
+  const updateModules = (modules: IModule[]) => {
+    setFormData(prev => ({ ...prev, modules }));
+  };
+
   // Validation - Business Logic
   const validateForm = (): string | null => {
     if (!formData.name.trim()) return 'El nombre de la clase es requerido';
@@ -167,6 +179,12 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
 
     if (totalPoints !== 100) {
       return 'Los criterios de evaluación deben sumar exactamente 100 puntos';
+    }
+
+    // Validate modules
+    const modulesValidation = validateModules(formData.modules);
+    if (!modulesValidation.valid) {
+      return modulesValidation.error || 'Error en la configuración de módulos';
     }
 
     return null;
@@ -420,6 +438,14 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
                   </span>
                 )}
               </Alert>
+            </Col>
+
+            {/* Modules Section */}
+            <Col md={12} className="mt-3">
+              <ModuleManager
+                modules={formData.modules}
+                onChange={updateModules}
+              />
             </Col>
           </Row>
         </Form>

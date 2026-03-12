@@ -243,19 +243,13 @@ const ProgramManagement: React.FC = () => {
 
         toast.success('Clase actualizada exitosamente');
       } else {
-        // Create new classroom
+        // Create new classroom - modules come from formData
         const classroomId = await ClassroomService.createClassroom({
           ...formData,
           programId: selectedProgram.id,
           studentIds: [],
           startDate: new Date(),
-          modules: Array.from({ length: 8 }, (_, i) => ({
-            id: `module-${Date.now()}-${i}`,
-            name: `Semana ${i + 1}`,
-            weekNumber: i + 1,
-            date: new Date(),
-            isCompleted: false
-          }))
+          modules: formData.modules
         });
 
         // Add classroom to program

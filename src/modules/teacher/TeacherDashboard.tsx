@@ -1,6 +1,6 @@
 // Complete Teacher Dashboard with all features
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container,
   Row,
@@ -11,7 +11,6 @@ import {
   Button,
   Badge,
   Table,
-  Progress,
   Alert,
   Spinner,
   ListGroup,
@@ -24,12 +23,10 @@ import { UserService } from '../../services/user/user.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { IClassroom, IUser, IStudentEvaluation } from '../../models';
 import { toast } from 'react-toastify';
-import { useOffline } from '../../contexts/OfflineContext';
 import PWAInstallPrompt from '../../components/common/PWAInstallPrompt';
 
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { isOffline } = useOffline();
   const navigate = useNavigate();
 
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
@@ -45,13 +42,7 @@ const TeacherDashboard: React.FC = () => {
     todayClasses: [] as IClassroom[]
   });
 
-  useEffect(() => {
-    if (user) { // Removed isOffline and isSyncing from dependency array and condition
-      loadDashboardData();
-    }
-  }, [user]); // Removed isOffline and isSyncing from dependency array
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -94,7 +85,13 @@ const TeacherDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user, loadDashboardData]);
 
   const calculateStatistics = (
     classrooms: IClassroom[],
@@ -135,15 +132,6 @@ const TeacherDashboard: React.FC = () => {
       averageAttendance,
       todayClasses
     });
-  };
-
-  const getClassroomProgress = (classroom: IClassroom) => {
-    const completedModules = classroom.modules.filter(m => m.isCompleted).length;
-    return (completedModules / classroom.modules.length) * 100;
-  };
-
-  const getClassroomStudentCount = (classroom: IClassroom) => {
-    return classroom.studentIds?.length || 0;
   };
 
   const getNextClass = () => {

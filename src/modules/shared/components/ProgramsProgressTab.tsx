@@ -36,7 +36,7 @@ const ProgramsProgressTab: React.FC<ProgramsProgressTabProps> = ({
     if (user) {
       calculateProgress(user);
     }
-  }, [user]);
+  }, [calculateProgress, user]);
 
   // Get grade color based on score
   const getGradeColor = (grade: number): string => {

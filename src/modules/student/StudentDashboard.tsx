@@ -1,6 +1,6 @@
 // Complete Student Dashboard with all features
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container,
   Row,
@@ -31,7 +31,6 @@ const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<IUser | null>(null);
   const [enrolledClassrooms, setEnrolledClassrooms] = useState<IClassroom[]>([]);
   const [evaluations, setEvaluations] = useState<IStudentEvaluation[]>([]);
   const [programs, setPrograms] = useState<IProgram[]>([]);
@@ -46,13 +45,7 @@ const StudentDashboard: React.FC = () => {
     pendingAssignments: 0
   });
 
-  useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
-  }, [user]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -61,8 +54,6 @@ const StudentDashboard: React.FC = () => {
       // Load full user profile
       const userProfile = await UserService.getUserById(user.id);
       if (!userProfile) return;
-
-      setProfile(userProfile);
 
       // Load enrolled classrooms
       if (userProfile.enrolledClassrooms && userProfile.enrolledClassrooms.length > 0) {
@@ -98,7 +89,13 @@ const StudentDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user, loadDashboardData]);
 
   const calculateStatistics = (
     classrooms: IClassroom[],

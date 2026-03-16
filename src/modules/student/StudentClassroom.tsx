@@ -1,6 +1,6 @@
 // Complete Student Classroom View with all features
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container,
   Row,
@@ -42,13 +42,7 @@ const StudentClassroom: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    if (id && user) {
-      loadClassroomData();
-    }
-  }, [id, user]);
-
-  const loadClassroomData = async () => {
+  const loadClassroomData = useCallback(async () => {
     if (!id || !user) return;
     
     try {
@@ -95,7 +89,13 @@ const StudentClassroom: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate, user]);
+
+  useEffect(() => {
+    if (id && user) {
+      loadClassroomData();
+    }
+  }, [id, user, loadClassroomData]);
 
   const getModuleStatus = (module: IModule): 'completed' | 'current' | 'upcoming' => {
     if (module.isCompleted) return 'completed';

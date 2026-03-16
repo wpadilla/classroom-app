@@ -1,13 +1,12 @@
 // Complete Teacher Students View with all features
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container,
   Row,
   Col,
   Card,
   CardBody,
-  CardHeader,
   Table,
   Badge,
   Button,
@@ -60,17 +59,7 @@ const TeacherStudents: React.FC = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [selectedStudentsForMessage, setSelectedStudentsForMessage] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      loadData();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    filterStudents();
-  }, [students, searchQuery, selectedClassroom]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -115,9 +104,9 @@ const TeacherStudents: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const filterStudents = () => {
+  const filterStudents = useCallback(() => {
     let filtered = [...students];
     
     // Filter by classroom
@@ -138,9 +127,19 @@ const TeacherStudents: React.FC = () => {
         return fullName.includes(query) || phone.includes(query) || email.includes(query);
       });
     }
-    
+
     setFilteredStudents(filtered);
-  };
+  }, [searchQuery, selectedClassroom, students]);
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, loadData]);
+
+  useEffect(() => {
+    filterStudents();
+  }, [filterStudents]);
 
   const getStudentClassrooms = (studentId: string): IClassroom[] => {
     return classrooms.filter(c => c.studentIds?.includes(studentId));

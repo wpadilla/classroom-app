@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@hookform/resolvers": "^3.9.0",
     "@react-pdf/renderer": "^4.3.2",
     "@testing-library/jest-dom": "^5.17.0",
@@ -22,6 +23,7 @@
     "chart.js": "^4.5.1",
     "file-saver": "^2.0.5",
     "firebase": "^10.3.0",
+    "framer-motion": "^12.37.0",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-apexcharts": "^2.0.1",
@@ -40,10 +42,16 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:prod": "REACT_APP_USE_EMULATORS=false react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "serve": "npx serve -s build -p 3000"
+    "serve": "npx serve -s build -p 3000",
+    "emulators": "firebase emulators:start --import=emulator-data --export-on-exit=emulator-data",
+    "emulators:fresh": "firebase emulators:start",
+    "dev": "concurrently \"npm run emulators\" \"npm start\"",
+    "seed": "node scripts/seed-emulator.js",
+    "seed:dry": "node scripts/seed-emulator.js --dry-run"
   },
   "eslintConfig": {
     "extends": [
@@ -68,6 +76,12 @@
     "@types/file-saver": "^2.0.7",
     "@types/react-input-mask": "^3.0.5",
     "@types/react-router-dom": "^5.3.3",
+    "autoprefixer": "^10.4.27",
+    "concurrently": "^9.2.1",
+    "firebase-admin": "^13.7.0",
+    "firebase-tools": "^15.10.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19",
     "workbox-webpack-plugin": "^7.4.0"
   }
 }

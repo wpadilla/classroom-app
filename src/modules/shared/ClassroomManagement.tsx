@@ -10,7 +10,6 @@ import {
   CardBody,
   CardHeader,
   Button,
-  ButtonGroup,
   Dropdown,
   DropdownToggle,
   DropdownMenu,
@@ -42,7 +41,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
-import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
 import { ProgramService } from '../../services/program/program.service';
 import { PaymentService } from '../../services/payment/payment.service';
 import {
@@ -66,6 +64,8 @@ import { GCloudService } from '../../services/gcloud/gcloud.service';
 import { getFileIcon, formatFileSize, getFileTypeColor, validateFileSize } from '../../utils/fileUtils';
 import { ClassroomReportPdfDownloadButton } from '../../components/pdf/components/ClassroomReportPdfDownloadButton';
 import PaymentReceiptPdfDownloadButton from '../../components/pdf/components/PaymentReceiptPdfDownloadButton';
+import { motion } from 'framer-motion';
+import { SearchInput, Switch, EmptyState } from '../../components/mobile';
 
 const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -95,9 +95,17 @@ const ClassroomManagement: React.FC = () => {
 
   // Attendance state - Now per module
   const [attendanceRecords, setAttendanceRecords] = useState<Map<string, boolean>>(new Map());
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
 
   // Participation state - Track total participation including pending changes
   const [participationTotals, setParticipationTotals] = useState<Map<string, number>>(new Map());
+  const [participationSearchQuery, setParticipationSearchQuery] = useState('');
+
+  // Evaluations search
+  const [evaluationsSearchQuery, setEvaluationsSearchQuery] = useState('');
+
+  // Resources search
+  const [resourcesSearchQuery, setResourcesSearchQuery] = useState('');
 
   // Resources state
   const [uploadingResource, setUploadingResource] = useState(false);
@@ -110,6 +118,10 @@ const ClassroomManagement: React.FC = () => {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentCosts, setPaymentCosts] = useState<IClassroomPaymentCost | null>(null);
   const [paymentCostItems, setPaymentCostItems] = useState<IClassroomPaymentCostItem[]>([]);
+  
+  // Payments search queries
+  const [paymentsStudentsSearchQuery, setPaymentsStudentsSearchQuery] = useState('');
+  const [paymentsSearchQuery, setPaymentsSearchQuery] = useState('');
   const [studentPayments, setStudentPayments] = useState<IClassroomStudentPayment[]>([]);
   const [paymentStatuses, setPaymentStatuses] = useState<IClassroomStudentPaymentStatus[]>([]);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -1100,7 +1112,7 @@ const ClassroomManagement: React.FC = () => {
               <ClassroomReportPdfDownloadButton classroom={classroom}>
                 <Button color="outline-secondary" size="sm" tag="span">
                   <i className="bi bi-file-earmark-pdf me-1"></i>
-                  <span className="d-none d-sm-inline">Reporte</span>
+                  <span>Reporte</span>
                 </Button>
               </ClassroomReportPdfDownloadButton>
 
@@ -1113,7 +1125,7 @@ const ClassroomManagement: React.FC = () => {
                 title={isFinalized ? 'Revertir finalización' : 'Finalizar clase'}
               >
                 <i className={`bi bi-${isFinalized ? 'arrow-counterclockwise' : 'flag-fill'} me-1`}></i>
-                <span className="d-none d-sm-inline">
+                <span>
                   {isFinalized ? 'Revertir' : 'Finalizar'}
                 </span>
               </Button>
@@ -1125,7 +1137,7 @@ const ClassroomManagement: React.FC = () => {
               >
                 <DropdownToggle caret color="success" size="sm">
                   <i className="bi bi-whatsapp me-1"></i>
-                  <span className="d-none d-sm-inline">WhatsApp</span>
+                  <span>WhatsApp</span>
                 </DropdownToggle>
                 <DropdownMenu end>
                   {!classroom.whatsappGroup ? (
@@ -1273,7 +1285,7 @@ const ClassroomManagement: React.FC = () => {
             style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             <i className="bi bi-calendar-check me-1"></i>
-            <span className="d-none d-sm-inline">Asistencia</span>
+            <span>Asistencia</span>
           </NavLink>
         </NavItem>
         <NavItem>
@@ -1283,7 +1295,7 @@ const ClassroomManagement: React.FC = () => {
             style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             <i className="bi bi-hand-thumbs-up me-1"></i>
-            <span className="d-none d-sm-inline">Participación</span>
+            <span>Participación</span>
           </NavLink>
         </NavItem>
         <NavItem>
@@ -1293,7 +1305,7 @@ const ClassroomManagement: React.FC = () => {
             style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             <i className="bi bi-people me-1"></i>
-            <span className="d-none d-sm-inline">Estudiantes</span>
+            <span>Estudiantes</span>
           </NavLink>
         </NavItem>
         <NavItem>
@@ -1303,7 +1315,7 @@ const ClassroomManagement: React.FC = () => {
             style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             <i className="bi bi-clipboard-check me-1"></i>
-            <span className="d-none d-sm-inline">Evaluaciones</span>
+            <span>Evaluaciones</span>
           </NavLink>
         </NavItem>
         <NavItem>
@@ -1313,7 +1325,7 @@ const ClassroomManagement: React.FC = () => {
             style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             <i className="bi bi-folder me-1"></i>
-            <span className="d-none d-sm-inline">Recursos</span>
+            <span>Recursos</span>
           </NavLink>
         </NavItem>
         {user?.role === 'admin' && (
@@ -1324,129 +1336,233 @@ const ClassroomManagement: React.FC = () => {
               style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               <i className="bi bi-cash-coin me-1"></i>
-              <span className="d-none d-sm-inline">Pagos</span>
+              <span>Pagos</span>
             </NavLink>
           </NavItem>
         )}
       </Nav>
 
       <TabContent activeTab={activeTab}>
-        {/* Attendance Tab - Mobile Optimized */}
+        {/* Attendance Tab - Mobile-Optimized Table Format */}
         <TabPane tabId="attendance">
           <Card className="border-0 shadow-sm">
             <CardHeader className="bg-white">
-              <div className="d-flex justify-content-between align-items-center">
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                   <h6 className="mb-1">
                     <i className="bi bi-calendar-check me-2"></i>
-                    Semana {currentModule?.weekNumber} - {currentModule?.name}
+                    Asistencia - Semana {currentModule?.weekNumber}
                   </h6>
                   <small className="text-muted">
                     {isFinalized ? 'Clase finalizada - Solo lectura' : 'Los cambios se guardan automáticamente'}
                   </small>
                 </div>
-                <div className="d-flex align-items-center gap-2">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="current-module-complete"
-                      checked={currentModule?.isCompleted || false}
-                      onChange={() => currentModule && handleToggleModuleCompletion(currentModule.id, currentModule.isCompleted)}
-                      disabled={isFinalized}
-                      style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
-                    />
-                    <label
-                      className="form-check-label"
-                      htmlFor="current-module-complete"
-                      style={{ cursor: isFinalized ? 'not-allowed' : 'pointer' }}
-                    >
-                      <Badge color={currentModule?.isCompleted ? 'success' : 'warning'}>
-                        {currentModule?.isCompleted ? 'Completado' : 'Pendiente'}
-                      </Badge>
-                    </label>
-                  </div>
-                </div>
+                <Badge color={currentModule?.isCompleted ? 'success' : 'warning'}>
+                  {currentModule?.isCompleted ? 'Completado' : 'Pendiente'}
+                </Badge>
               </div>
             </CardHeader>
-            <CardBody className="p-0">
+            <CardBody>
+              {/* Stats - Horizontal */}
+              {students.length > 0 && (
+                <div className="d-flex gap-2 overflow-auto mb-3 pb-2" style={{ scrollbarWidth: 'thin' }}>
+                  <div className="flex-shrink-0 bg-light rounded p-2 text-center" style={{ minWidth: '110px' }}>
+                    <small className="text-muted d-block">Total</small>
+                    <strong className="fs-5">{students.filter(s => {
+                      if (!attendanceSearchQuery.trim()) return true;
+                      const query = attendanceSearchQuery.toLowerCase();
+                      return (
+                        s.firstName.toLowerCase().includes(query) ||
+                        s.lastName.toLowerCase().includes(query) ||
+                        s.phone?.toLowerCase().includes(query)
+                      );
+                    }).length}</strong>
+                  </div>
+                  <div className="flex-shrink-0 bg-success-subtle rounded p-2 text-center" style={{ minWidth: '110px' }}>
+                    <small className="text-success d-block">Presentes</small>
+                    <strong className="fs-5 text-success">{Array.from(attendanceRecords.entries()).filter(([id, present]) => present === true).length}</strong>
+                  </div>
+                  <div className="flex-shrink-0 bg-danger-subtle rounded p-2 text-center" style={{ minWidth: '110px' }}>
+                    <small className="text-danger d-block">Ausentes</small>
+                    <strong className="fs-5 text-danger">{Array.from(attendanceRecords.entries()).filter(([id, present]) => present === false).length}</strong>
+                  </div>
+                </div>
+              )}
+
+              {/* Search */}
+              {students.length > 0 && (
+                <div className="mb-3">
+                  <SearchInput
+                    placeholder="Buscar estudiante por nombre o teléfono..."
+                    onSearch={setAttendanceSearchQuery}
+                  />
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              {students.length > 0 && !isFinalized && (
+                <div className="d-flex gap-2 mb-3 flex-wrap">
+                  <Button
+                    color="success"
+                    size="sm"
+                    onClick={() => {
+                      students
+                        .filter(s => {
+                          if (!attendanceSearchQuery.trim()) return true;
+                          const query = attendanceSearchQuery.toLowerCase();
+                          return (
+                            s.firstName.toLowerCase().includes(query) ||
+                            s.lastName.toLowerCase().includes(query) ||
+                            s.phone?.toLowerCase().includes(query)
+                          );
+                        })
+                        .forEach(s => handleAttendanceChange(s.id, true));
+                      toast.success('Todos marcados como presente');
+                    }}
+                  >
+                    <i className="bi bi-check-all me-1"></i>
+                    Marcar Todos Presente
+                  </Button>
+                  <Button
+                    color="danger"
+                    size="sm"
+                    onClick={() => {
+                      students
+                        .filter(s => {
+                          if (!attendanceSearchQuery.trim()) return true;
+                          const query = attendanceSearchQuery.toLowerCase();
+                          return (
+                            s.firstName.toLowerCase().includes(query) ||
+                            s.lastName.toLowerCase().includes(query) ||
+                            s.phone?.toLowerCase().includes(query)
+                          );
+                        })
+                        .forEach(s => handleAttendanceChange(s.id, false));
+                      toast.success('Todos marcados como ausente');
+                    }}
+                  >
+                    <i className="bi bi-x-circle me-1"></i>
+                    Marcar Todos Ausente
+                  </Button>
+                </div>
+              )}
+
+              {/* Table */}
               {students.length === 0 ? (
-                <Alert color="info" className="m-3">
-                  No hay estudiantes inscritos
-                </Alert>
+                <EmptyState
+                  icon="bi-people"
+                  heading="Sin estudiantes inscritos"
+                  description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a registrar asistencia."
+                />
               ) : (
                 <div className="table-responsive">
-                  <Table className="mb-0" hover>
+                  <Table hover className="mb-0">
                     <thead className="table-light">
                       <tr>
-                        <th className="ps-3">#</th>
+                        <th style={{ width: '50px' }} className="text-center">#</th>
                         <th>Estudiante</th>
-                        <th className="text-center">Presente</th>
-                        <th className="text-center">Ausente</th>
+                        <th className="text-center" style={{ width: '150px' }}>Estado</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((student, index) => (
-                        <tr key={student.id}>
-                          <td className="ps-3">{index + 1}</td>
-                          <td>
-                            <div className="d-flex align-items-center">
-                              {student.profilePhoto ? (
-                                <img
-                                  src={student.profilePhoto}
-                                  alt={student.firstName}
-                                  className="rounded-circle me-2"
-                                  style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <div
-                                  className="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2"
-                                  style={{ width: '32px', height: '32px' }}
-                                >
-                                  <small className="text-white fw-bold">
-                                    {student.firstName[0]}{student.lastName[0]}
-                                  </small>
+                      {students
+                        .filter(student => {
+                          if (!attendanceSearchQuery.trim()) return true;
+                          const query = attendanceSearchQuery.toLowerCase();
+                          return (
+                            student.firstName.toLowerCase().includes(query) ||
+                            student.lastName.toLowerCase().includes(query) ||
+                            student.phone?.toLowerCase().includes(query)
+                          );
+                        })
+                        .map((student, index) => {
+                          const isPresent = attendanceRecords.get(student.id);
+                          return (
+                            <motion.tr
+                              key={student.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: index * 0.03 }}
+                            >
+                              <td className="text-center align-middle">
+                                <small className="text-muted">{index + 1}</small>
+                              </td>
+                              <td className="align-middle">
+                                <div className="d-flex align-items-center gap-2">
+                                  {student.profilePhoto ? (
+                                    <img
+                                      src={student.profilePhoto}
+                                      alt={student.firstName}
+                                      className="rounded-circle"
+                                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                    />
+                                  ) : (
+                                    <div
+                                      className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                                      style={{ width: '32px', height: '32px' }}
+                                    >
+                                      <small className="text-primary fw-bold">
+                                        {student.firstName[0]}{student.lastName[0]}
+                                      </small>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="fw-bold small">{student.firstName} {student.lastName}</div>
+                                  </div>
                                 </div>
-                              )}
-                              <div>
-                                <div className="fw-bold small">{student.firstName} {student.lastName}</div>
-                                <small className="text-muted d-none d-sm-block">{student.phone}</small>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="text-center">
-                            <Input
-                              type="radio"
-                              name={`attendance-${student.id}`}
-                              checked={attendanceRecords.get(student.id) === true}
-                              onChange={() => handleAttendanceChange(student.id, true)}
-                              disabled={isFinalized}
-                            />
-                          </td>
-                          <td className="text-center">
-                            <Input
-                              type="radio"
-                              name={`attendance-${student.id}`}
-                              checked={attendanceRecords.get(student.id) === false}
-                              onChange={() => handleAttendanceChange(student.id, false)}
-                              disabled={isFinalized}
-                            />
-                          </td>
-                        </tr>
-                      ))}
+                              </td>
+                              <td className="text-center align-middle">
+                                <div className="d-flex align-items-center justify-content-center gap-2">
+                                  <span className="small text-muted">
+                                    {isPresent === true ? 'Presente' : isPresent === false ? 'Ausente' : 'Sin marcar'}
+                                  </span>
+                                  <Switch
+                                    checked={isPresent === true}
+                                    onChange={(checked) => handleAttendanceChange(student.id, checked)}
+                                    disabled={isFinalized}
+                                    onColor="bg-success"
+                                    offColor="bg-danger"
+                                  />
+                                </div>
+                              </td>
+                            </motion.tr>
+                          );
+                        })}
                     </tbody>
                   </Table>
+                  
+                  {/* No Results */}
+                  {attendanceSearchQuery.trim() &&
+                    students.filter(s => {
+                      const query = attendanceSearchQuery.toLowerCase();
+                      return (
+                        s.firstName.toLowerCase().includes(query) ||
+                        s.lastName.toLowerCase().includes(query) ||
+                        s.phone?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 && (
+                      <div className="text-center py-4">
+                        <p className="text-muted">No se encontraron estudiantes con "{attendanceSearchQuery}"</p>
+                        <Button
+                          color="link"
+                          size="sm"
+                          onClick={() => setAttendanceSearchQuery('')}
+                        >
+                          Limpiar búsqueda
+                        </Button>
+                      </div>
+                    )}
                 </div>
               )}
             </CardBody>
           </Card>
         </TabPane>
 
-        {/* Participation Tab - Mobile Optimized */}
+        {/* Participation Tab - Mobile-Optimized Table Format */}
         <TabPane tabId="participation">
           <Card className="border-0 shadow-sm">
             <CardHeader className="bg-white">
-              <div className="d-flex justify-content-between align-items-center">
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                   <h6 className="mb-1">
                     <i className="bi bi-hand-thumbs-up me-2"></i>
@@ -1457,66 +1573,195 @@ const ClassroomManagement: React.FC = () => {
                   </small>
                 </div>
                 <Badge color={currentModule?.isCompleted ? 'success' : 'warning'}>
-                  Módulo {currentModule?.isCompleted ? 'Completado' : 'Pendiente'}
+                  {currentModule?.isCompleted ? 'Completado' : 'Pendiente'}
                 </Badge>
               </div>
             </CardHeader>
-            <CardBody className="p-0">
+            <CardBody>
+              {/* Search */}
+              {students.length > 0 && (
+                <div className="mb-3">
+                  <SearchInput
+                    placeholder="Buscar estudiante por nombre o teléfono..."
+                    onSearch={setParticipationSearchQuery}
+                  />
+                </div>
+              )}
+
+              {/* Top 3 Leaderboard - Horizontal */}
+              {students.length > 0 && !participationSearchQuery && (
+                <div className="mb-3">
+                  <h6 className="small text-muted mb-2">🏆 Top 3 Participantes</h6>
+                  <div className="d-flex gap-2 overflow-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
+                    {students
+                      .map(s => ({ student: s, points: participationTotals.get(s.id) || 0 }))
+                      .sort((a, b) => b.points - a.points)
+                      .slice(0, 3)
+                      .map((item, index) => (
+                        <div
+                          key={item.student.id}
+                          className="flex-shrink-0 bg-warning bg-opacity-10 rounded p-2 d-flex align-items-center gap-2"
+                          style={{ minWidth: '200px' }}
+                        >
+                          <div
+                            className={`rounded-circle d-flex align-items-center justify-content-center ${
+                              index === 0 ? 'bg-warning text-white' : 'bg-secondary text-white'
+                            }`}
+                            style={{ width: '28px', height: '28px', fontSize: '12px', fontWeight: 'bold' }}
+                          >
+                            {index + 1}
+                          </div>
+                          <div className="flex-grow-1 min-w-0">
+                            <div className="small fw-bold text-truncate">
+                              {item.student.firstName} {item.student.lastName}
+                            </div>
+                            <div className="small text-warning fw-bold">
+                              {item.points} puntos
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Table */}
               {students.length === 0 ? (
-                <Alert color="info" className="m-3">
-                  No hay estudiantes inscritos
-                </Alert>
+                <EmptyState
+                  icon="bi-people"
+                  heading="Sin estudiantes inscritos"
+                  description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a registrar participación."
+                />
               ) : (
                 <div className="table-responsive">
-                  <Table className="mb-0" hover>
+                  <Table hover className="mb-0">
                     <thead className="table-light">
                       <tr>
-                        <th className="ps-3">#</th>
+                        <th style={{ width: '50px' }} className="text-center">#</th>
                         <th>Estudiante</th>
-                        <th className="text-center">Participación</th>
-                        <th className="text-center">Acciones</th>
+                        <th className="text-center" style={{ width: '100px' }}>Puntos</th>
+                        <th className="text-center" style={{ width: '180px' }}>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((student, index) => {
-                        const totalPoints = participationTotals.get(student.id) || 0;
-
-                        return (
-                          <tr key={student.id}>
-                            <td className="ps-3">{index + 1}</td>
-                            <td>
-                              <div className="fw-bold small">{student.firstName} {student.lastName}</div>
-                            </td>
-                            <td className="text-center">
-                              <Badge color="info" className="px-3">
-                                {totalPoints} pts
-                              </Badge>
-                            </td>
-                            <td className="text-center">
-                              <ButtonGroup size="sm">
-                                <Button
-                                  color="danger"
-                                  outline
-                                  onClick={() => handleParticipationChange(student.id, -1)}
-                                  disabled={isFinalized}
+                      {students
+                        .filter(student => {
+                          if (!participationSearchQuery.trim()) return true;
+                          const query = participationSearchQuery.toLowerCase();
+                          return (
+                            student.firstName.toLowerCase().includes(query) ||
+                            student.lastName.toLowerCase().includes(query) ||
+                            student.phone?.toLowerCase().includes(query)
+                          );
+                        })
+                        .map((student, index) => {
+                          const totalPoints = participationTotals.get(student.id) || 0;
+                          return (
+                            <motion.tr
+                              key={student.id}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: index * 0.03 }}
+                            >
+                              <td className="text-center align-middle">
+                                <small className="text-muted">{index + 1}</small>
+                              </td>
+                              <td className="align-middle">
+                                <div className="d-flex align-items-center gap-2">
+                                  {student.profilePhoto ? (
+                                    <img
+                                      src={student.profilePhoto}
+                                      alt={student.firstName}
+                                      className="rounded-circle"
+                                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                    />
+                                  ) : (
+                                    <div
+                                      className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                                      style={{ width: '32px', height: '32px' }}
+                                    >
+                                      <small className="text-primary fw-bold">
+                                        {student.firstName[0]}{student.lastName[0]}
+                                      </small>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="fw-bold small">{student.firstName} {student.lastName}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="text-center align-middle">
+                                <motion.div
+                                  key={totalPoints}
+                                  initial={{ scale: 1.2 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                                 >
-                                  <i className="bi bi-dash"></i>
-                                </Button>
-                                <Button
-                                  color="success"
-                                  outline
-                                  onClick={() => handleParticipationChange(student.id, 1)}
-                                  disabled={isFinalized}
-                                >
-                                  <i className="bi bi-plus"></i>
-                                </Button>
-                              </ButtonGroup>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                                  <Badge
+                                    color={
+                                      totalPoints >= 10
+                                        ? 'success'
+                                        : totalPoints >= 5
+                                        ? 'warning'
+                                        : 'secondary'
+                                    }
+                                    className="px-2 py-1"
+                                  >
+                                    <strong>{totalPoints}</strong>
+                                  </Badge>
+                                </motion.div>
+                              </td>
+                              <td className="text-center align-middle">
+                                <div className="d-flex gap-1 justify-content-center">
+                                  <Button
+                                    color="danger"
+                                    size="sm"
+                                    onClick={() => handleParticipationChange(student.id, -1)}
+                                    disabled={isFinalized || totalPoints <= 0}
+                                    style={{ minWidth: '70px' }}
+                                  >
+                                    <i className="bi bi-dash-lg me-1"></i>
+                                    -1
+                                  </Button>
+                                  <Button
+                                    color="success"
+                                    size="sm"
+                                    onClick={() => handleParticipationChange(student.id, 1)}
+                                    disabled={isFinalized}
+                                    style={{ minWidth: '70px' }}
+                                  >
+                                    <i className="bi bi-plus-lg me-1"></i>
+                                    +1
+                                  </Button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          );
+                        })}
                     </tbody>
                   </Table>
+
+                  {/* No Results */}
+                  {participationSearchQuery.trim() &&
+                    students.filter(s => {
+                      const query = participationSearchQuery.toLowerCase();
+                      return (
+                        s.firstName.toLowerCase().includes(query) ||
+                        s.lastName.toLowerCase().includes(query) ||
+                        s.phone?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 && (
+                      <div className="text-center py-4">
+                        <p className="text-muted">No se encontraron estudiantes con "{participationSearchQuery}"</p>
+                        <Button
+                          color="link"
+                          size="sm"
+                          onClick={() => setParticipationSearchQuery('')}
+                        >
+                          Limpiar búsqueda
+                        </Button>
+                      </div>
+                    )}
                 </div>
               )}
             </CardBody>
@@ -1534,95 +1779,205 @@ const ClassroomManagement: React.FC = () => {
         {/* Evaluations Tab - Mobile Optimized */}
         <TabPane tabId="evaluations">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="bg-white d-flex justify-content-between align-items-center">
-              <h6 className="mb-0">
-                <i className="bi bi-clipboard-check me-2"></i>
-                Evaluaciones
-              </h6>
-              <Button
-                color="primary"
-                size="sm"
-                onClick={() => navigate(`/teacher/evaluation/${id}`)}
-              >
-                <i className="bi bi-gear me-1"></i>
-                <span className="d-none d-sm-inline">Gestionar</span>
-              </Button>
+            <CardHeader className="bg-white">
+              <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h6 className="mb-0">
+                  <i className="bi bi-clipboard-check me-2"></i>
+                  Evaluaciones
+                </h6>
+                <Button
+                  color="primary"
+                  size="sm"
+                  onClick={() => navigate(`/teacher/evaluation/${id}`)}
+                >
+                  <i className="bi bi-gear me-1"></i>
+                  Gestionar
+                </Button>
+              </div>
             </CardHeader>
-            <CardBody className="p-0">
-              <Alert color="info" className="m-3 mb-0">
+            <CardBody>
+              <Alert color="info" className="mb-3">
                 <i className="bi bi-info-circle me-2"></i>
                 <small>Las evaluaciones finales se configuran en el último módulo</small>
               </Alert>
 
+              {/* Search */}
+              {students.length > 0 && (
+                <div className="mb-3">
+                  <SearchInput
+                    placeholder="Buscar estudiante por nombre o teléfono..."
+                    onSearch={setEvaluationsSearchQuery}
+                  />
+                </div>
+              )}
+
+              {/* Filter Chips */}
+              {students.length > 0 && (
+                <div className="d-flex gap-2 mb-3 flex-wrap">
+                  <small className="text-muted me-2">Filtrar por:</small>
+                  <Badge
+                    color="success"
+                    pill
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      // TODO: Add filter logic
+                    }}
+                  >
+                    Activos
+                  </Badge>
+                  <Badge
+                    color="danger"
+                    pill
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      // TODO: Add filter logic
+                    }}
+                  >
+                    Inactivos
+                  </Badge>
+                </div>
+              )}
+
+              {/* Table */}
               {students.length === 0 ? (
-                <Alert color="warning" className="m-3">
-                  No hay estudiantes inscritos
-                </Alert>
+                <EmptyState
+                  icon="bi-clipboard-check"
+                  heading="Sin estudiantes inscritos"
+                  description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a evaluar."
+                />
               ) : (
                 <div className="table-responsive">
-                  <Table className="mb-0" hover>
+                  <Table hover className="mb-0">
                     <thead className="table-light">
                       <tr>
-                        <th className="ps-3">#</th>
+                        <th style={{ width: '50px' }} className="text-center">#</th>
                         <th>Estudiante</th>
-                        <th className="text-center">Asist.</th>
-                        <th className="text-center">Part.</th>
-                        <th className="text-center">Estado</th>
-                        <th className="text-center">Activo</th>
+                        <th className="text-center" style={{ width: '80px' }}>Asist.</th>
+                        <th className="text-center" style={{ width: '80px' }}>Part.</th>
+                        <th className="text-center" style={{ width: '100px' }}>Estado</th>
+                        <th className="text-center" style={{ width: '80px' }}>Activo</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((student, index) => {
-                        const evaluation = evaluations.get(student.id);
-                        const attendanceRate = getStudentAttendanceRate(student.id);
-                        const participation = participationTotals.get(student.id) || 0;
-                        const isActive = evaluation?.isActive !== false; // Default to true if undefined
+                      {students
+                        .filter(student => {
+                          if (!evaluationsSearchQuery.trim()) return true;
+                          const query = evaluationsSearchQuery.toLowerCase();
+                          return (
+                            student.firstName.toLowerCase().includes(query) ||
+                            student.lastName.toLowerCase().includes(query) ||
+                            student.phone?.toLowerCase().includes(query)
+                          );
+                        })
+                        .map((student, index) => {
+                          const evaluation = evaluations.get(student.id);
+                          const attendanceRate = getStudentAttendanceRate(student.id);
+                          const participation = participationTotals.get(student.id) || 0;
+                          const isActive = evaluation?.isActive !== false;
 
-                        return (
-                          <tr key={student.id} className={!isActive ? 'table-secondary text-muted' : ''}>
-                            <td className="ps-3">{index + 1}</td>
-                            <td>
-                              <div className="fw-bold small">{student.firstName} {student.lastName}</div>
-                            </td>
-                            <td className="text-center">
-                              <Badge color={attendanceRate >= 80 ? 'success' : 'warning'} className="small">
-                                {attendanceRate.toFixed(0)}%
-                              </Badge>
-                            </td>
-                            <td className="text-center">
-                              <Badge color="info" className="small">
-                                {participation}
-                              </Badge>
-                            </td>
-                            <td className="text-center">
-                              <Badge
-                                color={
-                                  evaluation?.status === 'evaluated' ? 'success' :
-                                    evaluation?.status === 'in-progress' ? 'warning' : 'secondary'
-                                }
-                                className="small"
-                              >
-                                {evaluation?.status === 'evaluated' ? 'OK' :
-                                  evaluation?.status === 'in-progress' ? 'En Progreso' : 'Pendiente'}
-                              </Badge>
-                            </td>
-                            <td className="text-center">
-                              <div className="form-check form-switch d-flex justify-content-center">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  role="switch"
+                          return (
+                            <tr
+                              key={student.id}
+                              className={!isActive ? 'table-secondary text-muted' : ''}
+                            >
+                              <td className="text-center align-middle">
+                                <small className="text-muted">{index + 1}</small>
+                              </td>
+                              <td className="align-middle">
+                                <div className="d-flex align-items-center gap-2">
+                                  {student.profilePhoto ? (
+                                    <img
+                                      src={student.profilePhoto}
+                                      alt={student.firstName}
+                                      className="rounded-circle"
+                                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                    />
+                                  ) : (
+                                    <div
+                                      className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                                      style={{ width: '32px', height: '32px' }}
+                                    >
+                                      <small className="text-primary fw-bold">
+                                        {student.firstName[0]}{student.lastName[0]}
+                                      </small>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="fw-bold small">
+                                      {student.firstName} {student.lastName}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="text-center align-middle">
+                                <Badge
+                                  color={attendanceRate >= 80 ? 'success' : 'warning'}
+                                  className="px-2 py-1"
+                                >
+                                  {attendanceRate.toFixed(0)}%
+                                </Badge>
+                              </td>
+                              <td className="text-center align-middle">
+                                <Badge color="info" className="px-2 py-1">
+                                  {participation}
+                                </Badge>
+                              </td>
+                              <td className="text-center align-middle">
+                                <Badge
+                                  color={
+                                    evaluation?.status === 'evaluated'
+                                      ? 'success'
+                                      : evaluation?.status === 'in-progress'
+                                      ? 'warning'
+                                      : 'secondary'
+                                  }
+                                >
+                                  {evaluation?.status === 'evaluated'
+                                    ? 'OK'
+                                    : evaluation?.status === 'in-progress'
+                                    ? 'En Progreso'
+                                    : 'Pendiente'}
+                                </Badge>
+                              </td>
+                              <td className="text-center align-middle">
+                                <Switch
                                   checked={isActive}
-                                  onChange={() => handleToggleStudentStatus(student.id, isActive)}
-                                  style={{ cursor: 'pointer' }}
+                                  onChange={(checked) =>
+                                    handleToggleStudentStatus(student.id, isActive)
+                                  }
+                                  onColor="bg-success"
+                                  offColor="bg-danger"
                                 />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </Table>
+
+                  {/* No Results */}
+                  {evaluationsSearchQuery.trim() &&
+                    students.filter(s => {
+                      const query = evaluationsSearchQuery.toLowerCase();
+                      return (
+                        s.firstName.toLowerCase().includes(query) ||
+                        s.lastName.toLowerCase().includes(query) ||
+                        s.phone?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 && (
+                      <div className="text-center py-4">
+                        <p className="text-muted">
+                          No se encontraron estudiantes con "{evaluationsSearchQuery}"
+                        </p>
+                        <Button
+                          color="link"
+                          size="sm"
+                          onClick={() => setEvaluationsSearchQuery('')}
+                        >
+                          Limpiar búsqueda
+                        </Button>
+                      </div>
+                    )}
                 </div>
               )}
             </CardBody>
@@ -1674,73 +2029,119 @@ const ClassroomManagement: React.FC = () => {
                 </div>
               )}
 
+              {/* Search */}
+              {classroom?.resources && classroom.resources.length > 0 && (
+                <div className="mb-3">
+                  <SearchInput
+                    placeholder="Buscar recurso por nombre..."
+                    onSearch={setResourcesSearchQuery}
+                  />
+                </div>
+              )}
+
               {/* Resources List */}
               {!classroom?.resources || classroom.resources.length === 0 ? (
-                <Alert color="info">
-                  <i className="bi bi-info-circle me-2"></i>
-                  No hay recursos disponibles para esta clase
-                </Alert>
+                <EmptyState
+                  icon="bi-folder"
+                  heading="Sin recursos disponibles"
+                  description={
+                    isFinalized
+                      ? 'No hay recursos en esta clase.'
+                      : 'Sube diapositivas, documentos u otros materiales para compartir con los estudiantes.'
+                  }
+                />
               ) : (
                 <div className="table-responsive">
-                  <Table hover>
+                  <Table hover className="mb-0">
                     <thead className="table-light">
                       <tr>
-                        <th style={{ width: '50px' }}></th>
+                        <th style={{ width: '50px' }} className="text-center">Tipo</th>
                         <th>Nombre</th>
-                        <th>Tipo</th>
-                        <th>Tamaño</th>
-                        <th>Acciones</th>
+                        <th style={{ width: '100px' }}>Tipo</th>
+                        <th style={{ width: '100px' }}>Tamaño</th>
+                        <th style={{ width: isFinalized ? '100px' : '150px' }}>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {classroom.resources.map((resource) => (
-                        <tr key={resource.id}>
-                          <td className="text-center">
-                            <i
-                              className={`${getFileIcon(resource.type, resource.name)} fs-4`}
-                              style={{ color: getFileTypeColor(resource.type) }}
-                            ></i>
-                          </td>
-                          <td>
-                            <div className="fw-bold">{resource.name}</div>
-                            <small className="text-muted">
-                              {new Date(resource.uploadedAt).toLocaleDateString('es-ES', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </small>
-                          </td>
-                          <td>
-                            <Badge color={getFileTypeColor(resource.type)}>
-                              {resource.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                            </Badge>
-                          </td>
-                          <td>{formatFileSize(resource.size)}</td>
-                          <td>
-                            <div className="d-flex gap-2">
-                              <Button
-                                color="success"
-                                size="sm"
-                                onClick={() => handleDownloadResource(resource.url, resource.name)}
-                              >
-                                <i className="bi bi-download"></i>
-                              </Button>
-                              {!isFinalized && (
+                      {classroom.resources
+                        .filter(resource => {
+                          if (!resourcesSearchQuery.trim()) return true;
+                          return resource.name
+                            .toLowerCase()
+                            .includes(resourcesSearchQuery.toLowerCase());
+                        })
+                        .map((resource) => (
+                          <tr key={resource.id}>
+                            <td className="text-center align-middle">
+                              <i
+                                className={`${getFileIcon(resource.type, resource.name)} fs-4`}
+                                style={{ color: getFileTypeColor(resource.type) }}
+                              ></i>
+                            </td>
+                            <td className="align-middle">
+                              <div className="fw-bold">{resource.name}</div>
+                              <small className="text-muted">
+                                {new Date(resource.uploadedAt).toLocaleDateString('es-ES', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </small>
+                            </td>
+                            <td className="align-middle">
+                              <Badge color={getFileTypeColor(resource.type)}>
+                                {resource.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                              </Badge>
+                            </td>
+                            <td className="align-middle">{formatFileSize(resource.size)}</td>
+                            <td className="align-middle">
+                              <div className="d-flex gap-2">
                                 <Button
-                                  color="danger"
+                                  color="success"
                                   size="sm"
-                                  onClick={() => handleDeleteResource(resource.id, resource.name)}
+                                  onClick={() => handleDownloadResource(resource.url, resource.name)}
+                                  title="Descargar"
                                 >
-                                  <i className="bi bi-trash"></i>
+                                  <i className="bi bi-download me-1"></i>
+                                  Descargar
                                 </Button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
+                                {!isFinalized && (
+                                  <Button
+                                    color="danger"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleDeleteResource(resource.id, resource.name)
+                                    }
+                                    title="Eliminar"
+                                  >
+                                    <i className="bi bi-trash me-1"></i>
+                                    Eliminar
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}\n                    </tbody>
                   </Table>
+
+                  {/* No Results */}
+                  {resourcesSearchQuery.trim() &&
+                    classroom.resources.filter(r =>
+                      r.name.toLowerCase().includes(resourcesSearchQuery.toLowerCase())
+                    ).length === 0 && (
+                      <div className="text-center py-4">
+                        <p className="text-muted">
+                          No se encontraron recursos con "{resourcesSearchQuery}"
+                        </p>
+                        <Button
+                          color="link"
+                          size="sm"
+                          onClick={() => setResourcesSearchQuery('')}
+                        >
+                          Limpiar búsqueda
+                        </Button>
+                      </div>
+                    )}
                 </div>
               )}
             </CardBody>
@@ -1864,11 +2265,13 @@ const ClassroomManagement: React.FC = () => {
                                     <td>{item.required ? 'Si' : 'No'}</td>
                                     <td>
                                       <div className="d-flex gap-2">
-                                        <Button size="sm" color="link" onClick={() => handleEditCostItem(item)}>
-                                          <i className="bi bi-pencil"></i>
+                                        <Button size="sm" color="info" onClick={() => handleEditCostItem(item)}>
+                                          <i className="bi bi-pencil me-1"></i>
+                                          Editar
                                         </Button>
-                                        <Button size="sm" color="link" onClick={() => handleDeleteCostItem(item.id)}>
-                                          <i className="bi bi-trash text-danger"></i>
+                                        <Button size="sm" color="danger" onClick={() => handleDeleteCostItem(item.id)}>
+                                          <i className="bi bi-trash me-1"></i>
+                                          Eliminar
                                         </Button>
                                       </div>
                                     </td>
@@ -1905,8 +2308,23 @@ const ClassroomManagement: React.FC = () => {
                     <TabContent activeTab={paymentsTab}>
                       <TabPane tabId="students">
                         <h6 className="mb-3">Progreso por Estudiante</h6>
+                        
+                        {/* Search */}
+                        {students.length > 0 && (
+                          <div className="mb-3">
+                            <SearchInput
+                              placeholder="Buscar estudiante por nombre o teléfono..."
+                              onSearch={setPaymentsStudentsSearchQuery}
+                            />
+                          </div>
+                        )}
+
                         {students.length === 0 ? (
-                          <Alert color="info">No hay estudiantes inscritos</Alert>
+                          <EmptyState
+                            icon="bi-people"
+                            heading="Sin estudiantes inscritos"
+                            description="Inscribe estudiantes en la pestaña 'Estudiantes' para gestionar sus pagos."
+                          />
                         ) : (
                           <div className="table-responsive mb-4">
                             <Table bordered hover>
@@ -1925,86 +2343,136 @@ const ClassroomManagement: React.FC = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {students.map(student => {
-                                  const totalDue = getTotalDue(paymentCostItems);
-                                  const totalPaid = getTotalPaid(student.id);
-                                  const balance = totalDue - totalPaid;
+                                {students
+                                  .filter(student => {
+                                    if (!paymentsStudentsSearchQuery.trim()) return true;
+                                    const query = paymentsStudentsSearchQuery.toLowerCase();
+                                    return (
+                                      student.firstName.toLowerCase().includes(query) ||
+                                      student.lastName.toLowerCase().includes(query) ||
+                                      student.phone?.toLowerCase().includes(query)
+                                    );
+                                  })
+                                  .map(student => {
+                                    const totalDue = getTotalDue(paymentCostItems);
+                                    const totalPaid = getTotalPaid(student.id);
+                                    const balance = totalDue - totalPaid;
 
-                                  return (
-                                    <tr key={student.id}>
-                                      <td>
-                                        <div className="fw-bold">{student.firstName} {student.lastName}</div>
-                                        <small className="text-muted">{student.phone}</small>
-                                      </td>
-                                      <td className="text-center">${totalDue.toFixed(2)}</td>
-                                      <td className="text-center">${totalPaid.toFixed(2)}</td>
-                                      <td className="text-center">
-                                        <Badge color={balance <= 0 ? 'success' : 'warning'}>
-                                          ${balance.toFixed(2)}
-                                        </Badge>
-                                      </td>
-                                      <td className="text-center">
-                                        <PaymentReceiptPdfDownloadButton
-                                          title="Comprobante de Pagos"
-                                          studentName={`${student.firstName} ${student.lastName}`}
-                                          studentPhone={student.phone}
-                                          studentEmail={student.email}
-                                          classroomName={classroom?.name || ''}
-                                          classroomSubject={classroom?.subject || ''}
-                                          programName={paymentProgramName}
-                                          generatedBy={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Administrador'}
-                                          costs={paymentCostItems}
-                                          payments={studentPayments.filter(payment => payment.studentId === student.id)}
-                                          statuses={
-                                            paymentStatuses.find(s => s.studentId === student.id)?.items || []
-                                          }
-                                        >
-                                          <Button color="link" className="p-0">
-                                            PDF
-                                          </Button>
-                                        </PaymentReceiptPdfDownloadButton>
-                                      </td>
-                                      {paymentCostItems.map(item => (
-                                        <td key={item.id} className="text-center">
-                                          <Input
-                                            type="select"
-                                            value={getStatusForItem(student.id, item.id)}
-                                            onChange={(e) => handleStatusChange(student.id, item.id, e.target.value as PaymentItemStatus)}
-                                          >
-                                            <option value="paid">Pagado</option>
-                                            <option value="pending">Pendiente</option>
-                                            <option value="unpaid">No pagado</option>
-                                          </Input>
+                                    return (
+                                      <tr key={student.id}>
+                                        <td>
+                                          <div className="fw-bold">{student.firstName} {student.lastName}</div>
+                                          <small className="text-muted">{student.phone}</small>
                                         </td>
-                                      ))}
-                                    </tr>
-                                  );
-                                })}
+                                        <td className="text-center">${totalDue.toFixed(2)}</td>
+                                        <td className="text-center">${totalPaid.toFixed(2)}</td>
+                                        <td className="text-center">
+                                          <Badge color={balance <= 0 ? 'success' : 'warning'}>
+                                            ${balance.toFixed(2)}
+                                          </Badge>
+                                        </td>
+                                        <td className="text-center">
+                                          <PaymentReceiptPdfDownloadButton
+                                            title="Comprobante de Pagos"
+                                            studentName={`${student.firstName} ${student.lastName}`}
+                                            studentPhone={student.phone}
+                                            studentEmail={student.email}
+                                            classroomName={classroom?.name || ''}
+                                            classroomSubject={classroom?.subject || ''}
+                                            programName={paymentProgramName}
+                                            generatedBy={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Administrador'}
+                                            costs={paymentCostItems}
+                                            payments={studentPayments.filter(payment => payment.studentId === student.id)}
+                                            statuses={
+                                              paymentStatuses.find(s => s.studentId === student.id)?.items || []
+                                            }
+                                          >
+                                            <Button color="success" size="sm">
+                                              <i className="bi bi-file-pdf me-1"></i>
+                                              PDF
+                                            </Button>
+                                          </PaymentReceiptPdfDownloadButton>
+                                        </td>
+                                        {paymentCostItems.map(item => (
+                                          <td key={item.id} className="text-center">
+                                            <Input
+                                              type="select"
+                                              value={getStatusForItem(student.id, item.id)}
+                                              onChange={(e) => handleStatusChange(student.id, item.id, e.target.value as PaymentItemStatus)}
+                                            >
+                                              <option value="paid">Pagado</option>
+                                              <option value="pending">Pendiente</option>
+                                              <option value="unpaid">No pagado</option>
+                                            </Input>
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    );
+                                  })}
                               </tbody>
                             </Table>
+
+                            {/* No Results */}
+                            {paymentsStudentsSearchQuery.trim() &&
+                              students.filter(s => {
+                                const query = paymentsStudentsSearchQuery.toLowerCase();
+                                return (
+                                  s.firstName.toLowerCase().includes(query) ||
+                                  s.lastName.toLowerCase().includes(query) ||
+                                  s.phone?.toLowerCase().includes(query)
+                                );
+                              }).length === 0 && (
+                                <div className="text-center py-4">
+                                  <p className="text-muted">
+                                    No se encontraron estudiantes con "{paymentsStudentsSearchQuery}"
+                                  </p>
+                                  <Button
+                                    color="link"
+                                    size="sm"
+                                    onClick={() => setPaymentsStudentsSearchQuery('')}
+                                  >
+                                    Limpiar búsqueda
+                                  </Button>
+                                </div>
+                              )}
                           </div>
                         )}
                       </TabPane>
 
                       <TabPane tabId="payments">
-                        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
-                          <h6 className="mb-0">Pagos Registrados</h6>
-                          <Input
-                            type="select"
-                            value={paymentFilterStudentId}
-                            onChange={(e) => setPaymentFilterStudentId(e.target.value)}
-                            style={{ maxWidth: '280px' }}
-                          >
-                            <option value="">Todos los estudiantes</option>
-                            {students.map(student => (
-                              <option key={student.id} value={student.id}>
-                                {student.firstName} {student.lastName}
-                              </option>
-                            ))}
-                          </Input>
+                        <div className="d-flex flex-column gap-3 mb-3">
+                          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <h6 className="mb-0">Pagos Registrados</h6>
+                            <Input
+                              type="select"
+                              value={paymentFilterStudentId}
+                              onChange={(e) => setPaymentFilterStudentId(e.target.value)}
+                              style={{ maxWidth: '280px' }}
+                            >
+                              <option value="">Todos los estudiantes</option>
+                              {students.map(student => (
+                                <option key={student.id} value={student.id}>
+                                  {student.firstName} {student.lastName}
+                                </option>
+                              ))}
+                            </Input>
+                          </div>
+                          
+                          {/* Search */}
+                          {studentPayments.length > 0 && (
+                            <SearchInput
+                              placeholder="Buscar pago por estudiante, método o comentario..."
+                              onSearch={setPaymentsSearchQuery}
+                            />
+                          )}
                         </div>
+
                         {studentPayments.length === 0 ? (
-                          <Alert color="info">No hay pagos registrados</Alert>
+                          <EmptyState
+                            icon="bi-cash-coin"
+                            heading="Sin pagos registrados"
+                            description="Registra los pagos de los estudiantes desde el botón 'Registrar Pago' en el encabezado de esta pestaña."
+                          />
                         ) : (
                           <div className="table-responsive">
                             <Table bordered hover>
@@ -2012,56 +2480,99 @@ const ClassroomManagement: React.FC = () => {
                                 <tr>
                                   <th>Estudiante</th>
                                   <th>Monto</th>
-                                  <th>Metodo</th>
+                                  <th>Método</th>
                                   <th>Items</th>
                                   <th>Comentario</th>
                                   <th>Comprobante</th>
                                   <th>Fecha</th>
-                                  <th>Acciones</th>
+                                  <th style={{ width: '180px' }}>Acciones</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {filteredPayments.map(payment => {
-                                  const student = students.find(s => s.id === payment.studentId);
-                                  const itemLabels = payment.appliedItemIds
-                                    .map(itemId => paymentCostItems.find(item => item.id === itemId)?.title)
-                                    .filter(Boolean)
-                                    .join(', ');
+                                {filteredPayments
+                                  .filter(payment => {
+                                    if (!paymentsSearchQuery.trim()) return true;
+                                    const student = students.find(s => s.id === payment.studentId);
+                                    const studentName = student ? `${student.firstName} ${student.lastName}`.toLowerCase() : '';
+                                    const query = paymentsSearchQuery.toLowerCase();
+                                    return (
+                                      studentName.includes(query) ||
+                                      getPaymentMethodLabel(payment.method).toLowerCase().includes(query) ||
+                                      payment.comment?.toLowerCase().includes(query)
+                                    );
+                                  })
+                                  .map(payment => {
+                                    const student = students.find(s => s.id === payment.studentId);
+                                    const itemLabels = payment.appliedItemIds
+                                      .map(itemId => paymentCostItems.find(item => item.id === itemId)?.title)
+                                      .filter(Boolean)
+                                      .join(', ');
 
-                                  return (
-                                    <tr key={payment.id}>
-                                      <td>{student ? `${student.firstName} ${student.lastName}` : payment.studentId}</td>
-                                      <td>${payment.amount.toFixed(2)}</td>
-                                      <td>{getPaymentMethodLabel(payment.method)}</td>
-                                      <td>{itemLabels || 'No asociado'}</td>
-                                      <td>{payment.comment || '-'}</td>
-                                      <td>
-                                        {payment.receiptUrl ? (
-                                          <Button
-                                            color="link"
-                                            className="p-0"
-                                            onClick={() => handleDownloadResource(payment.receiptUrl!, payment.receiptName || 'comprobante')}
-                                          >
-                                            Ver
-                                          </Button>
-                                        ) : (
-                                          <span className="text-muted">N/A</span>
-                                        )}
-                                      </td>
-                                      <td>{new Date(payment.createdAt).toLocaleDateString('es-ES')}</td>
-                                      <td>
-                                        <Button color="link" className="p-0" onClick={() => handleEditPayment(payment)}>
-                                          Editar
-                                        </Button>
-                                        <Button color="link" className="p-0 ms-2" onClick={() => handleDeletePayment(payment)}>
-                                          Eliminar
-                                        </Button>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
+                                    return (
+                                      <tr key={payment.id}>
+                                        <td>{student ? `${student.firstName} ${student.lastName}` : payment.studentId}</td>
+                                        <td>${payment.amount.toFixed(2)}</td>
+                                        <td>{getPaymentMethodLabel(payment.method)}</td>
+                                        <td>{itemLabels || 'No asociado'}</td>
+                                        <td>{payment.comment || '-'}</td>
+                                        <td>
+                                          {payment.receiptUrl ? (
+                                            <Button
+                                              color="success"
+                                              size="sm"
+                                              onClick={() => handleDownloadResource(payment.receiptUrl!, payment.receiptName || 'comprobante')}
+                                            >
+                                              <i className="bi bi-download me-1"></i>
+                                              Ver
+                                            </Button>
+                                          ) : (
+                                            <span className="text-muted">N/A</span>
+                                          )}
+                                        </td>
+                                        <td>{new Date(payment.createdAt).toLocaleDateString('es-ES')}</td>
+                                        <td>
+                                          <div className="d-flex gap-2">
+                                            <Button color="info" size="sm" onClick={() => handleEditPayment(payment)}>
+                                              <i className="bi bi-pencil me-1"></i>
+                                              Editar
+                                            </Button>
+                                            <Button color="danger" size="sm" onClick={() => handleDeletePayment(payment)}>
+                                              <i className="bi bi-trash me-1"></i>
+                                              Eliminar
+                                            </Button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
                               </tbody>
                             </Table>
+
+                            {/* No Results */}
+                            {paymentsSearchQuery.trim() &&
+                              filteredPayments.filter(payment => {
+                                const student = students.find(s => s.id === payment.studentId);
+                                const studentName = student ? `${student.firstName} ${student.lastName}`.toLowerCase() : '';
+                                const query = paymentsSearchQuery.toLowerCase();
+                                return (
+                                  studentName.includes(query) ||
+                                  getPaymentMethodLabel(payment.method).toLowerCase().includes(query) ||
+                                  payment.comment?.toLowerCase().includes(query)
+                                );
+                              }).length === 0 && (
+                                <div className="text-center py-4">
+                                  <p className="text-muted">
+                                    No se encontraron pagos con "{paymentsSearchQuery}"
+                                  </p>
+                                  <Button
+                                    color="link"
+                                    size="sm"
+                                    onClick={() => setPaymentsSearchQuery('')}
+                                  >
+                                    Limpiar búsqueda
+                                  </Button>
+                                </div>
+                              )}
                           </div>
                         )}
                       </TabPane>

@@ -8,12 +8,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm start` — Start dev server (Create React App, port 3000)
-- `npm run build` — Production build
+- `npm start` — Start dev server with emulators enabled (port 3000)
+- `npm run start:prod` — Start dev server pointing to production Firebase
+- `npm run build` — Production build (uses `.env.production`, real Firebase)
+- `npm run emulators` — Start Firebase Emulator Suite (persists data in `emulator-data/`)
+- `npm run emulators:fresh` — Start emulators without persisted data
+- `npm run dev` — Start emulators + dev server concurrently
 - `npm test` — Run tests (Jest via react-scripts, interactive watch mode)
 - `npm test -- --watchAll=false` — Run tests non-interactively
 - `npm test -- --testPathPattern=<path>` — Run a single test file
 - `npx serve -s build -p 3000` — Serve production build locally
+
+### Environments
+
+| Environment | Config File       | Emulators | Command              |
+|-------------|-------------------|-----------|----------------------|
+| Development | `.env.development`| Yes       | `npm start`          |
+| Production  | `.env.production` | No        | `npm run build`      |
+
+Firebase config lives in env vars (`REACT_APP_FIREBASE_*`). The emulator connection is controlled by `REACT_APP_USE_EMULATORS`. Emulator UI available at `http://localhost:4000` when running.
 
 ## Architecture
 

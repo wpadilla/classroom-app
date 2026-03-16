@@ -54,7 +54,7 @@ import { DocumentType, AcademicLevel } from '../../models/registration.model';
 const UserProfile: React.FC = () => {
   const { user, updatePassword, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // State
   const [profile, setProfile] = useState<IUser | null>(null);
   const [enrolledClassrooms, setEnrolledClassrooms] = useState<IClassroom[]>([]);
@@ -67,11 +67,11 @@ const UserProfile: React.FC = () => {
   const [runDetailsModal, setRunDetailsModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  
+
   // Modal states
   const [passwordModal, setPasswordModal] = useState(false);
   const [photoModal, setPhotoModal] = useState(false);
-  
+
   // Form states
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -124,10 +124,10 @@ const UserProfile: React.FC = () => {
 
   const loadProfileData = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Load full user profile
       const userProfile = await UserService.getUserById(user.id);
       if (userProfile) {
@@ -145,7 +145,7 @@ const UserProfile: React.FC = () => {
           pastorName: userProfile.pastor?.fullName || '',
           pastorPhone: userProfile.pastor?.phone || '',
         });
-        
+
         // Load enrolled classrooms (for students and teachers who are also students)
         if (userProfile.enrolledClassrooms && userProfile.enrolledClassrooms.length > 0) {
           const classrooms = await Promise.all(
@@ -153,7 +153,7 @@ const UserProfile: React.FC = () => {
           );
           setEnrolledClassrooms(classrooms.filter(c => c !== null) as IClassroom[]);
         }
-        
+
         // Load teaching classrooms (for teachers and admins)
         if (userProfile.teachingClassrooms && userProfile.teachingClassrooms.length > 0) {
           const classrooms = await Promise.all(
@@ -161,11 +161,11 @@ const UserProfile: React.FC = () => {
           );
           setTeachingClassrooms(classrooms.filter(c => c !== null) as IClassroom[]);
         }
-        
+
         // Load evaluations
         const studentEvaluations = await EvaluationService.getStudentEvaluations(user.id);
         setEvaluations(studentEvaluations);
-        
+
         // Load teacher runs if user is teacher or admin
         if (userProfile.isTeacher || userProfile.role === 'teacher' || userProfile.role === 'admin') {
           const runs = await ClassroomRestartService.getTeacherRuns(user.id);
@@ -185,17 +185,17 @@ const UserProfile: React.FC = () => {
       toast.error('Por favor complete todos los campos');
       return;
     }
-    
+
     if (newPassword !== confirmPassword) {
       toast.error('Las contraseñas no coinciden');
       return;
     }
-    
+
     if (newPassword.length < 6) {
       toast.error('La contraseña debe tener al menos 6 caracteres');
       return;
     }
-    
+
     const success = await updatePassword(newPassword);
     if (success) {
       setPasswordModal(false);
@@ -207,44 +207,44 @@ const UserProfile: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor seleccione una imagen válida');
       return;
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
       toast.error('La imagen no debe superar los 5MB');
       return;
     }
-    
+
     setSelectedPhoto(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setPhotoPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
-    
+
     setPhotoModal(true);
   };
 
   const handlePhotoUpload = async () => {
     if (!selectedPhoto || !user) return;
-    
+
     try {
       setUploadingPhoto(true);
       const photoUrl = await UserService.updateProfilePhoto(user.id, selectedPhoto);
-      
+
       // Update local profile
       if (profile) {
         setProfile({ ...profile, profilePhoto: photoUrl });
       }
-      
+
       // Refresh user context
       await refreshUser();
-      
+
       toast.success('Foto de perfil actualizada');
       setPhotoModal(false);
       setSelectedPhoto(null);
@@ -311,10 +311,10 @@ const UserProfile: React.FC = () => {
 
   const calculateOverallGrade = (): number => {
     if (evaluations.length === 0) return 0;
-    
+
     const completedEvaluations = evaluations.filter(e => e.status === 'evaluated');
     if (completedEvaluations.length === 0) return 0;
-    
+
     const totalPercentage = completedEvaluations.reduce((sum, e) => sum + e.percentage, 0);
     return totalPercentage / completedEvaluations.length;
   };
@@ -485,7 +485,7 @@ const UserProfile: React.FC = () => {
             Información Personal
           </NavLink>
         </NavItem>
-        
+
         {/* Show teaching classes tab for teachers and admins */}
         {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
           <NavItem>
@@ -499,7 +499,7 @@ const UserProfile: React.FC = () => {
             </NavLink>
           </NavItem>
         )}
-        
+
         {/* Show runs history tab for teachers and admins */}
         {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
           <NavItem>
@@ -513,7 +513,7 @@ const UserProfile: React.FC = () => {
             </NavLink>
           </NavItem>
         )}
-        
+
         {/* Show enrolled classes tab for students and teachers who are also students */}
         {(profile.role === 'student' || enrolledClassrooms.length > 0) && (
           <NavItem>
@@ -527,7 +527,7 @@ const UserProfile: React.FC = () => {
             </NavLink>
           </NavItem>
         )}
-        
+
         <NavItem>
           <NavLink
             className={activeTab === 'history' ? 'active' : ''}
@@ -549,7 +549,7 @@ const UserProfile: React.FC = () => {
             Documentos
           </NavLink>
         </NavItem>
-        
+
         {/* Show programs progress tab for all users */}
         <NavItem>
           <NavLink
@@ -827,7 +827,7 @@ const UserProfile: React.FC = () => {
                   const completedModules = classroom.modules?.filter(m => m.isCompleted).length || 0;
                   const totalModules = classroom.modules?.length || 0;
                   const progress = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
-                  
+
                   return (
                     <Col md={6} key={classroom.id} className="mb-3">
                       <Card className="h-100 border-info">
@@ -851,7 +851,7 @@ const UserProfile: React.FC = () => {
                               style={{ height: '8px' }}
                             />
                           </div>
-                          
+
                           <div className="d-flex justify-content-between mb-2">
                             <span className="text-muted">
                               <i className="bi bi-people me-2"></i>
@@ -859,7 +859,7 @@ const UserProfile: React.FC = () => {
                             </span>
                             <Badge color="primary">{classroom.studentIds?.length || 0}</Badge>
                           </div>
-                          
+
                           <div className="d-flex justify-content-between mb-2">
                             <span className="text-muted">
                               <i className="bi bi-calendar me-2"></i>
@@ -869,7 +869,7 @@ const UserProfile: React.FC = () => {
                               Semana {classroom.currentModule?.weekNumber || 1}
                             </Badge>
                           </div>
-                          
+
                           {classroom.schedule && (
                             <div className="d-flex justify-content-between mb-2">
                               <span className="text-muted">
@@ -881,7 +881,7 @@ const UserProfile: React.FC = () => {
                               </span>
                             </div>
                           )}
-                          
+
                           {classroom.room && (
                             <div className="d-flex justify-content-between mb-2">
                               <span className="text-muted">
@@ -891,9 +891,9 @@ const UserProfile: React.FC = () => {
                               <span className="small">{classroom.room}</span>
                             </div>
                           )}
-                          
+
                           <hr />
-                          
+
                           <div className="d-flex justify-content-between align-items-center">
                             <Badge color={classroom.isActive ? 'success' : 'secondary'}>
                               {classroom.isActive ? 'Activa' : 'Inactiva'}
@@ -950,11 +950,11 @@ const UserProfile: React.FC = () => {
                     </thead>
                     <tbody>
                       {teacherRuns.map((run: IClassroomRun) => {
-                        const passedStudents = 
+                        const passedStudents =
                           run.statistics.distribution.excellent +
                           run.statistics.distribution.good +
                           run.statistics.distribution.regular;
-                        
+
                         return (
                           <tr key={run.id}>
                             <td>
@@ -1010,7 +1010,7 @@ const UserProfile: React.FC = () => {
                     </tbody>
                   </Table>
                 )}
-                
+
                 {/* Summary Stats */}
                 {teacherRuns.length > 0 && (
                   <Card className="bg-light mt-3">
@@ -1076,7 +1076,7 @@ const UserProfile: React.FC = () => {
                             <i className="bi bi-calendar me-2"></i>
                             Módulo actual: {classroom.currentModule?.name || 'No definido'}
                           </p>
-                          
+
                           {evaluation && (
                             <>
                               <hr />
@@ -1165,10 +1165,10 @@ const UserProfile: React.FC = () => {
                           <td className="text-center">
                             <Badge color={
                               history.status === 'completed' ? 'success' :
-                              history.status === 'dropped' ? 'warning' : 'danger'
+                                history.status === 'dropped' ? 'warning' : 'danger'
                             }>
                               {history.status === 'completed' ? 'Completado' :
-                               history.status === 'dropped' ? 'Abandonado' : 'Reprobado'}
+                                history.status === 'dropped' ? 'Abandonado' : 'Reprobado'}
                             </Badge>
                           </td>
                         </tr>
@@ -1196,10 +1196,10 @@ const UserProfile: React.FC = () => {
               </h5>
             </CardHeader>
             <CardBody>
-              <ProgramsProgressTab 
-                user={profile} 
-                showDetails={true} 
-                compact={false} 
+              <ProgramsProgressTab
+                user={profile}
+                showDetails={true}
+                compact={false}
               />
             </CardBody>
           </Card>

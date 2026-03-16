@@ -18,6 +18,15 @@
 .env.test.local
 .env.production.local
 
+# Firebase Emulator data
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+emulator-data/
+
+# Firebase service account key (NEVER commit)
+scripts/serviceAccountKey.json
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

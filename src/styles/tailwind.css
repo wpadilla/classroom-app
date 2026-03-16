@@ -1,0 +1,151 @@
+/* Tailwind CSS imports */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables for Theme Switching */
+:root {
+  --color-primary: #1e3a8a;
+  --color-accent: #f59e0b;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+}
+
+/* Dark mode variables (for future implementation) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #0f172a;
+    --color-text: #f0f0f0;
+    --color-text-muted: #94a3b8;
+    --color-border: #334155;
+  }
+}
+
+/* Base layer customizations */
+@layer base {
+  /* Distinctive typography - Space Grotesk + IBM Plex Sans */
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700;900&family=IBM+Plex+Sans:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+  
+  html {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+  
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Component layer - reusable patterns */
+@layer components {
+  /* Touch-optimized button base */
+  .btn-touch {
+    @apply min-h-touch min-w-touch px-4 py-2 rounded-lg font-semibold transition-all duration-200;
+    @apply active:scale-95;
+  }
+  
+  /* Card base */
+  .card-mobile {
+    @apply bg-white rounded-xl shadow-md p-4 transition-shadow duration-200;
+    @apply hover:shadow-lg;
+  }
+  
+  /* Input base */
+  .input-mobile {
+    @apply w-full px-4 py-3 rounded-lg border border-neutral-300;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply transition-all duration-200;
+  }
+  
+  /* Badge base */
+  .badge-mobile {
+    @apply inline-flex items-center px-3 py-1 rounded-md text-sm font-semibold;
+  }
+  
+  /* List item touch target */
+  .list-item-touch {
+    @apply min-h-[60px] px-4 py-3 flex items-center gap-3;
+    @apply active:bg-neutral-50 transition-colors duration-150;
+  }
+}
+
+/* Utility layer - custom utilities */
+@layer utilities {
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Safe area insets for mobile */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Thumb zone optimization (bottom 40% of screen) */
+  .thumb-zone {
+    @apply fixed bottom-0 inset-x-0;
+  }
+  
+  /* GPU acceleration for animations */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* Text truncation */
+  .truncate-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .truncate-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+}
+
+/* Animation utilities */
+.animate-stagger > * {
+  animation-delay: calc(var(--stagger-delay, 50ms) * var(--index, 0));
+}

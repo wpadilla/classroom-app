@@ -1,42 +1,65 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getAnalytics, isSupported } from "firebase/analytics";
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  enableIndexedDbPersistence,
+} from "firebase/firestore";
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Firebase configuration from environment variables
 const firebaseConfig = {
-    apiKey: "AIzaSyA8lmedfLzmKHBRMnHkv7cfX4R8U0ZYgow",
-    authDomain: "classroom-app-157de.firebaseapp.com",
-    projectId: "classroom-app-157de",
-    storageBucket: "classroom-app-157de.appspot.com",
-    messagingSenderId: "1083645313189",
-    appId: "1:1083645313189:web:9a31c7d247c7e5130acd4c",
-    measurementId: "G-F68RL26VNZ"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
-export const docName = 'classStructure'
-export const docId = 'bSgeILnVvFlPcf1moVp6-sean1-Nov-2023'
-export const classroomsDocId = 'jDF2e5crOXnGhjmmPiL9'
-export const classroomCollectionName = 'classrooms'
+// Legacy constants
+export const docName = "classStructure";
+export const docId = "bSgeILnVvFlPcf1moVp6-sean1-Nov-2023";
+export const classroomsDocId = "jDF2e5crOXnGhjmmPiL9";
+export const classroomCollectionName = "classrooms";
+
 // Initialize Firebase
 export const firebaseApp = initializeApp(firebaseConfig);
 export const firebaseStoreDB = getFirestore(firebaseApp);
-export const analytics = getAnalytics(firebaseApp);
 
-// Enable offline persistence
-enableIndexedDbPersistence(firebaseStoreDB)
-  .catch((err) => {
-      if (err.code == 'failed-precondition') {
-          // Multiple tabs open, persistence can only be enabled
-          // in one tab at a a time.
-          console.warn('Firebase persistence failed: Multiple tabs open');
-      } else if (err.code == 'unimplemented') {
-          // The current browser does not support all of the
-          // features required to enable persistence
-          console.warn('Firebase persistence not supported by browser');
-      }
+// Emulator configuration
+const useEmulators = process.env.REACT_APP_USE_EMULATORS === "true";
+
+if (useEmulators) {
+  const emulatorHost =
+    process.env.REACT_APP_EMULATOR_HOST || "localhost";
+  const firestorePort = Number(
+    process.env.REACT_APP_EMULATOR_FIRESTORE_PORT || 8085
+  );
+
+  connectFirestoreEmulator(firebaseStoreDB, emulatorHost, firestorePort);
+
+  console.log(
+    `Firebase Emulators conectados - Firestore: ${emulatorHost}:${firestorePort}`
+  );
+} else {
+  // Enable offline persistence only in production (not compatible with emulators)
+  enableIndexedDbPersistence(firebaseStoreDB).catch((err) => {
+    if (err.code === "failed-precondition") {
+      console.warn("Firebase persistence failed: Multiple tabs open");
+    } else if (err.code === "unimplemented") {
+      console.warn("Firebase persistence not supported by browser");
+    }
   });
+}
+
+// Analytics only in production (emulators don't support it)
+export let analytics: ReturnType<typeof getAnalytics> | null = null;
+
+if (!useEmulators) {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(firebaseApp);
+    }
+  });
+}

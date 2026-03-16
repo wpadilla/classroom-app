@@ -405,7 +405,7 @@ const selection = useSelection();
   bulkActions={
     selection.selectedCount > 0 ? (
       <div className="d-flex gap-2">
-        <span>{selection.selectedCount} seleccionados</span>
+        <span>{selection.selectedCount}</span>
         <Button size="sm" onClick={handleBulkAction}>Acción</Button>
         <Button size="sm" outline onClick={selection.clear}>Cancelar</Button>
       </div>

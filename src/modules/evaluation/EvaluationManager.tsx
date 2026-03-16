@@ -1,6 +1,6 @@
 // Complete Evaluation Manager for Teachers
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Container,
   Row,
@@ -10,7 +10,6 @@ import {
   CardHeader,
   Button,
   Badge,
-  Table,
   Input,
   FormGroup,
   Label,
@@ -27,9 +26,12 @@ import {
   TabContent,
   TabPane,
   InputGroup,
-  Form
+  Form,
+  Table
 } from 'reactstrap';
 import { useParams, useNavigate } from 'react-router-dom';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
@@ -37,13 +39,27 @@ import { UserService } from '../../services/user/user.service';
 import { IClassroom, IStudentEvaluation, IUser, IEvaluationCriteria, ICustomCriterion } from '../../models';
 import { toast } from 'react-toastify';
 import ClassroomFinalizationModal from '../shared/ClassroomFinalizationModal';
-import { SearchInput, EmptyState } from '../../components/mobile';
+import { EmptyState } from '../../components/mobile';
+import { DataTable, Dialog, Column } from '../../components/common';
+import { useSelection } from '../../hooks';
+import CertificatesPdfDocument from './certificates/CertificatesPdfDocument';
+import { generateCertificateBlob, generateCertificateDataUrl } from './certificates/certificate.canvas';
+import {
+  buildBulkCertificateFileName,
+  buildCertificateData,
+  buildCertificateFileName,
+  isStudentEligibleForCertificate,
+} from './certificates/certificate.utils';
 
 interface EvaluationFormData {
   questionnaires: number;
   finalExam: number;
   customScores: { criterionId: string; score: number }[];
 }
+
+type StudentWithEvaluation = IUser & {
+  evaluation: IStudentEvaluation;
+};
 
 const EvaluationManager: React.FC = () => {
   const { classroomId } = useParams<{ classroomId: string }>();
@@ -52,12 +68,14 @@ const EvaluationManager: React.FC = () => {
   
   // State
   const [classroom, setClassroom] = useState<IClassroom | null>(null);
+  const [teacher, setTeacher] = useState<Pick<IUser, 'firstName' | 'lastName'> | null>(null);
   const [students, setStudents] = useState<IUser[]>([]);
   const [evaluations, setEvaluations] = useState<Map<string, IStudentEvaluation>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('final');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [certificateLoadingId, setCertificateLoadingId] = useState<string | null>(null);
+  const [bulkCertificateLoading, setBulkCertificateLoading] = useState(false);
   
   // Modal states
   const [criteriaModal, setCriteriaModal] = useState(false);
@@ -82,13 +100,16 @@ const EvaluationManager: React.FC = () => {
     participationRecords: []
   });
 
-  useEffect(() => {
-    if (classroomId && user) {
-      loadData();
-    }
-  }, [classroomId, user]);
+  // Bulk evaluation state
+  const evaluationSelection = useSelection();
+  const [bulkEvaluationModal, setBulkEvaluationModal] = useState(false);
+  const [bulkEvaluationForm, setBulkEvaluationForm] = useState<EvaluationFormData>({
+    questionnaires: 0,
+    finalExam: 0,
+    customScores: []
+  });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!classroomId || !user) return;
     
     try {
@@ -110,6 +131,10 @@ const EvaluationManager: React.FC = () => {
       }
       
       setClassroom(classroomData);
+      const teacherData = classroomData.teacherId === user.id
+        ? user
+        : await UserService.getUserById(classroomData.teacherId);
+      setTeacher(teacherData || null);
       
       // Check if finalized
       const finalized = await ClassroomService.isFinalized(classroomId);
@@ -191,7 +216,13 @@ const EvaluationManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [classroomId, navigate, user]);
+
+  useEffect(() => {
+    if (classroomId && user) {
+      loadData();
+    }
+  }, [classroomId, user, loadData]);
 
   const handleSaveCriteria = async () => {
     if (!classroom) return;
@@ -340,6 +371,63 @@ const EvaluationManager: React.FC = () => {
     }
   };
 
+  // Bulk evaluation handler
+  const handleBulkEvaluation = async () => {
+    if (!classroom?.evaluationCriteria || evaluationSelection.selectedIds.size === 0) return;
+    
+    try {
+      setSaving(true);
+      
+      const selectedIds = Array.from(evaluationSelection.selectedIds);
+      const totalModules = classroom.modules?.length || 8;
+      const newEvaluations = new Map(evaluations);
+      const promises: Promise<string>[] = [];
+      
+      for (const studentId of selectedIds) {
+        const evaluation = evaluations.get(studentId);
+        if (!evaluation) continue;
+        
+        // Update scores
+        const updatedEvaluation: IStudentEvaluation = {
+          ...evaluation,
+          scores: {
+            ...evaluation.scores,
+            questionnaires: bulkEvaluationForm.questionnaires,
+            finalExam: bulkEvaluationForm.finalExam,
+            customScores: bulkEvaluationForm.customScores
+          },
+          status: 'evaluated',
+          updatedAt: new Date()
+        };
+        
+        // Calculate final grade
+        const finalEvaluation = EvaluationService.calculateFinalGrade(
+          updatedEvaluation,
+          classroom.evaluationCriteria,
+          totalModules
+        );
+        
+        newEvaluations.set(studentId, finalEvaluation);
+        promises.push(EvaluationService.saveEvaluation(finalEvaluation));
+      }
+      
+      // Update UI first
+      setEvaluations(newEvaluations);
+      
+      // Save to database
+      await Promise.all(promises);
+      
+      toast.success(`${selectedIds.length} evaluaciones actualizadas`);
+      setBulkEvaluationModal(false);
+      evaluationSelection.clear();
+    } catch (error) {
+      console.error('Error saving bulk evaluations:', error);
+      toast.error('Error al guardar las evaluaciones');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleMarkAllAsEvaluated = async () => {
     if (!classroom?.evaluationCriteria) return;
     
@@ -408,6 +496,195 @@ const EvaluationManager: React.FC = () => {
     return distribution;
   };
 
+  // Students with evaluation data for DataTable - must be before conditional returns
+  const studentsWithEvaluation = useMemo(() => {
+    return students
+      .filter(student => evaluations.has(student.id))
+      .map(student => ({
+        ...student,
+        evaluation: evaluations.get(student.id)!
+      }));
+  }, [students, evaluations]) as StudentWithEvaluation[];
+
+  const selectedStudentsWithEvaluation = useMemo(() => {
+    return studentsWithEvaluation.filter((student) => evaluationSelection.selectedIds.has(student.id));
+  }, [studentsWithEvaluation, evaluationSelection.selectedIds]);
+
+  const selectedEligibleCertificateStudents = useMemo(() => {
+    return selectedStudentsWithEvaluation.filter((student) => isStudentEligibleForCertificate(student.evaluation));
+  }, [selectedStudentsWithEvaluation]);
+
+  const handleDownloadCertificate = async (student: StudentWithEvaluation) => {
+    if (!classroom) {
+      return;
+    }
+
+    if (!isStudentEligibleForCertificate(student.evaluation)) {
+      toast.info('Solo puedes generar certificados para estudiantes evaluados y aprobados');
+      return;
+    }
+
+    try {
+      setCertificateLoadingId(student.id);
+
+      const certificate = buildCertificateData({
+        classroom,
+        student,
+        teacher,
+      });
+
+      const blob = await generateCertificateBlob(certificate, { format: 'png' });
+      saveAs(blob, buildCertificateFileName(certificate.studentName, certificate.subjectName, 'png'));
+      toast.success(`Certificado generado para ${certificate.studentName}`);
+    } catch (error) {
+      console.error('Error generating certificate:', error);
+      toast.error('No se pudo generar el certificado');
+    } finally {
+      setCertificateLoadingId(null);
+    }
+  };
+
+  const handleBulkCertificateDownload = async () => {
+    if (!classroom) {
+      return;
+    }
+
+    if (selectedStudentsWithEvaluation.length === 0) {
+      toast.info('Selecciona al menos un estudiante para generar certificados');
+      return;
+    }
+
+    if (selectedEligibleCertificateStudents.length === 0) {
+      toast.info('Los certificados solo están disponibles para estudiantes evaluados y aprobados');
+      return;
+    }
+
+    try {
+      setBulkCertificateLoading(true);
+
+      const pages = [];
+      for (const student of selectedEligibleCertificateStudents) {
+        const certificate = buildCertificateData({
+          classroom,
+          student,
+          teacher,
+        });
+
+        const imageSrc = await generateCertificateDataUrl(certificate, {
+          format: 'jpeg',
+          quality: 0.92,
+        });
+
+        pages.push({
+          id: certificate.id,
+          imageSrc,
+        });
+      }
+
+      const blob = await pdf(<CertificatesPdfDocument certificates={pages} />).toBlob();
+      saveAs(blob, buildBulkCertificateFileName(classroom));
+
+      if (selectedEligibleCertificateStudents.length < selectedStudentsWithEvaluation.length) {
+        toast.info(
+          `Se generaron ${selectedEligibleCertificateStudents.length} certificados. ` +
+          `${selectedStudentsWithEvaluation.length - selectedEligibleCertificateStudents.length} estudiantes no cumplen los requisitos.`
+        );
+      } else {
+        toast.success(`Se generaron ${selectedEligibleCertificateStudents.length} certificados en PDF`);
+      }
+    } catch (error) {
+      console.error('Error generating bulk certificates:', error);
+      toast.error('No se pudo generar el PDF de certificados');
+    } finally {
+      setBulkCertificateLoading(false);
+    }
+  };
+
+  // Evaluation table columns - must be before conditional returns
+  const evaluationColumns = useMemo(() => {
+    const cols: Column<StudentWithEvaluation>[] = [
+      {
+        header: 'Estudiante',
+        accessor: (row) => `${row.firstName} ${row.lastName}`,
+        render: (_, row) => (
+          <strong>{row.firstName} {row.lastName}</strong>
+        )
+      },
+      {
+        header: 'Cuestionarios',
+        align: 'center' as const,
+        mobileHidden: true,
+        render: (_, row) => (
+          <span>{row.evaluation.scores.questionnaires}/{classroom?.evaluationCriteria?.questionnaires || 0}</span>
+        )
+      },
+      {
+        header: 'Asistencia',
+        align: 'center' as const,
+        mobileHidden: true,
+        render: (_, row) => (
+          <span>{row.evaluation.scores.attendance.toFixed(1)}/{classroom?.evaluationCriteria?.attendance || 0}</span>
+        )
+      },
+      {
+        header: 'Participación',
+        align: 'center' as const,
+        mobileHidden: true,
+        render: (_, row) => (
+          <span>{row.evaluation.scores.participation.toFixed(1)}/{classroom?.evaluationCriteria?.participation || 0}</span>
+        )
+      },
+      {
+        header: 'Examen Final',
+        align: 'center' as const,
+        mobileHidden: true,
+        render: (_, row) => (
+          <span>{row.evaluation.scores.finalExam}/{classroom?.evaluationCriteria?.finalExam || 0}</span>
+        )
+      },
+      // Custom criteria columns
+      ...(classroom?.evaluationCriteria?.customCriteria?.map((criterion: ICustomCriterion) => ({
+        header: criterion.name,
+        align: 'center' as const,
+        mobileHidden: true,
+        render: (_: any, row: StudentWithEvaluation) => (
+          <span>
+            {row.evaluation.scores.customScores.find(cs => cs.criterionId === criterion.id)?.score || 0}/{criterion.points}
+          </span>
+        )
+      })) || []),
+      {
+        header: 'Total',
+        align: 'center' as const,
+        render: (_, row) => (
+          <Badge color={row.evaluation.percentage && row.evaluation.percentage >= 70 ? 'success' : 'danger'}>
+            {row.evaluation.percentage?.toFixed(1)}%
+          </Badge>
+        )
+      },
+      {
+        header: 'Estado',
+        align: 'center' as const,
+        mobileHidden: true,
+        render: (_, row) => (
+          isStudentEligibleForCertificate(row.evaluation) ? (
+            <div className="d-flex flex-column align-items-center gap-1">
+              <Badge color="success">Evaluado</Badge>
+              <Badge color="info" pill>Certificable</Badge>
+            </div>
+          ) : row.evaluation.status === 'evaluated' ? (
+            <Badge color="success">Evaluado</Badge>
+          ) : (
+            <Badge color="warning">En Progreso</Badge>
+          )
+        )
+      }
+    ];
+    return cols;
+  }, [classroom?.evaluationCriteria]);
+
+  const distribution = getGradeDistribution();
+
   if (loading) {
     return (
       <Container className="py-5 text-center">
@@ -424,8 +701,6 @@ const EvaluationManager: React.FC = () => {
       </Container>
     );
   }
-
-  const distribution = getGradeDistribution();
 
   return (
     <Container className="py-4">
@@ -555,129 +830,114 @@ const EvaluationManager: React.FC = () => {
         <TabPane tabId="final">
           <Card>
             <CardBody>
-              {/* Search */}
-              {students.length > 0 && (
-                <div className="mb-3">
-                  <SearchInput
-                    placeholder="Buscar estudiante por nombre..."
-                    onSearch={setSearchQuery}
-                  />
-                </div>
-              )}
-
-              {students.length === 0 ? (
-                <EmptyState
-                  icon="bi-people"
-                  heading="Sin estudiantes inscritos"
-                  description="Inscribe estudiantes en la clase para comenzar a evaluar."
-                />
-              ) : (
-                <Table responsive hover>
-                <thead>
-                  <tr>
-                    <th>Estudiante</th>
-                    <th className="text-center">Cuestionarios</th>
-                    <th className="text-center">Asistencia</th>
-                    <th className="text-center">Participación</th>
-                    <th className="text-center">Examen Final</th>
-                    {classroom.evaluationCriteria?.customCriteria?.map((criterion: ICustomCriterion) => (
-                      <th key={criterion.id} className="text-center">
-                        {criterion.name}
-                      </th>
-                    ))}
-                    <th className="text-center">Total</th>
-                    <th className="text-center">Estado</th>
-                    <th className="text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students
-                    .filter(student => {
-                      if (!searchQuery.trim()) return true;
-                      const query = searchQuery.toLowerCase();
-                      return (
-                        student.firstName.toLowerCase().includes(query) ||
-                        student.lastName.toLowerCase().includes(query) ||
-                        student.phone?.toLowerCase().includes(query)
-                      );
-                    })
-                    .map(student => {
-                    const evaluation = evaluations.get(student.id);
-                    if (!evaluation) return null;
-                    
-                    return (
-                      <tr key={student.id}>
-                        <td>
-                          <strong>{student.firstName} {student.lastName}</strong>
-                        </td>
-                        <td className="text-center">
-                          {evaluation.scores.questionnaires}/{classroom.evaluationCriteria?.questionnaires}
-                        </td>
-                        <td className="text-center">
-                          {evaluation.scores.attendance.toFixed(1)}/{classroom.evaluationCriteria?.attendance}
-                        </td>
-                        <td className="text-center">
-                          {evaluation.scores.participation.toFixed(1)}/{classroom.evaluationCriteria?.participation}
-                        </td>
-                        <td className="text-center">
-                          {evaluation.scores.finalExam}/{classroom.evaluationCriteria?.finalExam}
-                        </td>
-                        {classroom.evaluationCriteria?.customCriteria?.map((criterion: ICustomCriterion) => (
-                          <td key={criterion.id} className="text-center">
-                            {evaluation.scores.customScores.find(cs => cs.criterionId === criterion.id)?.score || 0}/{criterion.points}
-                          </td>
-                        ))}
-                        <td className="text-center">
-                          <Badge color={evaluation.percentage && evaluation.percentage >= 70 ? 'success' : 'danger'}>
-                            {evaluation.percentage?.toFixed(1)}%
-                          </Badge>
-                        </td>
-                        <td className="text-center">
-                          {evaluation.status === 'evaluated' ? (
-                            <Badge color="success">Evaluado</Badge>
-                          ) : (
-                            <Badge color="warning">En Progreso</Badge>
-                          )}
-                        </td>
-                        <td className="text-center">
-                          <Button
-                            color="primary"
-                            size="sm"
-                            onClick={() => handleOpenEvaluationModal(student)}
-                            disabled={isFinalized}
-                            title={isFinalized ? 'Revierte la finalización para editar' : 'Editar evaluación'}
-                          >
-                            <i className="bi bi-pencil"></i>
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-              )}
-
-              {/* No Results */}
-              {searchQuery.trim() &&
-                students.filter(s => {
-                  const query = searchQuery.toLowerCase();
-                  return (
-                    s.firstName.toLowerCase().includes(query) ||
-                    s.lastName.toLowerCase().includes(query) ||
-                    s.phone?.toLowerCase().includes(query)
-                  );
-                }).length === 0 && (
-                  <div className="text-center py-4">
-                    <p className="text-muted">No se encontraron estudiantes con "{searchQuery}"</p>
+              <DataTable
+                data={studentsWithEvaluation}
+                columns={evaluationColumns}
+                keyExtractor={(row) => row.id}
+                searchable
+                searchFields={['firstName', 'lastName', 'phone']}
+                searchPlaceholder="Buscar estudiante por nombre..."
+                selectable
+                selectedIds={evaluationSelection.selectedIds}
+                onSelectionChange={(ids) => {
+                  evaluationSelection.setSelectedIds(ids);
+                }}
+                actions={(row) => (
+                  <div className="d-flex gap-1">
                     <Button
-                      color="link"
+                      color="secondary"
                       size="sm"
-                      onClick={() => setSearchQuery('')}
+                      outline
+                      onClick={() => handleDownloadCertificate(row)}
+                      disabled={!isStudentEligibleForCertificate(row.evaluation) || bulkCertificateLoading}
+                      title={
+                        isStudentEligibleForCertificate(row.evaluation)
+                          ? 'Descargar certificado'
+                          : 'Disponible solo para estudiantes evaluados y aprobados'
+                      }
                     >
-                      Limpiar búsqueda
+                      {certificateLoadingId === row.id ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <i className="bi bi-award"></i>
+                      )}
+                    </Button>
+                    <Button
+                      color="primary"
+                      size="sm"
+                      onClick={() => handleOpenEvaluationModal(row)}
+                      disabled={isFinalized}
+                      title={isFinalized ? 'Revierte la finalización para editar' : 'Editar evaluación'}
+                    >
+                      <i className="bi bi-pencil"></i>
                     </Button>
                   </div>
                 )}
+                bulkActions={
+                  evaluationSelection.selectedIds.size > 0 && (
+                    <div className="d-flex gap-2 align-items-center">
+                      <Button
+                        color="secondary"
+                        size="sm"
+                        onClick={handleBulkCertificateDownload}
+                        disabled={bulkCertificateLoading || selectedEligibleCertificateStudents.length === 0}
+                        title={
+                          selectedEligibleCertificateStudents.length > 0
+                            ? 'Generar certificados en PDF'
+                            : 'Selecciona estudiantes evaluados y aprobados'
+                        }
+                      >
+                        {bulkCertificateLoading ? (
+                          <>
+                            <Spinner size="sm" className="me-2" />
+                            Generando PDF...
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-file-earmark-pdf me-2"></i>
+                            Generar Certificados
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        color="primary"
+                        size="sm"
+                        onClick={() => {
+                          // Initialize bulk form with criteria
+                          setBulkEvaluationForm({
+                            questionnaires: 0,
+                            finalExam: 0,
+                            customScores: classroom?.evaluationCriteria?.customCriteria?.map(c => ({
+                              criterionId: c.id,
+                              score: 0
+                            })) || []
+                          });
+                          setBulkEvaluationModal(true);
+                        }}
+                        disabled={isFinalized}
+                      >
+                        <i className="bi bi-pencil-square me-2"></i>
+                        Evaluar Seleccionados
+                      </Button>
+                      <Button
+                        color="secondary"
+                        size="sm"
+                        onClick={() => evaluationSelection.clear()}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  )
+                }
+                emptyState={
+                  <EmptyState
+                    icon="bi-people"
+                    heading="Sin estudiantes inscritos"
+                    description="Inscribe estudiantes en la clase para comenzar a evaluar."
+                  />
+                }
+                hover
+              />
             </CardBody>
           </Card>
         </TabPane>
@@ -1123,6 +1383,171 @@ const EvaluationManager: React.FC = () => {
         classroom={classroom}
         onSuccess={loadData}
       />
+
+      {/* Bulk Evaluation Dialog */}
+      <Dialog
+        isOpen={bulkEvaluationModal}
+        onClose={() => setBulkEvaluationModal(false)}
+        title={`Evaluar ${evaluationSelection.selectedIds.size} Estudiantes`}
+        size="lg"
+      >
+        <Form>
+          <div className="mb-4">
+            <Alert color="info" className="mb-3">
+              <i className="bi bi-info-circle me-2"></i>
+              Aplicando puntuaciones a {evaluationSelection.selectedIds.size} estudiantes seleccionados.
+              La asistencia y participación se mantienen según sus registros individuales.
+            </Alert>
+            
+            <Row className="mb-3">
+              <Col md={6}>
+                <FormGroup>
+                  <Label>Cuestionarios - Máx: {classroom?.evaluationCriteria?.questionnaires || 0}</Label>
+                  <InputGroup>
+                    <Input
+                      type="number"
+                      value={bulkEvaluationForm.questionnaires}
+                      onChange={(e) => setBulkEvaluationForm({
+                        ...bulkEvaluationForm,
+                        questionnaires: parseFloat(e.target.value) || 0
+                      })}
+                      min="0"
+                      max={classroom?.evaluationCriteria?.questionnaires || 0}
+                      step="0.5"
+                    />
+                    <Button
+                      color="warning"
+                      outline
+                      onClick={() => setBulkEvaluationForm({
+                        ...bulkEvaluationForm,
+                        questionnaires: classroom?.evaluationCriteria?.questionnaires || 0
+                      })}
+                    >
+                      Máx
+                    </Button>
+                  </InputGroup>
+                </FormGroup>
+              </Col>
+              <Col md={6}>
+                <FormGroup>
+                  <Label>Examen Final - Máx: {classroom?.evaluationCriteria?.finalExam || 0}</Label>
+                  <InputGroup>
+                    <Input
+                      type="number"
+                      value={bulkEvaluationForm.finalExam}
+                      onChange={(e) => setBulkEvaluationForm({
+                        ...bulkEvaluationForm,
+                        finalExam: parseFloat(e.target.value) || 0
+                      })}
+                      min="0"
+                      max={classroom?.evaluationCriteria?.finalExam || 0}
+                      step="0.5"
+                    />
+                    <Button
+                      color="warning"
+                      outline
+                      onClick={() => setBulkEvaluationForm({
+                        ...bulkEvaluationForm,
+                        finalExam: classroom?.evaluationCriteria?.finalExam || 0
+                      })}
+                    >
+                      Máx
+                    </Button>
+                  </InputGroup>
+                </FormGroup>
+              </Col>
+            </Row>
+
+            {classroom?.evaluationCriteria?.customCriteria?.map((criterion: ICustomCriterion) => {
+              const currentScore = bulkEvaluationForm.customScores.find(cs => cs.criterionId === criterion.id);
+              return (
+                <Row key={criterion.id} className="mb-3">
+                  <Col>
+                    <FormGroup>
+                      <Label>{criterion.name} - Máx: {criterion.points}</Label>
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          value={currentScore?.score || 0}
+                          onChange={(e) => {
+                            const newScore = parseFloat(e.target.value) || 0;
+                            const updatedScores = bulkEvaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
+                            updatedScores.push({ criterionId: criterion.id, score: newScore });
+                            setBulkEvaluationForm({
+                              ...bulkEvaluationForm,
+                              customScores: updatedScores
+                            });
+                          }}
+                          min="0"
+                          max={criterion.points}
+                          step="0.1"
+                        />
+                        <Button
+                          color="warning"
+                          outline
+                          onClick={() => {
+                            const updatedScores = bulkEvaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
+                            updatedScores.push({ criterionId: criterion.id, score: criterion.points });
+                            setBulkEvaluationForm({
+                              ...bulkEvaluationForm,
+                              customScores: updatedScores
+                            });
+                          }}
+                        >
+                          Máx
+                        </Button>
+                      </InputGroup>
+                    </FormGroup>
+                  </Col>
+                </Row>
+              );
+            })}
+
+            <div className="d-flex justify-content-end gap-2 pt-3 border-top">
+              <Button
+                color="outline-warning"
+                onClick={() => {
+                  // Set all to max
+                  setBulkEvaluationForm({
+                    questionnaires: classroom?.evaluationCriteria?.questionnaires || 0,
+                    finalExam: classroom?.evaluationCriteria?.finalExam || 0,
+                    customScores: classroom?.evaluationCriteria?.customCriteria?.map(c => ({
+                      criterionId: c.id,
+                      score: c.points
+                    })) || []
+                  });
+                }}
+              >
+                <i className="bi bi-star me-2"></i>
+                Máxima en Todas
+              </Button>
+              <Button
+                color="secondary"
+                onClick={() => setBulkEvaluationModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                color="primary"
+                onClick={handleBulkEvaluation}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Spinner size="sm" className="me-2" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-check-lg me-2"></i>
+                    Guardar Evaluaciones
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </Form>
+      </Dialog>
     </Container>
   );
 };

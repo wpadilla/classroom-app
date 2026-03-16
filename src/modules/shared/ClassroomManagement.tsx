@@ -816,6 +816,84 @@ const ClassroomManagement: React.FC = () => {
     }
   };
 
+  // Handle bulk attendance change (avoids state conflicts from multiple updates)
+  const handleBulkAttendanceChange = async (studentIds: string[], isPresent: boolean) => {
+    if (!id || !currentModule || !user) return;
+
+    // Update UI immediately - all at once
+    const newAttendance = new Map(attendanceRecords);
+    studentIds.forEach(studentId => {
+      newAttendance.set(studentId, isPresent);
+    });
+    setAttendanceRecords(newAttendance);
+
+    // Update evaluations state immediately - all at once
+    const newEvaluations = new Map(evaluations);
+    studentIds.forEach(studentId => {
+      const evaluation = newEvaluations.get(studentId);
+      if (evaluation) {
+        const updatedRecords = [...(evaluation.attendanceRecords || [])];
+        const existingIndex = updatedRecords.findIndex(r => r.moduleId === currentModule.id);
+
+        const newRecord: IAttendanceRecord = {
+          moduleId: currentModule.id,
+          studentId: studentId,
+          isPresent: isPresent,
+          date: new Date(),
+          markedBy: user.id,
+          markedAt: new Date()
+        };
+
+        if (existingIndex !== -1) {
+          updatedRecords[existingIndex] = newRecord;
+        } else {
+          updatedRecords.push(newRecord);
+        }
+
+        newEvaluations.set(studentId, {
+          ...evaluation,
+          attendanceRecords: updatedRecords
+        });
+      }
+    });
+    setEvaluations(newEvaluations);
+
+    // Save to database
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const studentId of studentIds) {
+      try {
+        await EvaluationService.recordAttendance(
+          studentId,
+          id,
+          currentModule.id,
+          isPresent,
+          user.id
+        );
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        console.error(`Error saving attendance for student ${studentId}:`, error);
+      }
+    }
+
+    // Show result toast
+    if (successCount > 0) {
+      toast.success(
+        `Asistencia registrada para ${successCount} estudiante${successCount !== 1 ? 's' : ''}`
+      );
+    }
+
+    if (errorCount > 0) {
+      toast.error(
+        `Error al registrar ${errorCount} estudiante${errorCount !== 1 ? 's' : ''}`
+      );
+      // On error, reload to get accurate state
+      await loadClassroomData();
+    }
+  };
+
   const handleParticipationChange = async (studentId: string, points: number) => {
     if (!id) return;
 
@@ -2710,32 +2788,11 @@ const ClassroomManagement: React.FC = () => {
         selectedStudents={students.filter(s => attendanceSelection.isSelected(s.id))}
         currentModuleName={currentModule ? `Módulo ${currentModule.weekNumber}: ${currentModule.name}` : undefined}
         onConfirm={async (isPresent: boolean) => {
-          const selectedStudents = students.filter(s => attendanceSelection.isSelected(s.id));
-          let successCount = 0;
-          let errorCount = 0;
-
-          for (const student of selectedStudents) {
-            try {
-              await handleAttendanceChange(student.id, isPresent);
-              successCount++;
-            } catch (error) {
-              errorCount++;
-              console.error(`Error marking attendance for ${student.firstName}:`, error);
-            }
-          }
-
-          if (successCount > 0) {
-            toast.success(
-              `Asistencia registrada para ${successCount} estudiante${successCount !== 1 ? 's' : ''}`
-            );
-          }
-
-          if (errorCount > 0) {
-            toast.error(
-              `Error al registrar ${errorCount} estudiante${errorCount !== 1 ? 's' : ''}`
-            );
-          }
-
+          const selectedStudentIds = students
+            .filter(s => attendanceSelection.isSelected(s.id))
+            .map(s => s.id);
+          
+          await handleBulkAttendanceChange(selectedStudentIds, isPresent);
           attendanceSelection.clear();
         }}
       />

@@ -339,7 +339,7 @@ export function DataTable<T extends Record<string, any>>({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`d-flex align-items-center gap-2 p-3 mb-3 bg-light rounded ${
+          className={`d-flex flex-col align-items-center gap-3 p-3 mb-3 bg-light rounded ${
             isMobile ? 'position-sticky bottom-0 shadow' : ''
           }`}
           style={isMobile ? { zIndex: 10 } : {}}

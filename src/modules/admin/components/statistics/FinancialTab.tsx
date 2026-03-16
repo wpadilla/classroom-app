@@ -407,7 +407,7 @@ const FinancialTab: React.FC<Props> = ({ data }) => {
     localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(selectedKpis));
   }, [selectedKpis]);
 
-  const enrollments = data.enrollments || [];
+  const enrollments = useMemo(() => data.enrollments || [], [data.enrollments]);
   const currentData = useMemo(
     () => aggregateFinancial(enrollments, dateFilterEnabled ? activeRange : null),
     [enrollments, dateFilterEnabled, activeRange]

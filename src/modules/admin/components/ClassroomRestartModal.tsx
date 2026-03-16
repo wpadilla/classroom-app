@@ -5,7 +5,7 @@
  * while preserving complete history of previous run
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -65,15 +65,7 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentsError, setPaymentsError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && classroom) {
-      validateAndLoadHistory();
-    } else {
-      resetState();
-    }
-  }, [isOpen, classroom]);
-
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setState('initial');
     setValidation({ isValid: false, errors: [], warnings: [] });
     setRuns([]);
@@ -83,20 +75,33 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
     setPaymentsSnapshot(null);
     setPaymentsLoading(false);
     setPaymentsError(null);
-  };
+  }, []);
 
-  const validateAndLoadHistory = async () => {
+  const loadPaymentsSnapshot = useCallback(async (classroomId: string) => {
+    setPaymentsLoading(true);
+    setPaymentsError(null);
+    try {
+      const snapshot = await PaymentService.getClassroomPaymentsSnapshot(classroomId);
+      setPaymentsSnapshot(snapshot);
+    } catch (error) {
+      console.error('Error loading payments snapshot:', error);
+      setPaymentsError('No se pudieron cargar los datos de pagos');
+      setPaymentsSnapshot(null);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, []);
+
+  const validateAndLoadHistory = useCallback(async () => {
     if (!classroom) return;
 
     setState('validating');
     setProcessMessage('Validando y cargando historial...');
 
     try {
-      // Validate
       const validationResult = await ClassroomRestartService.validateRestart(classroom.id);
       setValidation(validationResult);
 
-      // Load previous runs
       const classroomRuns = await ClassroomService.getClassroomRuns(classroom.id);
       setRuns(classroomRuns);
       setNextRunNumber(classroomRuns.length + 1);
@@ -110,22 +115,15 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
       setState('error');
       setProcessMessage('Error al validar el reinicio');
     }
-  };
+  }, [classroom, loadPaymentsSnapshot]);
 
-  const loadPaymentsSnapshot = async (classroomId: string) => {
-    setPaymentsLoading(true);
-    setPaymentsError(null);
-    try {
-      const snapshot = await PaymentService.getClassroomPaymentsSnapshot(classroomId);
-      setPaymentsSnapshot(snapshot);
-    } catch (error) {
-      console.error('Error loading payments snapshot:', error);
-      setPaymentsError('No se pudieron cargar los datos de pagos');
-      setPaymentsSnapshot(null);
-    } finally {
-      setPaymentsLoading(false);
+  useEffect(() => {
+    if (isOpen && classroom) {
+      validateAndLoadHistory();
+    } else {
+      resetState();
     }
-  };
+  }, [classroom, isOpen, resetState, validateAndLoadHistory]);
 
   const handleRestart = async () => {
     if (!classroom || !user) return;
@@ -536,4 +534,3 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
 };
 
 export default ClassroomRestartModal;
-

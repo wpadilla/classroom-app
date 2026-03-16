@@ -14,8 +14,6 @@ import {
   NavLink,
   TabContent,
   TabPane,
-  Row,
-  Col,
   Badge,
   Spinner,
 } from 'reactstrap';
@@ -143,7 +141,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     register,
     handleSubmit,
     reset,
-    watch,
     formState: { errors, isDirty },
   } = useForm<UserEditFormData>({
     resolver: zodResolver(userEditSchema),
@@ -201,25 +198,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   );
 
   // Load data on open
-  useEffect(() => {
-    if (isOpen && user) {
-      // Immediately reset form with user data (before async fetch)
-      setCurrentUser(user);
-      resetForm(user);
-      setDocuments(user.documents || []);
-      setPhotoPreview(user.profilePhoto || '');
-      // Then load fresh data from server
-      void loadData(user.id);
-    } else if (!isOpen) {
-      // Reset state when modal closes
-      setCurrentUser(null);
-      setDocuments([]);
-      setEditMode(mode === 'edit');
-      setActiveTab('info');
-    }
-  }, [isOpen, mode, resetForm, user]);
-
-  const loadData = async (userId: string) => {
+  const loadData = useCallback(async (userId: string) => {
     setLoading(true);
     try {
       // Fetch fresh user data
@@ -249,7 +228,22 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [calculateProgress, resetForm]);
+
+  useEffect(() => {
+    if (isOpen && user) {
+      setCurrentUser(user);
+      resetForm(user);
+      setDocuments(user.documents || []);
+      setPhotoPreview(user.profilePhoto || '');
+      void loadData(user.id);
+    } else if (!isOpen) {
+      setCurrentUser(null);
+      setDocuments([]);
+      setEditMode(mode === 'edit');
+      setActiveTab('info');
+    }
+  }, [isOpen, loadData, mode, resetForm, user]);
 
   const getFilenameFromUrl = (url: string): string => {
     const parts = url.split('/');

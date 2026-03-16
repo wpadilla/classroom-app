@@ -1,6 +1,6 @@
 // Universal User Profile Component - Works for Students, Teachers, and Admins
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
   Container,
   Row,
@@ -35,7 +35,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
-import { GCloudService } from '../../services/gcloud/gcloud.service';
 import { ClassroomRestartService } from '../../services/classroom/classroom-restart.service';
 import { IUser, IClassroom, IStudentEvaluation, IClassroomHistory, UserRole, IClassroomRun } from '../../models';
 import { userSelfEditSchema, UserSelfEditFormData } from '../../schemas/user.schema';
@@ -118,11 +117,7 @@ const UserProfile: React.FC = () => {
   const { ref: pastorNameRef, ...pastorNameField } = register('pastorName');
   const { ref: pastorPhoneRef, ...pastorPhoneField } = register('pastorPhone');
 
-  useEffect(() => {
-    loadProfileData();
-  }, [user]);
-
-  const loadProfileData = async () => {
+  const loadProfileData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -178,7 +173,11 @@ const UserProfile: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadProfileData();
+  }, [loadProfileData]);
 
   const handlePasswordChange = async () => {
     if (!newPassword || !confirmPassword) {
@@ -1291,4 +1290,3 @@ const UserProfile: React.FC = () => {
 };
 
 export default UserProfile;
-

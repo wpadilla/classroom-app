@@ -1,7 +1,7 @@
 // Shared Classroom Management Component - Works for both Teachers and Admins
 // Mobile-First Design
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Container,
   Row,
@@ -169,21 +169,7 @@ const ClassroomManagement: React.FC = () => {
     return totalModules * pointsPerModule;
   }, [classroom]);
 
-  useEffect(() => {
-    if (id && user) { // Keep user in dependency for permission checks
-      loadClassroomData();
-    }
-  }, [id, user, isOffline]); // Reload when offline status changes or user changes
-
-  useEffect(() => {
-    // Load attendance and participation for current module when it changes
-    if (currentModule && evaluations.size > 0) {
-      loadModuleAttendance();
-      loadParticipationTotals();
-    }
-  }, [currentModule, evaluations]);
-
-  const loadClassroomData = async () => {
+  const loadClassroomData = useCallback(async () => {
     if (!id || !user) return; // Ensure user is available for permission checks
 
     setLoading(true);
@@ -235,6 +221,7 @@ const ClassroomManagement: React.FC = () => {
       }
 
       setClassroom(classroomData);
+      setIsFinalized(await ClassroomService.isFinalized(id));
       setStudents(studentsData);
       // console.log('Loaded classroom:', classroomData);
       // console.log('Loaded evaluations:', evaluationsData);
@@ -278,9 +265,9 @@ const ClassroomManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, isOffline, navigate, user]);
 
-  const loadModuleAttendance = () => {
+  const loadModuleAttendance = useCallback(() => {
     if (!currentModule) return;
 
     const attendanceMap = new Map<string, boolean>();
@@ -296,9 +283,9 @@ const ClassroomManagement: React.FC = () => {
     });
 
     setAttendanceRecords(attendanceMap);
-  };
+  }, [currentModule, evaluations]);
 
-  const loadParticipationTotals = () => {
+  const loadParticipationTotals = useCallback(() => {
     const totalsMap = new Map<string, number>();
 
     evaluations.forEach((evaluation, studentId) => {
@@ -307,7 +294,7 @@ const ClassroomManagement: React.FC = () => {
     });
 
     setParticipationTotals(totalsMap);
-  };
+  }, [evaluations]);
 
   const buildDefaultCostItems = (targetClassroom: IClassroom, monthlyFee?: number) => {
     const items: IClassroomPaymentCostItem[] = [];
@@ -342,7 +329,7 @@ const ClassroomManagement: React.FC = () => {
     return items;
   };
 
-  const loadPayments = async (targetClassroom: IClassroom) => {
+  const loadPayments = useCallback(async (targetClassroom: IClassroom) => {
     if (!user || user.role !== 'admin') return;
 
     setPaymentsLoading(true);
@@ -381,7 +368,20 @@ const ClassroomManagement: React.FC = () => {
     } finally {
       setPaymentsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (id && user) {
+      loadClassroomData();
+    }
+  }, [id, user, isOffline, loadClassroomData]);
+
+  useEffect(() => {
+    if (currentModule && evaluations.size > 0) {
+      loadModuleAttendance();
+      loadParticipationTotals();
+    }
+  }, [currentModule, evaluations, loadModuleAttendance, loadParticipationTotals]);
 
   const getPaymentMethodLabel = (method: PaymentMethod) => {
     const map: Record<PaymentMethod, string> = {

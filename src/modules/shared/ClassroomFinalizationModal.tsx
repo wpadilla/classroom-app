@@ -7,7 +7,7 @@
  * - State Machine Pattern: Clear states (validating, finalizing, success, error)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -60,15 +60,7 @@ const ClassroomFinalizationModal: React.FC<ClassroomFinalizationModalProps> = ({
   const [processMessage, setProcessMessage] = useState('');
   const [isFinalized, setIsFinalized] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && classroom) {
-      validateAndLoadStats();
-    } else {
-      resetState();
-    }
-  }, [isOpen, classroom]);
-
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setState('initial');
     setValidation({ isValid: false, errors: [], warnings: [] });
     setStats(null);
@@ -77,9 +69,9 @@ const ClassroomFinalizationModal: React.FC<ClassroomFinalizationModalProps> = ({
     setCustomDate('');
     setProcessMessage('');
     setIsFinalized(false);
-  };
+  }, []);
 
-  const validateAndLoadStats = async () => {
+  const validateAndLoadStats = useCallback(async () => {
     if (!classroom) return;
 
     setState('validating');
@@ -107,7 +99,15 @@ const ClassroomFinalizationModal: React.FC<ClassroomFinalizationModalProps> = ({
       setState('error');
       setProcessMessage('Error al validar la clase');
     }
-  };
+  }, [classroom]);
+
+  useEffect(() => {
+    if (isOpen && classroom) {
+      validateAndLoadStats();
+    } else {
+      resetState();
+    }
+  }, [classroom, isOpen, resetState, validateAndLoadStats]);
 
   const handleFinalize = async () => {
     if (!classroom) return;
@@ -485,4 +485,3 @@ const ClassroomFinalizationModal: React.FC<ClassroomFinalizationModalProps> = ({
 };
 
 export default ClassroomFinalizationModal;
-

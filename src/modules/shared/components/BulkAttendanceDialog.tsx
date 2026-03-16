@@ -68,7 +68,6 @@ export const BulkAttendanceDialog: React.FC<BulkAttendanceDialogProps> = ({
   };
 
   const studentCount = selectedStudents.length;
-  const statusText = isPresent ? 'presente' : 'ausente';
   const statusTextPlural = isPresent ? 'presentes' : 'ausentes';
 
   return (

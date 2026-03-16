@@ -1,9 +1,8 @@
 // Mobile-First Student Enrollment Component
 // Can be used by both Teachers and Admins
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Container,
   Card,
   CardBody,
   CardHeader,
@@ -24,7 +23,6 @@ import {
   Label,
   Form
 } from 'reactstrap';
-import { useAuth } from '../../contexts/AuthContext';
 import { useOffline } from '../../contexts/OfflineContext';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
@@ -38,7 +36,6 @@ interface StudentEnrollmentProps {
 }
 
 const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpdate }) => {
-  const { user } = useAuth();
   const { isOffline, pendingOperations } = useOffline();
   const [students, setStudents] = useState<IUser[]>([]);
   const [allStudents, setAllStudents] = useState<IUser[]>([]);
@@ -59,11 +56,7 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
     password: ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [classroom]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -114,7 +107,11 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
     } finally {
       setLoading(false);
     }
-  };
+  }, [classroom.studentIds, isOffline]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAddStudents = async () => {
     if (selectedStudents.length === 0) {

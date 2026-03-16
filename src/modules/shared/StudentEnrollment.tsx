@@ -379,7 +379,7 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
                             style={{ width: '40px', height: '40px' }}
                           >
                             <span className="fw-bold">
-                              {student.firstName[0]}{student.lastName[0]}
+                              {student.firstName?.[0] || ''}{student.lastName?.[0] || ''}
                             </span>
                           </div>
                         )}

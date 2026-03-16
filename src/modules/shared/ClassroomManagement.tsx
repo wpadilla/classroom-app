@@ -66,6 +66,11 @@ import { ClassroomReportPdfDownloadButton } from '../../components/pdf/component
 import PaymentReceiptPdfDownloadButton from '../../components/pdf/components/PaymentReceiptPdfDownloadButton';
 import { motion } from 'framer-motion';
 import { SearchInput, Switch, EmptyState } from '../../components/mobile';
+import { DataTable } from '../../components/common';
+import { useSelection } from '../../hooks';
+import BulkAttendanceDialog from './components/BulkAttendanceDialog';
+import ScoreInputDialog from './components/ScoreInputDialog';
+import BulkParticipationDialog from './components/BulkParticipationDialog';
 
 const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -96,10 +101,22 @@ const ClassroomManagement: React.FC = () => {
   // Attendance state - Now per module
   const [attendanceRecords, setAttendanceRecords] = useState<Map<string, boolean>>(new Map());
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
+  const attendanceSelection = useSelection();
+  const [bulkAttendanceOpen, setBulkAttendanceOpen] = useState(false);
 
   // Participation state - Track total participation including pending changes
   const [participationTotals, setParticipationTotals] = useState<Map<string, number>>(new Map());
   const [participationSearchQuery, setParticipationSearchQuery] = useState('');
+  const participationSelection = useSelection();
+  const [bulkParticipationOpen, setBulkParticipationOpen] = useState(false);
+
+  // Score input dialog
+  const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
+  const [scoreDialogData, setScoreDialogData] = useState<{
+    studentId: string;
+    studentName: string;
+    currentScore: number;
+  } | null>(null);
 
   // Evaluations search
   const [evaluationsSearchQuery, setEvaluationsSearchQuery] = useState('');
@@ -832,6 +849,22 @@ const ClassroomManagement: React.FC = () => {
     }
   };
 
+  // Handle score dialog save
+  const handleScoreSave = async (newScore: number) => {
+    if (!id || !scoreDialogData) return;
+
+    const { studentId, currentScore } = scoreDialogData;
+    const delta = newScore - currentScore;
+
+    if (delta === 0) {
+      // No change
+      return;
+    }
+
+    // Call handleParticipationChange with the delta
+    await handleParticipationChange(studentId, delta);
+  };
+
   const handleModuleChange = async (module: IModule) => {
     if (!id || !classroom) return;
 
@@ -1064,7 +1097,7 @@ const ClassroomManagement: React.FC = () => {
   }
 
   return (
-    <Container fluid className="py-3 px-2 px-sm-3">
+    <Container fluid className="py-3 !px-0">
       {/* Offline Indicator */}
       {isOffline && pendingOperations > 0 && (
         <Alert color="warning" className="mb-3">
@@ -1298,16 +1331,7 @@ const ClassroomManagement: React.FC = () => {
             <span>Participación</span>
           </NavLink>
         </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'students' ? 'active' : ''}
-            onClick={() => setActiveTab('students')}
-            style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >
-            <i className="bi bi-people me-1"></i>
-            <span>Estudiantes</span>
-          </NavLink>
-        </NavItem>
+       
         <NavItem>
           <NavLink
             className={activeTab === 'evaluations' ? 'active' : ''}
@@ -1316,6 +1340,16 @@ const ClassroomManagement: React.FC = () => {
           >
             <i className="bi bi-clipboard-check me-1"></i>
             <span>Evaluaciones</span>
+          </NavLink>
+        </NavItem>
+         <NavItem>
+          <NavLink
+            className={activeTab === 'students' ? 'active' : ''}
+            onClick={() => setActiveTab('students')}
+            style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            <i className="bi bi-people me-1"></i>
+            <span>Estudiantes</span>
           </NavLink>
         </NavItem>
         <NavItem>
@@ -1343,7 +1377,7 @@ const ClassroomManagement: React.FC = () => {
       </Nav>
 
       <TabContent activeTab={activeTab}>
-        {/* Attendance Tab - Mobile-Optimized Table Format */}
+        {/* Attendance Tab - Mobile-Optimized with DataTable */}
         <TabPane tabId="attendance">
           <Card className="border-0 shadow-sm">
             <CardHeader className="bg-white">
@@ -1368,15 +1402,7 @@ const ClassroomManagement: React.FC = () => {
                 <div className="d-flex gap-2 overflow-auto mb-3 pb-2" style={{ scrollbarWidth: 'thin' }}>
                   <div className="flex-shrink-0 bg-light rounded p-2 text-center" style={{ minWidth: '110px' }}>
                     <small className="text-muted d-block">Total</small>
-                    <strong className="fs-5">{students.filter(s => {
-                      if (!attendanceSearchQuery.trim()) return true;
-                      const query = attendanceSearchQuery.toLowerCase();
-                      return (
-                        s.firstName.toLowerCase().includes(query) ||
-                        s.lastName.toLowerCase().includes(query) ||
-                        s.phone?.toLowerCase().includes(query)
-                      );
-                    }).length}</strong>
+                    <strong className="fs-5">{students.length}</strong>
                   </div>
                   <div className="flex-shrink-0 bg-success-subtle rounded p-2 text-center" style={{ minWidth: '110px' }}>
                     <small className="text-success d-block">Presentes</small>
@@ -1389,176 +1415,111 @@ const ClassroomManagement: React.FC = () => {
                 </div>
               )}
 
-              {/* Search */}
-              {students.length > 0 && (
-                <div className="mb-3">
-                  <SearchInput
-                    placeholder="Buscar estudiante por nombre o teléfono..."
-                    onSearch={setAttendanceSearchQuery}
-                  />
-                </div>
-              )}
-
-              {/* Quick Actions */}
-              {students.length > 0 && !isFinalized && (
-                <div className="d-flex gap-2 mb-3 flex-wrap">
-                  <Button
-                    color="success"
-                    size="sm"
-                    onClick={() => {
-                      students
-                        .filter(s => {
-                          if (!attendanceSearchQuery.trim()) return true;
-                          const query = attendanceSearchQuery.toLowerCase();
-                          return (
-                            s.firstName.toLowerCase().includes(query) ||
-                            s.lastName.toLowerCase().includes(query) ||
-                            s.phone?.toLowerCase().includes(query)
-                          );
-                        })
-                        .forEach(s => handleAttendanceChange(s.id, true));
-                      toast.success('Todos marcados como presente');
-                    }}
-                  >
-                    <i className="bi bi-check-all me-1"></i>
-                    Marcar Todos Presente
-                  </Button>
-                  <Button
-                    color="danger"
-                    size="sm"
-                    onClick={() => {
-                      students
-                        .filter(s => {
-                          if (!attendanceSearchQuery.trim()) return true;
-                          const query = attendanceSearchQuery.toLowerCase();
-                          return (
-                            s.firstName.toLowerCase().includes(query) ||
-                            s.lastName.toLowerCase().includes(query) ||
-                            s.phone?.toLowerCase().includes(query)
-                          );
-                        })
-                        .forEach(s => handleAttendanceChange(s.id, false));
-                      toast.success('Todos marcados como ausente');
-                    }}
-                  >
-                    <i className="bi bi-x-circle me-1"></i>
-                    Marcar Todos Ausente
-                  </Button>
-                </div>
-              )}
-
-              {/* Table */}
-              {students.length === 0 ? (
-                <EmptyState
-                  icon="bi-people"
-                  heading="Sin estudiantes inscritos"
-                  description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a registrar asistencia."
-                />
-              ) : (
-                <div className="table-responsive">
-                  <Table hover className="mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th style={{ width: '50px' }} className="text-center">#</th>
-                        <th>Estudiante</th>
-                        <th className="text-center" style={{ width: '150px' }}>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students
-                        .filter(student => {
-                          if (!attendanceSearchQuery.trim()) return true;
-                          const query = attendanceSearchQuery.toLowerCase();
-                          return (
-                            student.firstName.toLowerCase().includes(query) ||
-                            student.lastName.toLowerCase().includes(query) ||
-                            student.phone?.toLowerCase().includes(query)
-                          );
-                        })
-                        .map((student, index) => {
-                          const isPresent = attendanceRecords.get(student.id);
-                          return (
-                            <motion.tr
-                              key={student.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: index * 0.03 }}
-                            >
-                              <td className="text-center align-middle">
-                                <small className="text-muted">{index + 1}</small>
-                              </td>
-                              <td className="align-middle">
-                                <div className="d-flex align-items-center gap-2">
-                                  {student.profilePhoto ? (
-                                    <img
-                                      src={student.profilePhoto}
-                                      alt={student.firstName}
-                                      className="rounded-circle"
-                                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                                    />
-                                  ) : (
-                                    <div
-                                      className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-                                      style={{ width: '32px', height: '32px' }}
-                                    >
-                                      <small className="text-primary fw-bold">
-                                        {student.firstName[0]}{student.lastName[0]}
-                                      </small>
-                                    </div>
-                                  )}
-                                  <div>
-                                    <div className="fw-bold small">{student.firstName} {student.lastName}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="text-center align-middle">
-                                <div className="d-flex align-items-center justify-content-center gap-2">
-                                  <span className="small text-muted">
-                                    {isPresent === true ? 'Presente' : isPresent === false ? 'Ausente' : 'Sin marcar'}
-                                  </span>
-                                  <Switch
-                                    checked={isPresent === true}
-                                    onChange={(checked) => handleAttendanceChange(student.id, checked)}
-                                    disabled={isFinalized}
-                                    onColor="bg-success"
-                                    offColor="bg-danger"
-                                  />
-                                </div>
-                              </td>
-                            </motion.tr>
-                          );
-                        })}
-                    </tbody>
-                  </Table>
-                  
-                  {/* No Results */}
-                  {attendanceSearchQuery.trim() &&
-                    students.filter(s => {
-                      const query = attendanceSearchQuery.toLowerCase();
-                      return (
-                        s.firstName.toLowerCase().includes(query) ||
-                        s.lastName.toLowerCase().includes(query) ||
-                        s.phone?.toLowerCase().includes(query)
-                      );
-                    }).length === 0 && (
-                      <div className="text-center py-4">
-                        <p className="text-muted">No se encontraron estudiantes con "{attendanceSearchQuery}"</p>
-                        <Button
-                          color="link"
-                          size="sm"
-                          onClick={() => setAttendanceSearchQuery('')}
-                        >
-                          Limpiar búsqueda
-                        </Button>
+              {/* DataTable with Search and Selection */}
+              <DataTable<IUser>
+                data={students}
+                columns={[
+                  // {
+                  //   header: '#',
+                  //   accessor: (_, idx) => idx + 1,
+                  //   width: '50px',
+                  //   align: 'center',
+                  //   render: (value) => (
+                  //     <small className="text-muted">{value}</small>
+                  //   ),
+                  // },
+                  {
+                    header: 'Estudiante',
+                    accessor: 'firstName',
+                    render: (_, student) => (
+                      <div className="d-flex align-items-center gap-2">
+                        {/* {student.profilePhoto ? (
+                          <img
+                            src={student.profilePhoto}
+                            alt={student.firstName}
+                            className="rounded-circle"
+                            style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                          />
+                        ) : ( */}
+                          {/* <div
+                            className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                            style={{ width: '32px', height: '32px' }}
+                          >
+                            <small className="text-primary fw-bold">
+                              {student.firstName?.[0] || ''}{student.lastName?.[0] || ''}
+                            </small>
+                          </div> */}
+                        {/* )} */}
+                        <div>
+                          <div className="fw-bold small">{student.firstName} {student.lastName}</div>
+                          <small className="text-muted d-none d-sm-inline">{student.phone}</small>
+                        </div>
                       </div>
-                    )}
-                </div>
-              )}
+                    ),
+                  },
+                  {
+                    header: 'Asistencia',
+                    accessor: (student) => attendanceRecords.get(student.id),
+                    width: '150px',
+                    align: 'center',
+                    render: (isPresent, student) => (
+                      <div className="d-flex align-items-center justify-content-center gap-2">
+                        <span className="small text-muted d-none d-md-inline">
+                          {isPresent === true ? 'Presente' : isPresent === false ? 'Ausente' : 'Sin marcar'}
+                        </span>
+                        <Switch
+                          checked={isPresent === true}
+                          onChange={(checked) => handleAttendanceChange(student.id, checked)}
+                          disabled={isFinalized}
+                          onColor="bg-success"
+                          offColor="bg-danger"
+                        />
+                      </div>
+                    ),
+                  },
+                ]}
+                keyExtractor={(student) => student.id}
+                searchable
+                searchFields={['firstName', 'lastName', 'phone']}
+                searchPlaceholder="Buscar estudiante por nombre o teléfono..."
+                selectable={!isFinalized}
+                selectedIds={attendanceSelection.selectedIds}
+                onSelectionChange={attendanceSelection.setSelectedIds}
+                bulkActions={
+                  <>
+                    <Button
+                      color="primary"
+                      size="sm"
+                      onClick={() => setBulkAttendanceOpen(true)}
+                    >
+                      <i className="bi bi-check-circle me-1"></i>
+                      Pasar Asistencia
+                    </Button>
+                    <Button
+                      color="secondary"
+                      size="sm"
+                      outline
+                      onClick={attendanceSelection.clear}
+                    >
+                      <i className="bi bi-x me-1"></i>
+                      Cancelar
+                    </Button>
+                  </>
+                }
+                emptyState={
+                  <EmptyState
+                    icon="bi-people"
+                    heading="Sin estudiantes inscritos"
+                    description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a registrar asistencia."
+                  />
+                }
+                hover
+              />
             </CardBody>
           </Card>
         </TabPane>
 
-        {/* Participation Tab - Mobile-Optimized Table Format */}
+        {/* Participation Tab - Mobile-Optimized DataTable */}
         <TabPane tabId="participation">
           <Card className="border-0 shadow-sm">
             <CardHeader className="bg-white">
@@ -1578,18 +1539,8 @@ const ClassroomManagement: React.FC = () => {
               </div>
             </CardHeader>
             <CardBody>
-              {/* Search */}
-              {students.length > 0 && (
-                <div className="mb-3">
-                  <SearchInput
-                    placeholder="Buscar estudiante por nombre o teléfono..."
-                    onSearch={setParticipationSearchQuery}
-                  />
-                </div>
-              )}
-
               {/* Top 3 Leaderboard - Horizontal */}
-              {students.length > 0 && !participationSearchQuery && (
+              {students.length > 0 && (
                 <div className="mb-3">
                   <h6 className="small text-muted mb-2">🏆 Top 3 Participantes</h6>
                   <div className="d-flex gap-2 overflow-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
@@ -1625,145 +1576,165 @@ const ClassroomManagement: React.FC = () => {
                 </div>
               )}
 
-              {/* Table */}
-              {students.length === 0 ? (
-                <EmptyState
-                  icon="bi-people"
-                  heading="Sin estudiantes inscritos"
-                  description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a registrar participación."
-                />
-              ) : (
-                <div className="table-responsive">
-                  <Table hover className="mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th style={{ width: '50px' }} className="text-center">#</th>
-                        <th>Estudiante</th>
-                        <th className="text-center" style={{ width: '100px' }}>Puntos</th>
-                        <th className="text-center" style={{ width: '180px' }}>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students
-                        .filter(student => {
-                          if (!participationSearchQuery.trim()) return true;
-                          const query = participationSearchQuery.toLowerCase();
-                          return (
-                            student.firstName.toLowerCase().includes(query) ||
-                            student.lastName.toLowerCase().includes(query) ||
-                            student.phone?.toLowerCase().includes(query)
-                          );
-                        })
-                        .map((student, index) => {
-                          const totalPoints = participationTotals.get(student.id) || 0;
-                          return (
-                            <motion.tr
-                              key={student.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: index * 0.03 }}
-                            >
-                              <td className="text-center align-middle">
-                                <small className="text-muted">{index + 1}</small>
-                              </td>
-                              <td className="align-middle">
-                                <div className="d-flex align-items-center gap-2">
-                                  {student.profilePhoto ? (
-                                    <img
-                                      src={student.profilePhoto}
-                                      alt={student.firstName}
-                                      className="rounded-circle"
-                                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                                    />
-                                  ) : (
-                                    <div
-                                      className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-                                      style={{ width: '32px', height: '32px' }}
-                                    >
-                                      <small className="text-primary fw-bold">
-                                        {student.firstName[0]}{student.lastName[0]}
-                                      </small>
-                                    </div>
-                                  )}
-                                  <div>
-                                    <div className="fw-bold small">{student.firstName} {student.lastName}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="text-center align-middle">
-                                <motion.div
-                                  key={totalPoints}
-                                  initial={{ scale: 1.2 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                >
-                                  <Badge
-                                    color={
-                                      totalPoints >= 10
-                                        ? 'success'
-                                        : totalPoints >= 5
-                                        ? 'warning'
-                                        : 'secondary'
-                                    }
-                                    className="px-2 py-1"
-                                  >
-                                    <strong>{totalPoints}</strong>
-                                  </Badge>
-                                </motion.div>
-                              </td>
-                              <td className="text-center align-middle">
-                                <div className="d-flex gap-1 justify-content-center">
-                                  <Button
-                                    color="danger"
-                                    size="sm"
-                                    onClick={() => handleParticipationChange(student.id, -1)}
-                                    disabled={isFinalized || totalPoints <= 0}
-                                    style={{ minWidth: '70px' }}
-                                  >
-                                    <i className="bi bi-dash-lg me-1"></i>
-                                    -1
-                                  </Button>
-                                  <Button
-                                    color="success"
-                                    size="sm"
-                                    onClick={() => handleParticipationChange(student.id, 1)}
-                                    disabled={isFinalized}
-                                    style={{ minWidth: '70px' }}
-                                  >
-                                    <i className="bi bi-plus-lg me-1"></i>
-                                    +1
-                                  </Button>
-                                </div>
-                              </td>
-                            </motion.tr>
-                          );
-                        })}
-                    </tbody>
-                  </Table>
-
-                  {/* No Results */}
-                  {participationSearchQuery.trim() &&
-                    students.filter(s => {
-                      const query = participationSearchQuery.toLowerCase();
-                      return (
-                        s.firstName.toLowerCase().includes(query) ||
-                        s.lastName.toLowerCase().includes(query) ||
-                        s.phone?.toLowerCase().includes(query)
-                      );
-                    }).length === 0 && (
-                      <div className="text-center py-4">
-                        <p className="text-muted">No se encontraron estudiantes con "{participationSearchQuery}"</p>
-                        <Button
-                          color="link"
-                          size="sm"
-                          onClick={() => setParticipationSearchQuery('')}
-                        >
-                          Limpiar búsqueda
-                        </Button>
+              {/* DataTable */}
+              <DataTable<IUser>
+                data={students}
+                columns={[
+                  // {
+                  //   header: '#',
+                  //   accessor: (_, index) => index !== undefined ? index + 1 : '',
+                  //   width: '50px',
+                  //   className: 'text-center text-muted small',
+                  // },
+                  {
+                    header: 'Nombre',
+                    accessor: 'firstName',
+                    render: (student) => (
+                      <div className="d-flex align-items-center gap-2">
+                        <b>
+                          {student}
+</b>
+                        {/* {student.profilePhoto ? (
+                          <img
+                            src={student.profilePhoto}
+                            alt={student.firstName}
+                            className="rounded-circle"
+                            style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div
+                            className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                            style={{ width: '32px', height: '32px' }}
+                          >
+                            <small className="text-primary fw-bold">
+                              {student.firstName?.[0] || ''}{student.lastName?.[0] || ''}
+                            </small>
+                          </div>
+                        )} */}
+                        {/* <div>
+                          <div className="fw-bold small">{student.firstName} {student.lastName}</div>
+                        </div> */}
                       </div>
-                    )}
-                </div>
-              )}
+                    ),
+                  },
+                  {
+                    header: '',
+                    accessor: (student) => participationTotals.get(student.id) || 0,
+                    width: '50px',
+                    className: 'text-center',
+                    render: (student) => {
+                      const totalPoints = participationTotals.get(student.id) || 0;
+                      return (
+                        <motion.div
+                          key={totalPoints}
+                          initial={{ scale: 1.2 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                        >
+                          <Badge
+                            color={
+                              totalPoints >= 10
+                                ? 'success'
+                                : totalPoints >= 5
+                                ? 'warning'
+                                : 'secondary'
+                            }
+                            className="px-2 py-1"
+                          >
+                            <strong>{totalPoints}</strong>
+                          </Badge>
+                        </motion.div>
+                      );
+                    },
+                  },
+                  {
+                    header: 'Acciones',
+                    accessor: 'id',
+                    width: '320px',
+                    className: 'text-center',
+                    render: (student) => {
+                      const totalPoints = participationTotals.get(student.id) || 0;
+                      return (
+                        <div className="d-flex gap-1 justify-content-center">
+                          <Button
+                            color="danger"
+                            size="sm"
+                            onClick={() => handleParticipationChange(student.id, -1)}
+                            disabled={isFinalized || totalPoints <= 0}
+                            style={{ minWidth: '60px' }}
+                          >
+                            <i className="bi bi-dash-lg me-1"></i>
+                            -1
+                          </Button>
+                          <Button
+                            color="primary"
+                            outline
+                            size="sm"
+                            onClick={() => {
+                              setScoreDialogData({
+                                studentId: student.id,
+                                studentName: `${student.firstName} ${student.lastName}`,
+                                currentScore: totalPoints,
+                              });
+                              setScoreDialogOpen(true);
+                            }}
+                            disabled={isFinalized}
+                            title="Editar puntuación"
+                          >
+                            <i className="bi bi-pencil-square"></i>
+                          </Button>
+                          <Button
+                            color="success"
+                            size="sm"
+                            onClick={() => handleParticipationChange(student.id, 1)}
+                            disabled={isFinalized}
+                            style={{ minWidth: '60px' }}
+                          >
+                            <i className="bi bi-plus-lg me-1"></i>
+                            +1
+                          </Button>
+                        </div>
+                      );
+                    },
+                  },
+                ]}
+                keyExtractor={(student) => student.id}
+                searchable
+                searchFields={['firstName', 'lastName', 'phone']}
+                selectable={!isFinalized}
+                selectedIds={participationSelection.selectedIds}
+                onSelectionChange={participationSelection.setSelectedIds}
+                bulkActions={
+                  participationSelection.selectedCount > 0 ? (
+                    <div className="d-flex gap-2 align-items-center">
+                      <Button
+                        color="primary"
+                        size="sm"
+                        onClick={() => setBulkParticipationOpen(true)}
+                      >
+                        <i className="bi bi-hand-thumbs-up me-1"></i>
+                        Asignar Puntos
+                      </Button>
+                      <Button
+                        color="secondary"
+                        size="sm"
+                        outline
+                        onClick={() => participationSelection.clear()}
+                      >
+                        <i className="bi bi-x me-1"></i>
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : undefined
+                }
+                emptyState={
+                  <EmptyState
+                    icon="bi-people"
+                    heading="Sin estudiantes inscritos"
+                    description='Inscribe estudiantes en la pestaña "Estudiantes" para comenzar a registrar participación.'
+                  />
+                }
+              />
             </CardBody>
           </Card>
         </TabPane>
@@ -1885,7 +1856,7 @@ const ClassroomManagement: React.FC = () => {
                               </td>
                               <td className="align-middle">
                                 <div className="d-flex align-items-center gap-2">
-                                  {student.profilePhoto ? (
+                                  {/* {student.profilePhoto ? (
                                     <img
                                       src={student.profilePhoto}
                                       alt={student.firstName}
@@ -1898,10 +1869,10 @@ const ClassroomManagement: React.FC = () => {
                                       style={{ width: '32px', height: '32px' }}
                                     >
                                       <small className="text-primary fw-bold">
-                                        {student.firstName[0]}{student.lastName[0]}
+                                        {student.firstName?.[0] || ''}{student.lastName?.[0] || ''}
                                       </small>
                                     </div>
-                                  )}
+                                  )} */}
                                   <div>
                                     <div className="fw-bold small">
                                       {student.firstName} {student.lastName}
@@ -2784,6 +2755,102 @@ const ClassroomManagement: React.FC = () => {
           </Progress>
         </ModalBody>
       </Modal>
+
+      {/* Bulk Attendance Dialog */}
+      <BulkAttendanceDialog
+        isOpen={bulkAttendanceOpen}
+        onClose={() => {
+          setBulkAttendanceOpen(false);
+          attendanceSelection.clear();
+        }}
+        selectedStudents={students.filter(s => attendanceSelection.isSelected(s.id))}
+        currentModuleName={currentModule ? `Módulo ${currentModule.weekNumber}: ${currentModule.name}` : undefined}
+        onConfirm={async (isPresent: boolean) => {
+          const selectedStudents = students.filter(s => attendanceSelection.isSelected(s.id));
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const student of selectedStudents) {
+            try {
+              await handleAttendanceChange(student.id, isPresent);
+              successCount++;
+            } catch (error) {
+              errorCount++;
+              console.error(`Error marking attendance for ${student.firstName}:`, error);
+            }
+          }
+
+          if (successCount > 0) {
+            toast.success(
+              `Asistencia registrada para ${successCount} estudiante${successCount !== 1 ? 's' : ''}`
+            );
+          }
+
+          if (errorCount > 0) {
+            toast.error(
+              `Error al registrar ${errorCount} estudiante${errorCount !== 1 ? 's' : ''}`
+            );
+          }
+
+          attendanceSelection.clear();
+        }}
+      />
+
+      {/* Score Input Dialog */}
+      <ScoreInputDialog
+        isOpen={scoreDialogOpen}
+        onClose={() => {
+          setScoreDialogOpen(false);
+          setScoreDialogData(null);
+        }}
+        studentName={scoreDialogData?.studentName || ''}
+        currentScore={scoreDialogData?.currentScore || 0}
+        maxScore={20}
+        fieldLabel="Puntos de Participación"
+        onSave={handleScoreSave}
+        helpText="Ingrese la puntuación total deseada (se calculará el cambio automáticamente)"
+      />
+
+      {/* Bulk Participation Dialog */}
+      <BulkParticipationDialog
+        isOpen={bulkParticipationOpen}
+        onClose={() => {
+          setBulkParticipationOpen(false);
+          participationSelection.clear();
+        }}
+        selectedStudents={students.filter(s => participationSelection.isSelected(s.id))}
+        maxScore={20}
+        currentModuleName={currentModule ? `Módulo ${currentModule.weekNumber}` : undefined}
+        onConfirm={async (pointsToAdd: number) => {
+          const selectedStudents = students.filter(s => participationSelection.isSelected(s.id));
+          let successCount = 0;
+          let errorCount = 0;
+
+          for (const student of selectedStudents) {
+            try {
+              await handleParticipationChange(student.id, pointsToAdd);
+              successCount++;
+            } catch (error) {
+              errorCount++;
+              console.error(`Error assigning points to ${student.firstName}:`, error);
+            }
+          }
+
+          if (successCount > 0) {
+            toast.success(
+              `Puntos asignados a ${successCount} estudiante${successCount !== 1 ? 's' : ''}`
+            );
+          }
+
+          if (errorCount > 0) {
+            toast.error(
+              `Error al asignar puntos a ${errorCount} estudiante${errorCount !== 1 ? 's' : ''}`
+            );
+          }
+
+          participationSelection.clear();
+        }}
+      />
     </Container>
   );
 };

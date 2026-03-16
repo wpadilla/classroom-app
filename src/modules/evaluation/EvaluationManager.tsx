@@ -27,7 +27,6 @@ import {
   TabContent,
   TabPane,
   InputGroup,
-  InputGroupText,
   Form
 } from 'reactstrap';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -38,6 +37,7 @@ import { UserService } from '../../services/user/user.service';
 import { IClassroom, IStudentEvaluation, IUser, IEvaluationCriteria, ICustomCriterion } from '../../models';
 import { toast } from 'react-toastify';
 import ClassroomFinalizationModal from '../shared/ClassroomFinalizationModal';
+import { SearchInput, EmptyState } from '../../components/mobile';
 
 interface EvaluationFormData {
   questionnaires: number;
@@ -57,6 +57,7 @@ const EvaluationManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('final');
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Modal states
   const [criteriaModal, setCriteriaModal] = useState(false);
@@ -460,7 +461,7 @@ const EvaluationManager: React.FC = () => {
                 disabled={isFinalized}
               >
                 <i className="bi bi-gear me-2"></i>
-                <span className="d-none d-sm-inline">Configurar</span> Criterios
+                Configurar Criterios
               </Button>
               <Button
                 color="success"
@@ -468,7 +469,7 @@ const EvaluationManager: React.FC = () => {
                 disabled={saving || isFinalized}
               >
                 <i className="bi bi-check-all me-2"></i>
-                <span className="d-none d-sm-inline">Finalizar</span> Todas
+                Finalizar Todas
               </Button>
               <Button
                 color={isFinalized ? 'warning' : 'danger'}
@@ -495,41 +496,35 @@ const EvaluationManager: React.FC = () => {
         </Row>
       )}
 
-      {/* Statistics */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="text-center">
+      {/* Statistics - Horizontal Scroll on Mobile */}
+      <div className="mb-4">
+        <div className="d-flex gap-3 overflow-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
+          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
             <CardBody>
               <h4 className="mb-0">{students.length}</h4>
               <small className="text-muted">Estudiantes</small>
             </CardBody>
           </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center">
+          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
             <CardBody>
               <h4 className="mb-0">{getClassAverage().toFixed(1)}%</h4>
-              <small className="text-muted">Promedio de Clase</small>
+              <small className="text-muted">Promedio</small>
             </CardBody>
           </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center">
+          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
             <CardBody>
               <h4 className="mb-0 text-success">{distribution.excellent + distribution.good}</h4>
-              <small className="text-muted">Aprobados (≥70)</small>
+              <small className="text-muted">Aprobados</small>
             </CardBody>
           </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center">
+          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
             <CardBody>
               <h4 className="mb-0 text-danger">{distribution.poor}</h4>
-              <small className="text-muted">Reprobados menos de 70</small>
+              <small className="text-muted">Reprobados</small>
             </CardBody>
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {/* Tabs */}
       <Nav tabs className="mb-3">
@@ -560,7 +555,24 @@ const EvaluationManager: React.FC = () => {
         <TabPane tabId="final">
           <Card>
             <CardBody>
-              <Table responsive hover>
+              {/* Search */}
+              {students.length > 0 && (
+                <div className="mb-3">
+                  <SearchInput
+                    placeholder="Buscar estudiante por nombre..."
+                    onSearch={setSearchQuery}
+                  />
+                </div>
+              )}
+
+              {students.length === 0 ? (
+                <EmptyState
+                  icon="bi-people"
+                  heading="Sin estudiantes inscritos"
+                  description="Inscribe estudiantes en la clase para comenzar a evaluar."
+                />
+              ) : (
+                <Table responsive hover>
                 <thead>
                   <tr>
                     <th>Estudiante</th>
@@ -579,7 +591,17 @@ const EvaluationManager: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map(student => {
+                  {students
+                    .filter(student => {
+                      if (!searchQuery.trim()) return true;
+                      const query = searchQuery.toLowerCase();
+                      return (
+                        student.firstName.toLowerCase().includes(query) ||
+                        student.lastName.toLowerCase().includes(query) ||
+                        student.phone?.toLowerCase().includes(query)
+                      );
+                    })
+                    .map(student => {
                     const evaluation = evaluations.get(student.id);
                     if (!evaluation) return null;
                     
@@ -633,6 +655,29 @@ const EvaluationManager: React.FC = () => {
                   })}
                 </tbody>
               </Table>
+              )}
+
+              {/* No Results */}
+              {searchQuery.trim() &&
+                students.filter(s => {
+                  const query = searchQuery.toLowerCase();
+                  return (
+                    s.firstName.toLowerCase().includes(query) ||
+                    s.lastName.toLowerCase().includes(query) ||
+                    s.phone?.toLowerCase().includes(query)
+                  );
+                }).length === 0 && (
+                  <div className="text-center py-4">
+                    <p className="text-muted">No se encontraron estudiantes con "{searchQuery}"</p>
+                    <Button
+                      color="link"
+                      size="sm"
+                      onClick={() => setSearchQuery('')}
+                    >
+                      Limpiar búsqueda
+                    </Button>
+                  </div>
+                )}
             </CardBody>
           </Card>
         </TabPane>
@@ -912,6 +957,32 @@ const EvaluationManager: React.FC = () => {
           Evaluar - {selectedStudent?.firstName} {selectedStudent?.lastName}
         </ModalHeader>
         <ModalBody>
+          {/* Max All Button */}
+          <div className="mb-3 d-flex justify-content-end">
+            <Button
+              color="warning"
+              size="sm"
+              onClick={() => {
+                if (!classroom.evaluationCriteria) return;
+                
+                // Set all scores to max
+                const maxCustomScores = (classroom.evaluationCriteria.customCriteria || []).map(criterion => ({
+                  criterionId: criterion.id,
+                  score: criterion.points
+                }));
+                
+                setEvaluationForm({
+                  questionnaires: classroom.evaluationCriteria.questionnaires,
+                  finalExam: classroom.evaluationCriteria.finalExam,
+                  customScores: maxCustomScores
+                });
+              }}
+            >
+              <i className="bi bi-lightning-fill me-1"></i>
+              Máxima en Todas
+            </Button>
+          </div>
+
           <Form>
             <Row>
               <Col md={6}>
@@ -919,18 +990,31 @@ const EvaluationManager: React.FC = () => {
                   <Label for="eval-questionnaires">
                     Cuestionarios (Libro) - Máx: {classroom.evaluationCriteria?.questionnaires}
                   </Label>
-                  <Input
-                    type="number"
-                    id="eval-questionnaires"
-                    value={evaluationForm.questionnaires}
-                    onChange={(e) => setEvaluationForm({
-                      ...evaluationForm,
-                      questionnaires: parseFloat(e.target.value) || 0
-                    })}
-                    min="0"
-                    max={classroom.evaluationCriteria?.questionnaires}
-                    step="0.1"
-                  />
+                  <InputGroup>
+                    <Input
+                      type="number"
+                      id="eval-questionnaires"
+                      value={evaluationForm.questionnaires}
+                      onChange={(e) => setEvaluationForm({
+                        ...evaluationForm,
+                        questionnaires: parseFloat(e.target.value) || 0
+                      })}
+                      min="0"
+                      max={classroom.evaluationCriteria?.questionnaires}
+                      step="0.1"
+                    />
+                    <Button
+                      color="warning"
+                      outline
+                      onClick={() => setEvaluationForm({
+                        ...evaluationForm,
+                        questionnaires: classroom.evaluationCriteria?.questionnaires || 0
+                      })}
+                      disabled={evaluationForm.questionnaires === classroom.evaluationCriteria?.questionnaires}
+                    >
+                      Máx
+                    </Button>
+                  </InputGroup>
                 </FormGroup>
               </Col>
               <Col md={6}>
@@ -938,18 +1022,31 @@ const EvaluationManager: React.FC = () => {
                   <Label for="eval-finalExam">
                     Examen Final - Máx: {classroom.evaluationCriteria?.finalExam}
                   </Label>
-                  <Input
-                    type="number"
-                    id="eval-finalExam"
-                    value={evaluationForm.finalExam}
-                    onChange={(e) => setEvaluationForm({
-                      ...evaluationForm,
-                      finalExam: parseFloat(e.target.value) || 0
-                    })}
-                    min="0"
-                    max={classroom.evaluationCriteria?.finalExam}
-                    step="0.1"
-                  />
+                  <InputGroup>
+                    <Input
+                      type="number"
+                      id="eval-finalExam"
+                      value={evaluationForm.finalExam}
+                      onChange={(e) => setEvaluationForm({
+                        ...evaluationForm,
+                        finalExam: parseFloat(e.target.value) || 0
+                      })}
+                      min="0"
+                      max={classroom.evaluationCriteria?.finalExam}
+                      step="0.1"
+                    />
+                    <Button
+                      color="warning"
+                      outline
+                      onClick={() => setEvaluationForm({
+                        ...evaluationForm,
+                        finalExam: classroom.evaluationCriteria?.finalExam || 0
+                      })}
+                      disabled={evaluationForm.finalExam === classroom.evaluationCriteria?.finalExam}
+                    >
+                      Máx
+                    </Button>
+                  </InputGroup>
                 </FormGroup>
               </Col>
             </Row>
@@ -963,23 +1060,40 @@ const EvaluationManager: React.FC = () => {
                       <Label for={`eval-custom-${criterion.id}`}>
                         {criterion.name} - Máx: {criterion.points}
                       </Label>
-                      <Input
-                        type="number"
-                        id={`eval-custom-${criterion.id}`}
-                        value={currentScore?.score || 0}
-                        onChange={(e) => {
-                          const newScore = parseFloat(e.target.value) || 0;
-                          const updatedScores = evaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
-                          updatedScores.push({ criterionId: criterion.id, score: newScore });
-                          setEvaluationForm({
-                            ...evaluationForm,
-                            customScores: updatedScores
-                          });
-                        }}
-                        min="0"
-                        max={criterion.points}
-                        step="0.1"
-                      />
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          id={`eval-custom-${criterion.id}`}
+                          value={currentScore?.score || 0}
+                          onChange={(e) => {
+                            const newScore = parseFloat(e.target.value) || 0;
+                            const updatedScores = evaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
+                            updatedScores.push({ criterionId: criterion.id, score: newScore });
+                            setEvaluationForm({
+                              ...evaluationForm,
+                              customScores: updatedScores
+                            });
+                          }}
+                          min="0"
+                          max={criterion.points}
+                          step="0.1"
+                        />
+                        <Button
+                          color="warning"
+                          outline
+                          onClick={() => {
+                            const updatedScores = evaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
+                            updatedScores.push({ criterionId: criterion.id, score: criterion.points });
+                            setEvaluationForm({
+                              ...evaluationForm,
+                              customScores: updatedScores
+                            });
+                          }}
+                          disabled={(currentScore?.score || 0) === criterion.points}
+                        >
+                          Máx
+                        </Button>
+                      </InputGroup>
                     </FormGroup>
                   </Col>
                 </Row>

@@ -75,7 +75,32 @@ Firebase IndexedDB persistence is enabled in `src/utils/firebase.ts`. For write 
 ### PDF Generation (`src/components/pdf/`)
 Uses `@react-pdf/renderer` with a component library: core (PDFDocument, PDFPage, PDFTemplate), layout (PDFHeader, PDFSection, PDFColumns), data (PDFTable, PDFGrid), visual (PDFChart, PDFStatCard). Templates exist for payments and excursion reports.
 
+### Mobile Components (`src/components/mobile/`)
+Mobile-first UI components with Tailwind CSS + Framer Motion:
+- `SearchInput` — Debounced search input with clear button (150ms debounce)
+- `Switch` — iOS-style toggle switch with on/off labels
+- `ActionButton` — Prominent action button with icon
+- `StudentCard` — Student information card
+- `EmptyState` — Empty state placeholder with icon, heading, description, action
+- `LoadingState` — Skeleton loading state
+- `BottomDrawer` — iOS-style bottom sheet with drag-to-dismiss
+
+### Common Components (`src/components/common/`)
+Reusable components for all roles:
+- `Dialog` — Responsive dialog wrapper (Modal on desktop ≥768px, BottomDrawer on mobile)
+- `DataTable<T>` — Full-featured table with search, multi-select, expandable rows, bulk actions, sorting, pagination
+
+### Dialog Components (`src/modules/shared/components/`)
+Specialized dialogs for classroom management:
+- `BulkAttendanceDialog` — Mark attendance for multiple students at once
+- `ScoreInputDialog` — Manual score entry with validation and "Max Score" button
+- `BulkParticipationDialog` — Assign participation points to multiple students
+
+**See [COMPONENT_PATTERNS.md](./COMPONENT_PATTERNS.md) for detailed usage guide.**
+
 ### Custom Hooks (`src/hooks/`)
 - `useUsers` — User CRUD operations
 - `useBulkOperations` — Bulk student management
 - `useProgramProgress` — Program completion tracking
+- `useMediaQuery` — Responsive breakpoint detection (mobile, tablet, desktop)
+- `useSelection` — Generic Set-based selection state management for multi-select

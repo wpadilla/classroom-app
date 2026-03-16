@@ -316,10 +316,10 @@ const TeacherDashboard: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Materia</th>
-                      <th>Grupo</th>
-                      <th>Estudiantes</th>
-                      <th>Progreso</th>
-                      <th>WhatsApp</th>
+                      {/* <th>Grupo</th> */}
+                      {/* <th>Estudiantes</th> */}
+                      {/* <th>Progreso</th> */}
+                      {/* <th>WhatsApp</th> */}
                       <th>Acciones</th>
                     </tr>
                   </thead>
@@ -329,13 +329,13 @@ const TeacherDashboard: React.FC = () => {
                         <td>
                           <strong>{classroom.subject}</strong>
                         </td>
-                        <td>{classroom.name}</td>
-                        <td>
+                        {/* <td>{classroom.name}</td> */}
+                        {/* <td>
                           <Badge color="primary">
                             {getClassroomStudentCount(classroom)}
                           </Badge>
-                        </td>
-                        <td>
+                        </td> */}
+                        {/* <td>
                           <Progress
                             value={getClassroomProgress(classroom)}
                             color={getClassroomProgress(classroom) >= 75 ? 'success' :
@@ -345,8 +345,8 @@ const TeacherDashboard: React.FC = () => {
                           <small className="text-muted">
                             {getClassroomProgress(classroom).toFixed(0)}%
                           </small>
-                        </td>
-                        <td className="text-center">
+                        </td> */}
+                        {/* <td className="text-center">
                           {classroom.whatsappGroup ? (
                             <Badge color="success">
                               <i className="bi bi-check-circle-fill"></i>
@@ -356,7 +356,7 @@ const TeacherDashboard: React.FC = () => {
                               <i className="bi bi-x-circle"></i>
                             </Badge>
                           )}
-                        </td>
+                        </td> */}
                         <td>
                           <Button
                             color="primary"

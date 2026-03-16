@@ -66,7 +66,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({
           ) : (
             <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
               <span className="text-primary-600 font-bold text-lg">
-                {student.firstName[0]}{student.lastName[0]}
+                {student.firstName?.[0] || ''}{student.lastName?.[0] || ''}
               </span>
             </div>
           )}

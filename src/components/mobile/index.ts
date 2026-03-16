@@ -25,3 +25,6 @@ export type { EmptyStateProps } from './EmptyState';
 
 export { LoadingState } from './LoadingState';
 export type { LoadingStateProps, LoadingStateVariant } from './LoadingState';
+
+export { BottomDrawer } from './BottomDrawer';
+export type { BottomDrawerProps } from './BottomDrawer';

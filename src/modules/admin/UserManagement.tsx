@@ -1,6 +1,6 @@
 // Complete User Management Module for Admins
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container,
   Row,
@@ -77,15 +77,7 @@ const UserManagement: React.FC = () => {
     isActive: true
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    filterUsers();
-  }, [users, activeTab, searchQuery, programFilter]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [usersList, classroomsList, programsList] = await Promise.all([
@@ -102,9 +94,9 @@ const UserManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterUsers = () => {
+  const filterUsers = useCallback(() => {
     let filtered = [...users];
 
     // Filter by role/tab
@@ -138,7 +130,15 @@ const UserManagement: React.FC = () => {
     }
 
     setFilteredUsers(filtered);
-  };
+  }, [activeTab, classrooms, programFilter, searchQuery, users]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    filterUsers();
+  }, [filterUsers]);
 
   // Selection handlers
   const handleToggleSelection = (userId: string) => {

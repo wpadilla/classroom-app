@@ -1,11 +1,13 @@
 import React from 'react';
 import {
   Button,
+  Col,
   Form,
   FormFeedback,
   FormGroup,
   Input,
   Label,
+  Row,
   Spinner,
 } from 'reactstrap';
 import { IUser } from '../../../../models';

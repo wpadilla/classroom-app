@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { SyncService } from '../services/offline/sync.service';
 
@@ -20,11 +20,11 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [isOffline, setIsOffline] = useState(!navigator.onLine);
     const [pendingOperations, setPendingOperations] = useState(SyncService.getPendingCount());
 
-    const updatePendingCount = () => {
+    const updatePendingCount = useCallback(() => {
         setPendingOperations(SyncService.getPendingCount());
-    };
+    }, []);
 
-    const syncPending = async () => {
+    const syncPending = useCallback(async () => {
         if (isOffline) {
             toast.warning('No hay conexión a internet');
             return;
@@ -38,7 +38,7 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
             console.error('Error syncing operations:', error);
             toast.error('Error al sincronizar operaciones');
         }
-    };
+    }, [isOffline, updatePendingCount]);
 
     useEffect(() => {
         const handleOnline = async () => {
@@ -66,7 +66,7 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
         };
-    }, []);
+    }, [syncPending, updatePendingCount]);
 
     return (
         <OfflineContext.Provider value={{ isOffline, pendingOperations, syncPending }}>

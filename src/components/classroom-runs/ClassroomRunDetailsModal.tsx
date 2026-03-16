@@ -70,7 +70,10 @@ const ClassroomRunDetailsModal: React.FC<ClassroomRunDetailsModalProps> = ({
     );
   }, [run]);
 
-  const paymentCostItems = run?.paymentsSnapshot?.costs || [];
+  const paymentCostItems = useMemo(
+    () => run?.paymentsSnapshot?.costs || [],
+    [run?.paymentsSnapshot?.costs]
+  );
   const paymentStatuses = run?.paymentsSnapshot?.statuses || [];
   const totalDuePerStudent = useMemo(
     () => getTotalDuePerStudent(paymentCostItems),

@@ -1,14 +1,13 @@
 // WhatsApp Group Manager - Admin Only Component
 // Manages all WhatsApp groups associated with classrooms
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Container,
   Row,
   Col,
   Card,
   CardBody,
-  CardHeader,
   Button,
   Badge,
   Input,
@@ -26,9 +25,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ClassroomService } from '../../services/classroom/classroom.service';
-import { UserService } from '../../services/user/user.service';
-import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
-import { IClassroom, IUser } from '../../models';
+import { IClassroom } from '../../models';
 
 const WhatsAppGroupManager: React.FC = () => {
   const navigate = useNavigate();
@@ -49,15 +46,7 @@ const WhatsAppGroupManager: React.FC = () => {
   const [createGroupModal, setCreateGroupModal] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    loadClassrooms();
-  }, []);
-
-  useEffect(() => {
-    filterClassrooms();
-  }, [searchTerm, filterStatus, allClassrooms]);
-
-  const loadClassrooms = async () => {
+  const loadClassrooms = useCallback(async () => {
     try {
       setLoading(true);
       const data = await ClassroomService.getAllClassrooms();
@@ -69,9 +58,9 @@ const WhatsAppGroupManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterClassrooms = () => {
+  const filterClassrooms = useCallback(() => {
     let filtered = [...allClassrooms];
     
     // Search filter
@@ -92,7 +81,15 @@ const WhatsAppGroupManager: React.FC = () => {
     }
     
     setClassrooms(filtered);
-  };
+  }, [allClassrooms, filterStatus, searchTerm]);
+
+  useEffect(() => {
+    loadClassrooms();
+  }, [loadClassrooms]);
+
+  useEffect(() => {
+    filterClassrooms();
+  }, [filterClassrooms]);
 
   const handleCreateGroup = async (classroom: IClassroom) => {
     setSelectedClassroom(classroom);
@@ -543,4 +540,3 @@ const WhatsAppGroupManager: React.FC = () => {
 };
 
 export default WhatsAppGroupManager;
-

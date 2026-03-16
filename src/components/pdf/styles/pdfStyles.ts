@@ -16,7 +16,6 @@ const FONT_SIZE_XS = 10;
 const FONT_SIZE_SM = 12;
 const FONT_SIZE_BASE = 14;
 const FONT_SIZE_LG = 16;
-const FONT_SIZE_XL = 18;
 const FONT_SIZE_2XL = 20;
 const FONT_SIZE_3XL = 24;
 
@@ -26,9 +25,7 @@ const COLOR_SUCCESS = '#22c55e';
 const COLOR_WARNING = '#f59e0b';
 const COLOR_ERROR = '#ef4444';
 const COLOR_INFO = '#06b6d4';
-const COLOR_GRAY_50 = '#f9fafb';
 const COLOR_BLUE_GRAY_50 = '#f8fafc';
-const COLOR_BLUE_GRAY_100 = '#f1f5f9';
 const COLOR_BLUE_GRAY_200 = '#e2e8f0';
 const COLOR_BLUE_GRAY_300 = '#cbd5e1';
 const COLOR_BLUE_GRAY_500 = '#64748b';
@@ -43,9 +40,7 @@ const COLOR_BLUE_600 = '#2563eb';
 const BORDER_WIDTH_THIN = 0.5;
 const BORDER_WIDTH_NORMAL = 1;
 const BORDER_WIDTH_THICK = 2;
-const BORDER_RADIUS_SM = 2;
 const BORDER_RADIUS_MD = 5;
-const BORDER_RADIUS_LG = 8;
 const BORDER_RADIUS_FULL = 9999;
 const BORDER_COLOR_LIGHT = '#e0e0e0';
 
@@ -361,4 +356,3 @@ export const pdfStyles = StyleSheet.create({
 });
 
 export default pdfStyles;
-

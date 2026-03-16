@@ -15,7 +15,7 @@ export interface Column<T> {
   header: string | React.ReactNode;
   
   /** Field accessor or function to extract value */
-  accessor: keyof T | ((row: T, index: number) => any);
+  accessor?: keyof T | ((row: T, index: number) => any);
   
   /** Custom render function for cell content */
   render?: (value: any, row: T, index: number) => React.ReactNode;
@@ -274,7 +274,7 @@ export function DataTable<T extends Record<string, any>>({
     if (typeof column.accessor === 'function') {
       return column.accessor(row, index);
     }
-    return row[column.accessor];
+    return column?.accessor ? row[column?.accessor || ''] || row : row;
   }, []);
   
   // Calculate column count for expanded row colspan

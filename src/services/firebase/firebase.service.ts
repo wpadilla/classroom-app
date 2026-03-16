@@ -68,12 +68,32 @@ export class FirebaseService {
   }
 
   /**
+   * Check if a value is a Firebase FieldValue (like increment(), serverTimestamp(), etc.)
+   * These objects have internal properties like _methodName, Fu, etc.
+   */
+  private static isFieldValue(data: any): boolean {
+    if (data === null || data === undefined || typeof data !== 'object') {
+      return false;
+    }
+    // FieldValue objects have _methodName or other internal Firebase properties
+    return '_methodName' in data || 'Fu' in data || '_delegate' in data;
+  }
+
+  /**
    * Convert Firestore Timestamps to JavaScript Date objects
    * Recursively processes nested objects and arrays
+   * Also handles FieldValue objects that may be cached locally
    */
   private static convertTimestamps(data: any): any {
     if (data === null || data === undefined) {
       return data;
+    }
+
+    // Check if it's a Firebase FieldValue (increment, serverTimestamp, etc.)
+    // These should not be rendered in React - return a safe default
+    if (this.isFieldValue(data)) {
+      console.warn('Found unresolved FieldValue in data, returning 0');
+      return 0;
     }
 
     // Check if it's a Firestore Timestamp

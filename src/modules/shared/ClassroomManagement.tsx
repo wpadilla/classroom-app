@@ -1,7 +1,7 @@
 // Shared Classroom Management Component - Works for both Teachers and Admins
 // Mobile-First Design
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Container,
   Row,
@@ -100,13 +100,11 @@ const ClassroomManagement: React.FC = () => {
 
   // Attendance state - Now per module
   const [attendanceRecords, setAttendanceRecords] = useState<Map<string, boolean>>(new Map());
-  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
   const attendanceSelection = useSelection();
   const [bulkAttendanceOpen, setBulkAttendanceOpen] = useState(false);
 
   // Participation state - Track total participation including pending changes
   const [participationTotals, setParticipationTotals] = useState<Map<string, number>>(new Map());
-  const [participationSearchQuery, setParticipationSearchQuery] = useState('');
   const participationSelection = useSelection();
   const [bulkParticipationOpen, setBulkParticipationOpen] = useState(false);
 
@@ -117,9 +115,6 @@ const ClassroomManagement: React.FC = () => {
     studentName: string;
     currentScore: number;
   } | null>(null);
-
-  // Evaluations search
-  const [evaluationsSearchQuery, setEvaluationsSearchQuery] = useState('');
 
   // Resources search
   const [resourcesSearchQuery, setResourcesSearchQuery] = useState('');
@@ -165,6 +160,15 @@ const ClassroomManagement: React.FC = () => {
   });
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
 
+  // Calculate max participation points based on classroom configuration
+  // Formula: totalModules × participationPointsPerModule
+  const maxParticipationPoints = useMemo(() => {
+    if (!classroom) return 8; // Default fallback
+    const totalModules = classroom.modules?.length || 8;
+    const pointsPerModule = classroom.evaluationCriteria?.participationPointsPerModule || 1;
+    return totalModules * pointsPerModule;
+  }, [classroom]);
+
   useEffect(() => {
     if (id && user) { // Keep user in dependency for permission checks
       loadClassroomData();
@@ -186,7 +190,7 @@ const ClassroomManagement: React.FC = () => {
     try {
       // Load from Firebase (cache-first by default if offline)
       let classroomData = (await ClassroomService.getClassroomById(id)) || {} as any;
-
+      
       if (!classroomData) {
         toast.error('Clase no encontrada');
         navigate(user.role === 'admin' ? '/admin/classrooms' : '/teacher/dashboard');
@@ -232,7 +236,9 @@ const ClassroomManagement: React.FC = () => {
 
       setClassroom(classroomData);
       setStudents(studentsData);
-
+      // console.log('Loaded classroom:', classroomData);
+      // console.log('Loaded evaluations:', evaluationsData);
+      // console.log('Loaded students:', studentsData);
       // Process evaluations map
       const evalMap = new Map();
       evaluationsData.forEach(e => evalMap.set(e.studentId, e));
@@ -1622,8 +1628,7 @@ const ClassroomManagement: React.FC = () => {
                     accessor: (student) => participationTotals.get(student.id) || 0,
                     width: '50px',
                     className: 'text-center',
-                    render: (student) => {
-                      const totalPoints = participationTotals.get(student.id) || 0;
+                    render: (totalPoints) => {
                       return (
                         <motion.div
                           key={totalPoints}
@@ -1649,7 +1654,7 @@ const ClassroomManagement: React.FC = () => {
                   },
                   {
                     header: 'Acciones',
-                    accessor: 'id',
+                    // accessor: 'id',
                     width: '320px',
                     className: 'text-center',
                     render: (student) => {
@@ -1687,7 +1692,7 @@ const ClassroomManagement: React.FC = () => {
                             color="success"
                             size="sm"
                             onClick={() => handleParticipationChange(student.id, 1)}
-                            disabled={isFinalized}
+                            disabled={totalPoints >= maxParticipationPoints}
                             style={{ minWidth: '60px' }}
                           >
                             <i className="bi bi-plus-lg me-1"></i>
@@ -1747,15 +1752,20 @@ const ClassroomManagement: React.FC = () => {
           />
         </TabPane>
 
-        {/* Evaluations Tab - Mobile Optimized */}
+        {/* Evaluations Tab - Mobile Optimized with DataTable */}
         <TabPane tabId="evaluations">
           <Card className="border-0 shadow-sm">
             <CardHeader className="bg-white">
               <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <h6 className="mb-0">
-                  <i className="bi bi-clipboard-check me-2"></i>
-                  Evaluaciones
-                </h6>
+                <div>
+                  <h6 className="mb-1">
+                    <i className="bi bi-clipboard-check me-2"></i>
+                    Evaluaciones
+                  </h6>
+                  <small className="text-muted">
+                    Máx. participación: {maxParticipationPoints} pts ({classroom?.modules?.length || 8} módulos × {classroom?.evaluationCriteria?.participationPointsPerModule || 1} pt/módulo)
+                  </small>
+                </div>
                 <Button
                   color="primary"
                   size="sm"
@@ -1772,185 +1782,119 @@ const ClassroomManagement: React.FC = () => {
                 <small>Las evaluaciones finales se configuran en el último módulo</small>
               </Alert>
 
-              {/* Search */}
-              {students.length > 0 && (
-                <div className="mb-3">
-                  <SearchInput
-                    placeholder="Buscar estudiante por nombre o teléfono..."
-                    onSearch={setEvaluationsSearchQuery}
-                  />
-                </div>
-              )}
-
-              {/* Filter Chips */}
-              {students.length > 0 && (
-                <div className="d-flex gap-2 mb-3 flex-wrap">
-                  <small className="text-muted me-2">Filtrar por:</small>
-                  <Badge
-                    color="success"
-                    pill
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => {
-                      // TODO: Add filter logic
-                    }}
-                  >
-                    Activos
-                  </Badge>
-                  <Badge
-                    color="danger"
-                    pill
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => {
-                      // TODO: Add filter logic
-                    }}
-                  >
-                    Inactivos
-                  </Badge>
-                </div>
-              )}
-
-              {/* Table */}
-              {students.length === 0 ? (
-                <EmptyState
-                  icon="bi-clipboard-check"
-                  heading="Sin estudiantes inscritos"
-                  description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a evaluar."
-                />
-              ) : (
-                <div className="table-responsive">
-                  <Table hover className="mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th style={{ width: '50px' }} className="text-center">#</th>
-                        <th>Estudiante</th>
-                        <th className="text-center" style={{ width: '80px' }}>Asist.</th>
-                        <th className="text-center" style={{ width: '80px' }}>Part.</th>
-                        <th className="text-center" style={{ width: '100px' }}>Estado</th>
-                        <th className="text-center" style={{ width: '80px' }}>Activo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students
-                        .filter(student => {
-                          if (!evaluationsSearchQuery.trim()) return true;
-                          const query = evaluationsSearchQuery.toLowerCase();
-                          return (
-                            student.firstName.toLowerCase().includes(query) ||
-                            student.lastName.toLowerCase().includes(query) ||
-                            student.phone?.toLowerCase().includes(query)
-                          );
-                        })
-                        .map((student, index) => {
-                          const evaluation = evaluations.get(student.id);
-                          const attendanceRate = getStudentAttendanceRate(student.id);
-                          const participation = participationTotals.get(student.id) || 0;
-                          const isActive = evaluation?.isActive !== false;
-
-                          return (
-                            <tr
-                              key={student.id}
-                              className={!isActive ? 'table-secondary text-muted' : ''}
-                            >
-                              <td className="text-center align-middle">
-                                <small className="text-muted">{index + 1}</small>
-                              </td>
-                              <td className="align-middle">
-                                <div className="d-flex align-items-center gap-2">
-                                  {/* {student.profilePhoto ? (
-                                    <img
-                                      src={student.profilePhoto}
-                                      alt={student.firstName}
-                                      className="rounded-circle"
-                                      style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                                    />
-                                  ) : (
-                                    <div
-                                      className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-                                      style={{ width: '32px', height: '32px' }}
-                                    >
-                                      <small className="text-primary fw-bold">
-                                        {student.firstName?.[0] || ''}{student.lastName?.[0] || ''}
-                                      </small>
-                                    </div>
-                                  )} */}
-                                  <div>
-                                    <div className="fw-bold small">
-                                      {student.firstName} {student.lastName}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="text-center align-middle">
-                                <Badge
-                                  color={attendanceRate >= 80 ? 'success' : 'warning'}
-                                  className="px-2 py-1"
-                                >
-                                  {attendanceRate.toFixed(0)}%
-                                </Badge>
-                              </td>
-                              <td className="text-center align-middle">
-                                <Badge color="info" className="px-2 py-1">
-                                  {participation}
-                                </Badge>
-                              </td>
-                              <td className="text-center align-middle">
-                                <Badge
-                                  color={
-                                    evaluation?.status === 'evaluated'
-                                      ? 'success'
-                                      : evaluation?.status === 'in-progress'
-                                      ? 'warning'
-                                      : 'secondary'
-                                  }
-                                >
-                                  {evaluation?.status === 'evaluated'
-                                    ? 'OK'
-                                    : evaluation?.status === 'in-progress'
-                                    ? 'En Progreso'
-                                    : 'Pendiente'}
-                                </Badge>
-                              </td>
-                              <td className="text-center align-middle">
-                                <Switch
-                                  checked={isActive}
-                                  onChange={(checked) =>
-                                    handleToggleStudentStatus(student.id, isActive)
-                                  }
-                                  onColor="bg-success"
-                                  offColor="bg-danger"
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </Table>
-
-                  {/* No Results */}
-                  {evaluationsSearchQuery.trim() &&
-                    students.filter(s => {
-                      const query = evaluationsSearchQuery.toLowerCase();
+              {/* DataTable */}
+              <DataTable<IUser>
+                data={students}
+                columns={[
+                  {
+                    header: 'Estudiante',
+                    accessor: 'firstName',
+                    render: (_, student) => {
+                      const evaluation = evaluations.get(student.id);
+                      const isActive = evaluation?.isActive !== false;
                       return (
-                        s.firstName.toLowerCase().includes(query) ||
-                        s.lastName.toLowerCase().includes(query) ||
-                        s.phone?.toLowerCase().includes(query)
+                        <div className={`d-flex align-items-center gap-2 ${!isActive ? 'text-muted' : ''}`}>
+                          <div>
+                            <div className="fw-bold small">
+                              {student.firstName} {student.lastName}
+                            </div>
+                            <small className="text-muted d-none d-sm-inline">{student.phone}</small>
+                          </div>
+                        </div>
                       );
-                    }).length === 0 && (
-                      <div className="text-center py-4">
-                        <p className="text-muted">
-                          No se encontraron estudiantes con "{evaluationsSearchQuery}"
-                        </p>
-                        <Button
-                          color="link"
-                          size="sm"
-                          onClick={() => setEvaluationsSearchQuery('')}
-                        >
-                          Limpiar búsqueda
-                        </Button>
-                      </div>
-                    )}
-                </div>
-              )}
+                    },
+                  },
+                  {
+                    header: 'Asist.',
+                    accessor: (student) => getStudentAttendanceRate(student.id),
+                    width: '80px',
+                    align: 'center',
+                    mobileHidden: false,
+                    render: (attendanceRate) => (
+                      <Badge
+                        color={attendanceRate >= 80 ? 'success' : attendanceRate >= 60 ? 'warning' : 'danger'}
+                        className="px-2 py-1"
+                      >
+                        {typeof attendanceRate === 'number' ? attendanceRate.toFixed(0) : 0}%
+                      </Badge>
+                    ),
+                  },
+                  {
+                    header: 'Part.',
+                    accessor: (student) => participationTotals.get(student.id) || 0,
+                    width: '100px',
+                    align: 'center',
+                    render: (participation) => {
+                      const percentage = maxParticipationPoints > 0 
+                        ? Math.min((participation / maxParticipationPoints) * 100, 100)
+                        : 0;
+                      return (
+                        <div className="d-flex flex-column align-items-center">
+                          <Badge
+                            color={percentage >= 80 ? 'success' : percentage >= 50 ? 'warning' : 'secondary'}
+                            className="px-2 py-1"
+                          >
+                            {participation}/{maxParticipationPoints}
+                          </Badge>
+                          <small className="text-muted" style={{ fontSize: '10px' }}>
+                            {percentage.toFixed(0)}%
+                          </small>
+                        </div>
+                      );
+                    },
+                  },
+                  {
+                    header: 'Estado',
+                    accessor: (student) => evaluations.get(student.id)?.status,
+                    width: '100px',
+                    align: 'center',
+                    mobileHidden: true,
+                    render: (status) => (
+                      <Badge
+                        color={
+                          status === 'evaluated'
+                            ? 'success'
+                            : status === 'in-progress'
+                            ? 'warning'
+                            : 'secondary'
+                        }
+                      >
+                        {status === 'evaluated'
+                          ? 'OK'
+                          : status === 'in-progress'
+                          ? 'En Progreso'
+                          : 'Pendiente'}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    header: 'Activo',
+                    accessor: (student) => evaluations.get(student.id)?.isActive !== false,
+                    width: '80px',
+                    align: 'center',
+                    render: (isActive, student) => (
+                      <Switch
+                        checked={isActive}
+                        onChange={() => handleToggleStudentStatus(student.id, isActive)}
+                        onColor="bg-success"
+                        offColor="bg-danger"
+                      />
+                    ),
+                  },
+                ]}
+                keyExtractor={(student) => student.id}
+                searchable
+                searchFields={['firstName', 'lastName', 'phone']}
+                searchPlaceholder="Buscar estudiante..."
+                emptyState={
+                  <EmptyState
+                    icon="bi-clipboard-check"
+                    heading="Sin estudiantes inscritos"
+                    description="Inscribe estudiantes en la pestaña 'Estudiantes' para comenzar a evaluar."
+                  />
+                }
+                hover
+              />
             </CardBody>
           </Card>
         </TabPane>
@@ -2805,10 +2749,10 @@ const ClassroomManagement: React.FC = () => {
         }}
         studentName={scoreDialogData?.studentName || ''}
         currentScore={scoreDialogData?.currentScore || 0}
-        maxScore={20}
+        maxScore={maxParticipationPoints}
         fieldLabel="Puntos de Participación"
         onSave={handleScoreSave}
-        helpText="Ingrese la puntuación total deseada (se calculará el cambio automáticamente)"
+        helpText={`Máximo: ${maxParticipationPoints} puntos (${classroom?.modules?.length || 8} módulos × ${classroom?.evaluationCriteria?.participationPointsPerModule || 1} punto${(classroom?.evaluationCriteria?.participationPointsPerModule || 1) > 1 ? 's' : ''}/módulo)`}
       />
 
       {/* Bulk Participation Dialog */}
@@ -2819,7 +2763,7 @@ const ClassroomManagement: React.FC = () => {
           participationSelection.clear();
         }}
         selectedStudents={students.filter(s => participationSelection.isSelected(s.id))}
-        maxScore={20}
+        maxScore={maxParticipationPoints}
         currentModuleName={currentModule ? `Módulo ${currentModule.weekNumber}` : undefined}
         onConfirm={async (pointsToAdd: number) => {
           const selectedStudents = students.filter(s => participationSelection.isSelected(s.id));

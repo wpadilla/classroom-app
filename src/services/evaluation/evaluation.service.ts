@@ -8,7 +8,7 @@ import {
   DEFAULT_GRADE_SCALE,
   IEvaluationCreate
 } from '../../models';
-import { where, orderBy, increment } from 'firebase/firestore';
+import { where, orderBy } from 'firebase/firestore';
 
 export class EvaluationService {
   /**
@@ -250,12 +250,17 @@ export class EvaluationService {
         
         await this.saveEvaluation(newEvaluation);
       } else {
-        // Simply add/subtract points to the total using atomic increment
+        // Calculate new points and save explicitly (avoids FieldValue caching issues)
+        const currentPoints = typeof evaluation.participationPoints === 'number' 
+          ? evaluation.participationPoints 
+          : 0;
+        const newPoints = Math.max(0, currentPoints + points);
+        
         await FirebaseService.updateDocument(
           COLLECTIONS.EVALUATIONS,
           evaluation.id,
           {
-            participationPoints: increment(points),
+            participationPoints: newPoints,
             updatedAt: new Date()
           }
         );

@@ -2,7 +2,7 @@
 
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
 import { IUser, UserRole, IClassroomHistory } from '../../models';
-import { where, orderBy } from 'firebase/firestore';
+import { orderBy } from 'firebase/firestore';
 import { GCloudService } from '../gcloud/gcloud.service';
 
 export class UserService {

@@ -431,7 +431,7 @@ export class WhatsappService {
         enrollment: data.enrollmentType,
       };
 
-      const response = await axios.post(
+      await axios.post(
         'https://betuel-promotions.xyz/api/bible-assistant/academy/inscription',
         payload,
         {

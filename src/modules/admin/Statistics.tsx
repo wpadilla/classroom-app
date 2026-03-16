@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Container,
-  Row,
-  Col,
   Nav,
   NavItem,
   NavLink,

@@ -3,7 +3,6 @@ import React from 'react';
 import { View, Text } from '@react-pdf/renderer';
 import { PDFSectionProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // IMPORTANT: Use explicit constants to prevent "Invalid border width: undefined" errors
 const BORDER_WIDTH_NORMAL = 1;
@@ -18,8 +17,6 @@ export const PDFSection: React.FC<PDFSectionProps> = ({
   padding = 0,
   marginBottom,
 }) => {
-  const theme = usePDFTheme();
-
   const sectionStyle = {
     ...pdfStyles.section,
     ...(border && {
@@ -49,4 +46,3 @@ export const PDFSection: React.FC<PDFSectionProps> = ({
 };
 
 export default PDFSection;
-

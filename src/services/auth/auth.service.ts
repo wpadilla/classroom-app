@@ -10,7 +10,6 @@ import {
   ISession, 
   IRegistrationData 
 } from '../../models';
-import { where } from 'firebase/firestore';
 
 export class AuthService {
   private static SESSION_KEY = 'classroom_app_session';

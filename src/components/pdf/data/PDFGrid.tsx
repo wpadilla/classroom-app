@@ -3,7 +3,6 @@ import React from 'react';
 import { View } from '@react-pdf/renderer';
 import { PDFGridProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // Use explicit constant for default gap
 const DEFAULT_GAP = 12; // md spacing
@@ -13,7 +12,6 @@ export const PDFGrid: React.FC<PDFGridProps> = ({
   gap,
   children,
 }) => {
-  const theme = usePDFTheme();
   const gridGap = gap !== undefined ? gap : DEFAULT_GAP;
   const childrenArray = React.Children.toArray(children);
 
@@ -54,4 +52,3 @@ export const PDFGrid: React.FC<PDFGridProps> = ({
 };
 
 export default PDFGrid;
-

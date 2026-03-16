@@ -15,7 +15,6 @@ import {
   IClassroom, 
   IClassroomRun, 
   IStudentRunRecord, 
-  IUser, 
   IStudentEvaluation,
   IClassroomPaymentsSnapshot
 } from '../../models';
@@ -542,4 +541,3 @@ export class ClassroomRestartService {
     }
   }
 }
-

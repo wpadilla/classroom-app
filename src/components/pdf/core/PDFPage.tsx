@@ -2,7 +2,6 @@
 import React from 'react';
 import { Page, View, Text } from '@react-pdf/renderer';
 import { pdfStyles } from '../styles/pdfStyles';
-import { defaultPDFTheme } from '../styles/pdfTheme';
 
 interface PDFPageProps {
   children: React.ReactNode;
@@ -40,4 +39,3 @@ export const PDFPage: React.FC<PDFPageProps> = ({
 };
 
 export default PDFPage;
-

@@ -90,7 +90,6 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
         if (!hasEnrolled && !hasCompleted && !isTeaching && !hasTaught) return [];
 
         let completedCount = 0;
-        let enrolledCount = 0;
         let totalGrades = 0;
         let gradeCount = 0;
 
@@ -105,7 +104,6 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
               gradeCount++;
             }
           } else if (isEnrolled) {
-            enrolledCount++;
             const currentEval = evaluations.find(e => e.classroomId === classroom.id);
             if (currentEval && currentEval.percentage > 0) {
               totalGrades += currentEval.percentage;

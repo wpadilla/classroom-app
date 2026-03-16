@@ -10,7 +10,6 @@ import {
   CardTitle,
   CardText,
   Button,
-  Badge,
   Spinner
 } from 'reactstrap';
 import { Link } from 'react-router-dom';

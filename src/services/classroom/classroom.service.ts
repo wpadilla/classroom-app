@@ -1,8 +1,8 @@
 // Classroom Service - CRUD operations for classrooms
 
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
-import { IClassroom, IModule, IWhatsappGroup, IEvaluationCriteria, IClassroomResource } from '../../models';
-import { orderBy, where } from 'firebase/firestore';
+import { IClassroom, IWhatsappGroup, IClassroomResource } from '../../models';
+import { orderBy } from 'firebase/firestore';
 import { UserService } from '../user/user.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { ClassroomFinalizationService, IFinalizationOptions, IFinalizationResult } from './classroom-finalization.service';
@@ -557,4 +557,3 @@ export class ClassroomService {
     }
   }
 }
-

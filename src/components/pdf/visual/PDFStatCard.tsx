@@ -4,7 +4,6 @@ import { View, Text } from '@react-pdf/renderer';
 import { PDFStatCardProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
 import { getColor, materialTailwindColors } from '../styles/pdfTheme';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // Use explicit constants for spacing and typography
 const SPACING_XS = 4;
@@ -21,8 +20,6 @@ export const PDFStatCard: React.FC<PDFStatCardProps> = ({
   iconBackgroundColor,
   iconSize = 48,
 }) => {
-  const theme = usePDFTheme();
-
   // Determine background color for icon
   const bgColor = iconBackgroundColor ||
     (typeof color === 'string' && color in materialTailwindColors
@@ -94,4 +91,3 @@ export const PDFStatCard: React.FC<PDFStatCardProps> = ({
 };
 
 export default PDFStatCard;
-

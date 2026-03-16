@@ -8,7 +8,7 @@ import {
   DEFAULT_GRADE_SCALE,
   IEvaluationCreate
 } from '../../models';
-import { where, orderBy } from 'firebase/firestore';
+import { where } from 'firebase/firestore';
 
 export class EvaluationService {
   /**

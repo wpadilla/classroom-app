@@ -4,7 +4,6 @@ import { View, Text, Image } from '@react-pdf/renderer';
 import { PDFHeaderProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
 import { getImageSource } from '../utils/pdfHelpers';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // IMPORTANT: Use explicit numeric values to prevent "Invalid border width: undefined" errors
 const BORDER_WIDTH_NORMAL = 1;
@@ -21,7 +20,6 @@ export const PDFHeader: React.FC<PDFHeaderProps> = ({
   borderBottom = true,
   logoSize = { width: 90, height: 90 },
 }) => {
-  const theme = usePDFTheme();
   const logoSrc = logo ? getImageSource(logo) : undefined;
 
   return (
@@ -77,4 +75,3 @@ export const PDFHeader: React.FC<PDFHeaderProps> = ({
 };
 
 export default PDFHeader;
-

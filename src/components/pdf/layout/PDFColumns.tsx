@@ -3,7 +3,6 @@ import React from 'react';
 import { View } from '@react-pdf/renderer';
 import { PDFColumnsProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // Use explicit constant for default gap
 const DEFAULT_GAP = 12; // md spacing
@@ -13,7 +12,6 @@ export const PDFColumns: React.FC<PDFColumnsProps> = ({
   gap,
   children,
 }) => {
-  const theme = usePDFTheme();
   const columnGap = gap !== undefined ? gap : DEFAULT_GAP;
 
   // Convert children to array
@@ -42,4 +40,3 @@ export const PDFColumns: React.FC<PDFColumnsProps> = ({
 };
 
 export default PDFColumns;
-

@@ -11,7 +11,7 @@
  */
 
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
-import { IClassroom, IUser, IStudentEvaluation, IClassroomHistory } from '../../models';
+import { IClassroom, IClassroomHistory } from '../../models';
 import { UserService } from '../user/user.service';
 import { EvaluationService } from '../evaluation/evaluation.service';
 import { ProgramService } from '../program/program.service';
@@ -214,7 +214,7 @@ export class ClassroomFinalizationService {
       }
 
       // Create snapshot for reversion
-      const snapshot = await this.createSnapshot(classroomId);
+      await this.createSnapshot(classroomId);
       result.canRevert = true;
 
       // Get classroom and program data
@@ -504,7 +504,6 @@ export class ClassroomFinalizationService {
       );
       
       if (classroom) {
-        const { endDate, ...restClassroom } = classroom as any;
         await FirebaseService.updateDocument(COLLECTIONS.CLASSROOMS, classroomId, {
           isActive: true,
           updatedAt: new Date()
@@ -649,4 +648,3 @@ export class ClassroomFinalizationService {
     }
   }
 }
-

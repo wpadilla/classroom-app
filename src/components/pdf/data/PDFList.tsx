@@ -3,7 +3,6 @@ import React from 'react';
 import { View, Text } from '@react-pdf/renderer';
 import { PDFListProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // Use explicit constants for theme values
 const DEFAULT_FONT_SIZE = 12;
@@ -17,8 +16,6 @@ export const PDFList: React.FC<PDFListProps> = ({
   fontSize,
   color,
 }) => {
-  const theme = usePDFTheme();
-
   return (
     <View style={pdfStyles.list}>
       {items.map((item, index) => (
@@ -53,4 +50,3 @@ export const PDFList: React.FC<PDFListProps> = ({
 };
 
 export default PDFList;
-

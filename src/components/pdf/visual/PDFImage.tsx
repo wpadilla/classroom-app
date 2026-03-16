@@ -3,7 +3,6 @@ import React from 'react';
 import { View, Text, Image } from '@react-pdf/renderer';
 import { PDFImageProps } from '../utils/pdfConfig.types';
 import { getImageSource } from '../utils/pdfHelpers';
-import { usePDFTheme } from '../core/PDFTemplate';
 import { pdfStyles } from '../styles/pdfStyles';
 
 // Use explicit constants
@@ -20,7 +19,6 @@ export const PDFImage: React.FC<PDFImageProps> = ({
   borderRadius,
   caption,
 }) => {
-  const theme = usePDFTheme();
   const imageSrc = getImageSource(src);
 
   if (!imageSrc) {
@@ -55,4 +53,3 @@ export const PDFImage: React.FC<PDFImageProps> = ({
 };
 
 export default PDFImage;
-

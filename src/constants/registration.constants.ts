@@ -72,7 +72,7 @@ export const VALIDATION_PATTERNS = {
   PASSPORT: /^[A-Za-z0-9]{6,20}$/,
   
   // Phone: minimum 10 digits (can include spaces, dashes, parentheses)
-  PHONE: /^[\d\s\-\(\)\+]{10,}$/,
+  PHONE: /^[\d\s\-()+]{10,}$/,
   
   // Phone digits only: minimum 10 digits
   PHONE_DIGITS: /^\d{10,}$/,

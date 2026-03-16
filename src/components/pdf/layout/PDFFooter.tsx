@@ -3,7 +3,6 @@ import React from 'react';
 import { View, Text, Link } from '@react-pdf/renderer';
 import { PDFFooterProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // IMPORTANT: Use explicit numeric values to prevent "Invalid border width: undefined" errors
 const BORDER_WIDTH_NORMAL = 1;
@@ -16,8 +15,6 @@ export const PDFFooter: React.FC<PDFFooterProps> = ({
   copyright,
   borderTop = true,
 }) => {
-  const theme = usePDFTheme();
-
   return (
     <View
       style={{
@@ -51,4 +48,3 @@ export const PDFFooter: React.FC<PDFFooterProps> = ({
 };
 
 export default PDFFooter;
-

@@ -98,7 +98,7 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
   // UI state
   const [step, setStep] = useState<'upload' | 'mapping' | 'preview' | 'importing' | 'complete'>('upload');
   const [loading, setLoading] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const [result, setResult] = useState<ImportResult | null>(null);

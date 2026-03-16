@@ -16,8 +16,6 @@ import {
   DocumentData,
   WithFieldValue,
   UpdateData,
-  DocumentReference,
-  CollectionReference,
   Timestamp
 } from 'firebase/firestore';
 import { firebaseStoreDB } from '../../utils/firebase';

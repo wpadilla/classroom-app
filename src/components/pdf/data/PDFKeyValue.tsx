@@ -2,8 +2,6 @@
 import React from 'react';
 import { View, Text } from '@react-pdf/renderer';
 import { PDFKeyValueProps } from '../utils/pdfConfig.types';
-import { pdfStyles } from '../styles/pdfStyles';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // IMPORTANT: Use explicit constants to prevent "Invalid border width: undefined" errors
 const BORDER_WIDTH_THIN = 0.5;
@@ -19,8 +17,6 @@ export const PDFKeyValue: React.FC<PDFKeyValueProps> = ({
   fontSize,
   spacing,
 }) => {
-  const theme = usePDFTheme();
-
   return (
     <View style={{ width: '100%' }}>
       {Object.entries(data).map(([key, value], index) => (
@@ -62,4 +58,3 @@ export const PDFKeyValue: React.FC<PDFKeyValueProps> = ({
 };
 
 export default PDFKeyValue;
-

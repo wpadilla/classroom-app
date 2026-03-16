@@ -2,7 +2,7 @@
 
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
 import { IProgram, IProgramCreate, IProgramUpdate } from '../../models';
-import { orderBy, where } from 'firebase/firestore';
+import { orderBy } from 'firebase/firestore';
 
 export class ProgramService {
   /**

@@ -4,7 +4,6 @@ import { View, Text } from '@react-pdf/renderer';
 import { PDFTableProps } from '../utils/pdfConfig.types';
 import { pdfStyles } from '../styles/pdfStyles';
 import { getNestedValue } from '../utils/pdfHelpers';
-import { usePDFTheme } from '../core/PDFTemplate';
 
 // IMPORTANT: Use explicit constants to prevent "Invalid border width: undefined" errors
 const BORDER_WIDTH_NORMAL = 1;
@@ -26,8 +25,6 @@ export function PDFTable<T = any>({
   cellPadding,
   fontSize,
 }: PDFTableProps<T>) {
-  const theme = usePDFTheme();
-
   const renderCellValue = (value: any): string => {
     if (value === null || value === undefined) return '';
     if (typeof value === 'boolean') return value ? 'Sí' : 'No';
@@ -37,10 +34,6 @@ export function PDFTable<T = any>({
     if (typeof value === 'object') return JSON.stringify(value);
     return String(value);
   };
-
-  // Calculate if we're using percentage widths
-  const hasPercentageWidths = columns.some(col => typeof col.width === 'string' && col.width.includes('%'));
-
   return (
     <View
       style={{
@@ -141,4 +134,3 @@ export function PDFTable<T = any>({
 }
 
 export default PDFTable;
-

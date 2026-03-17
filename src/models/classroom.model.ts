@@ -21,6 +21,7 @@ export interface IClassroom {
   programId: string; // Reference to parent program
   name: string;
   subject: string;
+  accreditation?: string;
   description?: string;
   teacherId: string; // Reference to user with teacher role
   studentIds: string[]; // Array of user IDs enrolled as students

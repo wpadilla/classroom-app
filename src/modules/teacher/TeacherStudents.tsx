@@ -129,7 +129,7 @@ const TeacherStudents: React.FC = () => {
     }
 
     setFilteredStudents(filtered);
-  }, [searchQuery, selectedClassroom, students]);
+  }, [classrooms, searchQuery, selectedClassroom, students]);
 
   useEffect(() => {
     if (user) {

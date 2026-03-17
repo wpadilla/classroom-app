@@ -36,6 +36,7 @@ export interface ClassroomFormData {
   name: string;
   subject: string;
   description: string;
+  accreditation?: string;
   teacherId: string;
   isActive: boolean;
   materialPrice: number;
@@ -65,6 +66,7 @@ const createInitialFormState = (classroom?: IClassroom | null, initialData?: ICl
     return {
       name: classroom ? sourceData.name : `${sourceData.name} (Copia)`,
       subject: sourceData.subject,
+      accreditation: sourceData.accreditation || '',
       description: sourceData.description || '',
       teacherId: sourceData.teacherId,
       isActive: true, // Always active for new/duplicated classes
@@ -94,6 +96,7 @@ const createInitialFormState = (classroom?: IClassroom | null, initialData?: ICl
   return {
     name: '',
     subject: '',
+      accreditation: '',
     description: '',
     teacherId: '',
     isActive: true,
@@ -252,6 +255,19 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
                   id="subject"
                   value={formData.subject}
                   onChange={(e) => updateField('subject', e.target.value)}
+                  placeholder="Ej: Introducción a la Teología"
+                />
+              </FormGroup>
+            </Col>
+
+  <Col md={12}>
+              <FormGroup>
+                <Label for="subject">Texto de Acreditación</Label>
+                <Input
+                  type="text"
+                  id="accreditation"
+                  value={formData.accreditation}
+                  onChange={(e) => updateField('accreditation', e.target.value)}
                   placeholder="Ej: Introducción a la Teología"
                 />
               </FormGroup>

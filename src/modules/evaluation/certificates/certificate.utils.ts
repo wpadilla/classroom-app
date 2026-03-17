@@ -10,21 +10,13 @@ export const getUserFullName = (user?: Pick<IUser, 'firstName' | 'lastName'> | n
   return [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
 };
 
-const toTitleCase = (value: string): string => {
-  return value
-    .toLocaleLowerCase('es')
-    .replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase('es'));
-};
 
 const buildCompletionText = (classroom: IClassroom): string => {
   const subject = classroom.subject?.trim() || '';
-  const classroomName = (classroom.name || '')
-    .replace(/^SEAN\s+/i, '')
-    .trim();
+  const accreditation = (classroom.accreditation || '').trim();
 
-  return [subject, classroomName]
+  return [subject, accreditation]
     .filter(Boolean)
-    .map(toTitleCase)
     .join(' ')
     .trim();
 };
@@ -73,12 +65,15 @@ export const buildCertificateData = ({
   student: IUser;
   teacher?: Pick<IUser, 'firstName' | 'lastName'> | null;
 }): CertificateData => {
-  return {
+  const data =  {
     id: student.id,
     classroomName: classroom.name?.trim() || classroom.subject?.trim() || 'Clase',
     subjectName: classroom.subject?.trim() || classroom.name?.trim() || 'Materia',
     completionText: buildCompletionText(classroom) || classroom.subject?.trim() || 'Materia',
     studentName: getUserFullName(student) || 'Estudiante',
     teacherName: (getUserFullName(teacher) || 'Maestro no asignado').toLocaleUpperCase('es'),
-  };
+  }
+  console.log('Building certificate data with:', data, { classroom, student, teacher });
+
+  return data;
 };

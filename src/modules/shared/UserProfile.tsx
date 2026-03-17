@@ -173,7 +173,7 @@ const UserProfile: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [reset, user]);
 
   useEffect(() => {
     loadProfileData();

@@ -265,6 +265,8 @@ const ClassroomManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  // loadPayments only changes when user changes, and user is already tracked here.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isOffline, navigate, user]);
 
   const loadModuleAttendance = useCallback(() => {

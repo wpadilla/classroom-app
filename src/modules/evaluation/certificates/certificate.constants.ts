@@ -1,6 +1,7 @@
 export const CERTIFICATE_TEMPLATE_PATH = '/assets/images/certificate_template.png';
 export const CERTIFICATE_ALEGREYA_PATH = '/assets/fonts/Alegreya-VariableFont_wght.ttf';
 export const CERTIFICATE_GREAT_VIBES_PATH = '/assets/fonts/GreatVibes-Regular.ttf';
+export const CERTIFICATE_PLAY_FAIR_PATH = '/assets/fonts/PlayfairDisplay-VariableFont_wght.ttf';
 
 export const CERTIFICATE_WIDTH = 2000;
 export const CERTIFICATE_HEIGHT = 1414;
@@ -26,19 +27,19 @@ export const CERTIFICATE_TEXT_LAYOUT = {
   },
   classroomHeader: {
     centerX: 1000,
-    centerY: 432,
+    centerY: 382,
     maxWidth: 1100,
     color: CERTIFICATE_COLORS.navy,
-    fontFamily: 'Alegreya Certificate',
-    fontWeight: 500,
-    fontSize: 72,
+    fontFamily: 'Playfair Display',
+    fontWeight: 400,
+    fontSize: 102,
     minFontSize: 38,
     letterSpacing: 5,
     textTransform: 'uppercase',
   },
   studentName: {
     centerX: 1000,
-    centerY: 748,
+    centerY: 828,
     maxWidth: 1420,
     color: CERTIFICATE_COLORS.navy,
     fontFamily: 'Great Vibes',
@@ -48,22 +49,22 @@ export const CERTIFICATE_TEXT_LAYOUT = {
   },
   completionText: {
     centerX: 1000,
-    centerY: 994,
-    maxWidth: 760,
+    centerY: 975,
+    maxWidth: 1200,
     color: CERTIFICATE_COLORS.black,
     fontFamily: 'Alegreya Certificate',
-    fontWeight: 700,
-    fontSize: 32,
+    fontWeight: 500,
+    fontSize: 52,
     minFontSize: 20,
   },
   teacherName: {
-    centerX: 1435,
-    centerY: 1202,
-    maxWidth: 520,
+    centerX: 1535,
+    centerY: 1162,
+    maxWidth: 640,
     color: CERTIFICATE_COLORS.navy,
     fontFamily: 'Alegreya Certificate',
     fontWeight: 600,
-    fontSize: 28,
+    fontSize: 46,
     minFontSize: 20,
     letterSpacing: 2.5,
     textTransform: 'uppercase',

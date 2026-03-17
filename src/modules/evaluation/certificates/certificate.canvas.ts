@@ -5,10 +5,11 @@ import {
   CERTIFICATE_TEMPLATE_PATH,
   CERTIFICATE_TEXT_LAYOUT,
   CERTIFICATE_WIDTH,
+  CERTIFICATE_PLAY_FAIR_PATH
 } from './certificate.constants';
 import { CertificateData, CertificateRenderOptions } from './certificate.types';
 
-type CertificateFontFamily = 'Alegreya Certificate' | 'Great Vibes';
+type CertificateFontFamily = 'Alegreya Certificate' | 'Great Vibes' | 'Playfair Display';
 
 interface LoadedCertificateResources {
   templateImage: HTMLImageElement;
@@ -67,6 +68,7 @@ const getCertificateResources = async (): Promise<LoadedCertificateResources> =>
       await Promise.all([
         ensureFontLoaded('Alegreya Certificate', CERTIFICATE_ALEGREYA_PATH),
         ensureFontLoaded('Great Vibes', CERTIFICATE_GREAT_VIBES_PATH),
+        ensureFontLoaded('Playfair Display', CERTIFICATE_PLAY_FAIR_PATH),
       ]);
 
       const templateImage = await loadImage(getAssetUrl(CERTIFICATE_TEMPLATE_PATH));
@@ -158,7 +160,6 @@ const renderCertificate = async (certificate: CertificateData): Promise<HTMLCanv
 
   context.drawImage(templateImage, 0, 0, CERTIFICATE_WIDTH, CERTIFICATE_HEIGHT);
 
-  drawCenteredText(context, certificate.subjectName, CERTIFICATE_TEXT_LAYOUT.subjectHeader);
   drawCenteredText(context, certificate.classroomName, CERTIFICATE_TEXT_LAYOUT.classroomHeader);
   drawCenteredText(context, certificate.studentName, CERTIFICATE_TEXT_LAYOUT.studentName);
   drawCenteredText(context, certificate.completionText, CERTIFICATE_TEXT_LAYOUT.completionText);

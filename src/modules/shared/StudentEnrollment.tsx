@@ -107,7 +107,7 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
     } finally {
       setLoading(false);
     }
-  }, [classroom.studentIds, isOffline]);
+  }, [classroom.id, classroom.studentIds, isOffline]);
 
   useEffect(() => {
     loadData();

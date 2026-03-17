@@ -704,6 +704,7 @@ const UserManagement: React.FC = () => {
                   <Input
                     type="email"
                     id="email"
+                    autocomplete="new-password"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />

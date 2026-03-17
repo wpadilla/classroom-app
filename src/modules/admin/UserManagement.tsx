@@ -717,6 +717,7 @@ const UserManagement: React.FC = () => {
                   <Input
                     type="password"
                     id="password"
+                    autocomplete="new-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder={editingUser ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres'}

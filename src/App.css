@@ -54,3 +54,13 @@
 .celebration-container img {
     width: 60dvw;
 }
+
+.app-update-banner {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #fff7db 0%, #ffe7a3 100%);
+  color: #5d4200;
+}
+
+.app-update-banner__button {
+  white-space: nowrap;
+}

@@ -20,6 +20,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useOffline } from '../../contexts/OfflineContext';
 import { ToastContainer } from 'react-toastify';
+import AppUpdateBanner from '../common/AppUpdateBanner';
 import OfflineSyncBadge from '../common/OfflineSyncBadge';
 
 interface MobileLayoutProps {
@@ -80,6 +81,9 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   if (location.pathname === '/login' || location.pathname === '/register') {
     return (
       <>
+        <div className="px-3 pt-3">
+          <AppUpdateBanner className="mb-0" />
+        </div>
         {children}
         <ToastContainer
           position="top-center"
@@ -158,6 +162,9 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
         minHeight: '100vh',
         backgroundColor: '#f8f9fa'
       }}>
+        <div className="px-3 pt-3">
+          <AppUpdateBanner className="mb-0" />
+        </div>
         <Container fluid className="px-3 py-3">
           {children}
         </Container>

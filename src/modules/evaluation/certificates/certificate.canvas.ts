@@ -29,6 +29,8 @@ interface CertificateTextSpec {
 }
 
 let certificateResourcesPromise: Promise<LoadedCertificateResources> | null = null;
+const fontLoadPromises = new Map<CertificateFontFamily, Promise<void>>();
+const injectedFontFaceIds = new Set<string>();
 
 const getAssetUrl = (path: string): string => {
   if (typeof window === 'undefined') {
@@ -47,29 +49,115 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
   });
 };
 
-const ensureFontLoaded = async (family: CertificateFontFamily, path: string): Promise<void> => {
+const waitForNextFrame = async (): Promise<void> => {
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+};
+
+const ensureFontFaceStyle = (family: CertificateFontFamily, path: string): void => {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const styleId = `certificate-font-${family.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  if (injectedFontFaceIds.has(styleId) || document.getElementById(styleId)) {
+    injectedFontFaceIds.add(styleId);
+    return;
+  }
+
+  const style = document.createElement('style');
+  style.id = styleId;
+  style.textContent = `
+    @font-face {
+      font-family: "${family}";
+      src: url("${getAssetUrl(path)}") format("truetype");
+      font-style: normal;
+      font-weight: 400 700;
+      font-display: block;
+    }
+  `;
+  document.head.appendChild(style);
+  injectedFontFaceIds.add(styleId);
+};
+
+const warmUpFont = async (family: CertificateFontFamily, sampleText: string): Promise<void> => {
+  if (typeof document === 'undefined' || !document.body) {
+    return;
+  }
+
+  const probe = document.createElement('span');
+  probe.textContent = sampleText;
+  probe.setAttribute('aria-hidden', 'true');
+  probe.style.position = 'fixed';
+  probe.style.opacity = '0';
+  probe.style.pointerEvents = 'none';
+  probe.style.left = '-9999px';
+  probe.style.top = '-9999px';
+  probe.style.whiteSpace = 'nowrap';
+  probe.style.fontFamily = `"${family}"`;
+  probe.style.fontSize = '120px';
+  document.body.appendChild(probe);
+
+  try {
+    await document.fonts.load(`400 120px "${family}"`, sampleText);
+    await waitForNextFrame();
+    await waitForNextFrame();
+  } finally {
+    probe.remove();
+  }
+};
+
+const ensureFontLoaded = async (
+  family: CertificateFontFamily,
+  path: string,
+  sampleText: string
+): Promise<void> => {
   if (typeof document === 'undefined' || typeof window === 'undefined' || !('FontFace' in window)) {
     return;
   }
 
-  if (document.fonts.check(`16px "${family}"`)) {
-    return;
+  ensureFontFaceStyle(family, path);
+
+  let loadPromise = fontLoadPromises.get(family);
+  if (!loadPromise) {
+    loadPromise = (async () => {
+      const assetUrl = getAssetUrl(path);
+
+      try {
+        const response = await fetch(assetUrl, { cache: 'force-cache' });
+        if (!response.ok) {
+          throw new Error(`No se pudo descargar la fuente ${assetUrl}`);
+        }
+
+        const fontData = await response.arrayBuffer();
+        const font = new FontFace(family, fontData, {
+          style: 'normal',
+          weight: '400',
+        });
+        await font.load();
+        document.fonts.add(font);
+      } catch (error) {
+        console.warn(`Fallo la carga binaria de ${family}, usando @font-face como respaldo`, error);
+      }
+
+      await document.fonts.load(`400 120px "${family}"`, sampleText);
+      await document.fonts.ready;
+    })();
+
+    fontLoadPromises.set(family, loadPromise);
   }
 
-  const font = new FontFace(family, `url(${getAssetUrl(path)})`);
-  await font.load();
-  document.fonts.add(font);
-  await document.fonts.load(`400 120px "${family}"`);
+  await loadPromise;
+  await warmUpFont(family, sampleText);
 };
 
 const getCertificateResources = async (): Promise<LoadedCertificateResources> => {
   if (!certificateResourcesPromise) {
     certificateResourcesPromise = (async () => {
-      await Promise.all([
-        ensureFontLoaded('Alegreya Certificate', CERTIFICATE_ALEGREYA_PATH),
-        ensureFontLoaded('Great Vibes', CERTIFICATE_GREAT_VIBES_PATH),
-        ensureFontLoaded('Playfair Display', CERTIFICATE_PLAY_FAIR_PATH),
-      ]);
+      await ensureFontLoaded('Alegreya Certificate', CERTIFICATE_ALEGREYA_PATH, 'COMPENDIO DE TEOLOGIA');
+      await ensureFontLoaded('Great Vibes', CERTIFICATE_GREAT_VIBES_PATH, 'Sahira Reyes');
+      await ensureFontLoaded('Playfair Display', CERTIFICATE_PLAY_FAIR_PATH, 'SEAN NIVEL 6');
 
       const templateImage = await loadImage(getAssetUrl(CERTIFICATE_TEMPLATE_PATH));
 

@@ -39,7 +39,7 @@ export const CERTIFICATE_TEXT_LAYOUT = {
   },
   studentName: {
     centerX: 1000,
-    centerY: 828,
+    centerY: 810,
     maxWidth: 1420,
     color: CERTIFICATE_COLORS.navy,
     fontFamily: 'Great Vibes',
@@ -50,11 +50,11 @@ export const CERTIFICATE_TEXT_LAYOUT = {
   completionText: {
     centerX: 1000,
     centerY: 975,
-    maxWidth: 1200,
+    maxWidth: 1100,
     color: CERTIFICATE_COLORS.black,
     fontFamily: 'Alegreya Certificate',
     fontWeight: 500,
-    fontSize: 52,
+    fontSize: 42,
     minFontSize: 20,
   },
   teacherName: {

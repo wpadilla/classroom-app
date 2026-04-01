@@ -6,11 +6,18 @@ interface AppUpdateBannerProps {
 }
 
 const AppUpdateBanner: React.FC<AppUpdateBannerProps> = ({ className = '' }) => {
-  const { isApplyingUpdate, applyUpdate } = useAppUpdate();
+  const {
+    isUpdateAvailable,
+    isApplyingUpdate,
+    applyUpdate,
+    publishedVersion,
+    deviceVersion,
+    releaseNotes,
+  } = useAppUpdate();
 
-  // if (!isUpdateAvailable) {
-  //   return null;
-  // }
+  if (!isUpdateAvailable) {
+    return null;
+  }
 
   return (
     <div className={`bg-amber-50 border border-amber-200 rounded-xl p-3 shadow-sm ${className}`.trim()}>
@@ -22,6 +29,23 @@ const AppUpdateBanner: React.FC<AppUpdateBannerProps> = ({ className = '' }) => 
           <div className="text-amber-700 text-xs">
             Actualiza la aplicación para usar los últimos cambios, mejoras y correcciones.
           </div>
+          <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-amber-800">
+            {publishedVersion && (
+              <span className="rounded-full bg-white/80 px-2 py-1 font-semibold">
+                Publicada: {publishedVersion}
+              </span>
+            )}
+            {deviceVersion && (
+              <span className="rounded-full bg-white/80 px-2 py-1 font-semibold">
+                En este dispositivo: {deviceVersion}
+              </span>
+            )}
+          </div>
+          {releaseNotes && (
+            <div className="mt-2 text-[11px] text-amber-800">
+              {releaseNotes}
+            </div>
+          )}
         </div>
 
         <button

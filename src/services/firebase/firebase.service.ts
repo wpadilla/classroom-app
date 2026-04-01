@@ -24,6 +24,7 @@ import { firebaseStoreDB } from '../../utils/firebase';
 export const COLLECTIONS = {
   USERS: 'users',
   PROGRAMS: 'programs',
+  APP_CONFIG: 'app_config',
   CLASSROOMS: 'classrooms',
   EVALUATIONS: 'evaluations',
   SESSIONS: 'sessions',
@@ -43,6 +44,10 @@ export class FirebaseService {
   private static removeUndefined(data: any): any {
     if (data === undefined) {
       return undefined;
+    }
+
+    if (data instanceof Date || data instanceof Timestamp || this.isFieldValue(data)) {
+      return data;
     }
 
     if (data === null || typeof data !== 'object') {

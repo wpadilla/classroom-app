@@ -1,6 +1,7 @@
 // Complete Program Management Module for Admins
 
 import React, { useState, useEffect } from 'react';
+import { deleteField } from 'firebase/firestore';
 import {
   Container,
   Row,
@@ -181,20 +182,34 @@ const ProgramManagement: React.FC = () => {
     }
 
     try {
-      const normalizedProgramForm = {
-        ...programForm,
-        startDate: programForm.startDate ? new Date(`${programForm.startDate}T00:00:00`) : undefined,
-        endDate: programForm.endDate ? new Date(`${programForm.endDate}T23:59:59`) : undefined,
-      };
-
       if (editingProgram) {
+        const updatePayload = {
+          ...programForm,
+          startDate: programForm.startDate
+            ? new Date(`${programForm.startDate}T00:00:00`)
+            : deleteField(),
+          endDate: programForm.endDate
+            ? new Date(`${programForm.endDate}T23:59:59`)
+            : deleteField(),
+        };
+
         // Update existing program
-        await ProgramService.updateProgram(editingProgram.id, normalizedProgramForm);
+        await ProgramService.updateProgram(editingProgram.id, updatePayload as any);
         toast.success('Programa actualizado exitosamente');
       } else {
+        const createPayload = {
+          ...programForm,
+          startDate: programForm.startDate
+            ? new Date(`${programForm.startDate}T00:00:00`)
+            : undefined,
+          endDate: programForm.endDate
+            ? new Date(`${programForm.endDate}T23:59:59`)
+            : undefined,
+        };
+
         // Create new program
         await ProgramService.createProgram({
-          ...normalizedProgramForm,
+          ...createPayload,
           classrooms: []
         });
         toast.success('Programa creado exitosamente');

@@ -3,17 +3,34 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 import * as serviceWorkerRegistration from '../serviceWorkerRegistration';
+import { AppVersionService } from '../services/app/app-version.service';
+import {
+  buildCacheBustedUrl,
+  clearAccessibleCookies,
+  clearIndexedDbDatabases,
+  clearOriginCaches,
+  clearPendingAppVersion,
+  getPendingAppVersion,
+  getStoredDeviceAppVersion,
+  normalizeAppVersion,
+  storeDeviceAppVersion,
+  storePendingAppVersion,
+  unregisterAllServiceWorkers,
+} from '../utils/appUpdate';
 
 const UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000;
-const RELOAD_FALLBACK_DELAY_MS = 4000;
 
 interface AppUpdateContextType {
   isUpdateAvailable: boolean;
   isApplyingUpdate: boolean;
+  publishedVersion: string;
+  deviceVersion: string;
+  releaseNotes: string;
   applyUpdate: () => Promise<void>;
   checkForUpdates: () => Promise<void>;
 }
@@ -21,6 +38,9 @@ interface AppUpdateContextType {
 const AppUpdateContext = createContext<AppUpdateContextType>({
   isUpdateAvailable: false,
   isApplyingUpdate: false,
+  publishedVersion: '',
+  deviceVersion: '',
+  releaseNotes: '',
   applyUpdate: async () => {},
   checkForUpdates: async () => {},
 });
@@ -32,10 +52,18 @@ const isServiceWorkerSupported = (): boolean =>
 
 export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
-  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
+  const [hasWaitingServiceWorker, setHasWaitingServiceWorker] = useState(false);
   const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
+  const [publishedVersion, setPublishedVersion] = useState('');
+  const [releaseNotes, setReleaseNotes] = useState('');
+  const [deviceVersion, setDeviceVersion] = useState(() => getStoredDeviceAppVersion());
   const hasInitializedRef = useRef(false);
   const hasReloadedRef = useRef(false);
+  const isApplyingUpdateRef = useRef(false);
+
+  useEffect(() => {
+    isApplyingUpdateRef.current = isApplyingUpdate;
+  }, [isApplyingUpdate]);
 
   const syncRegistrationState = useCallback((nextRegistration: ServiceWorkerRegistration | null) => {
     if (!nextRegistration) {
@@ -43,10 +71,10 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     setRegistration(nextRegistration);
-    setIsUpdateAvailable(Boolean(nextRegistration.waiting));
+    setHasWaitingServiceWorker(Boolean(nextRegistration.waiting));
   }, []);
 
-  const resolveRegistration = async (): Promise<ServiceWorkerRegistration | null> => {
+  const resolveRegistration = useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
     if (!isServiceWorkerSupported()) {
       return null;
     }
@@ -54,6 +82,12 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (registration) {
       syncRegistrationState(registration);
       return registration;
+    }
+
+    const existingRegistration = await navigator.serviceWorker.getRegistration();
+    if (existingRegistration) {
+      syncRegistrationState(existingRegistration);
+      return existingRegistration;
     }
 
     try {
@@ -64,7 +98,7 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error('No se pudo obtener el registro del service worker', error);
       return null;
     }
-  };
+  }, [registration, syncRegistrationState]);
 
   const checkForUpdates = useCallback(async () => {
     const activeRegistration = await resolveRegistration();
@@ -80,40 +114,87 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [resolveRegistration, syncRegistrationState]);
 
-  const applyUpdate = async () => {
-    console.log('User initiated app update'); // Debug log for when user clicks update
-    const activeRegistration = await resolveRegistration();
-    console.log('Applying update with registration:', activeRegistration); // Debug log for registration state when applying update
-    if (!activeRegistration) {
-      window.location.reload();
-      return;
+  const hardReloadToLatest = useCallback(() => {
+    window.location.replace(buildCacheBustedUrl(window.location.href));
+  }, []);
+
+  const applyUpdate = useCallback(async () => {
+    if (publishedVersion) {
+      storePendingAppVersion(publishedVersion);
     }
 
     setIsApplyingUpdate(true);
 
     try {
-      if (!activeRegistration.waiting) {
-        await activeRegistration.update();
-        syncRegistrationState(activeRegistration);
+      const activeRegistration = await resolveRegistration();
+
+      if (activeRegistration) {
+        try {
+          await activeRegistration.update();
+          syncRegistrationState(activeRegistration);
+        } catch (error) {
+          console.error('No se pudo forzar la descarga del nuevo service worker', error);
+        }
+
+        activeRegistration.waiting?.postMessage({ type: 'SKIP_WAITING' });
       }
 
-      if (activeRegistration.waiting) {
-        window.setTimeout(() => {
-          if (!hasReloadedRef.current) {
-            window.location.reload();
-          }
-        }, RELOAD_FALLBACK_DELAY_MS);
-
-        activeRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-        return;
-      }
-
-      window.location.reload();
+      await clearOriginCaches();
+      clearAccessibleCookies();
+      await clearIndexedDbDatabases();
+      await unregisterAllServiceWorkers();
     } catch (error) {
-      console.error('No se pudo aplicar la nueva versión de la aplicación', error);
-      setIsApplyingUpdate(false);
+      console.error('No se pudo aplicar la actualización de la aplicación', error);
+    } finally {
+      hardReloadToLatest();
     }
-  }
+  }, [hardReloadToLatest, publishedVersion, resolveRegistration, syncRegistrationState]);
+
+  useEffect(() => {
+    const unsubscribe = AppVersionService.subscribeToAppVersionConfig((config) => {
+      const nextPublishedVersion = normalizeAppVersion(config?.version);
+      setPublishedVersion(nextPublishedVersion);
+      setReleaseNotes(config?.releaseNotes?.trim() || '');
+    });
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!publishedVersion) {
+      return;
+    }
+
+    const pendingVersion = getPendingAppVersion();
+    if (pendingVersion && pendingVersion === publishedVersion) {
+      storeDeviceAppVersion(publishedVersion);
+      clearPendingAppVersion();
+      setDeviceVersion(publishedVersion);
+      return;
+    }
+
+    if (deviceVersion) {
+      return;
+    }
+
+    const hasServiceWorkerController =
+      isServiceWorkerSupported() && Boolean(navigator.serviceWorker.controller);
+
+    if (!hasServiceWorkerController && !hasWaitingServiceWorker) {
+      storeDeviceAppVersion(publishedVersion);
+      setDeviceVersion(publishedVersion);
+    }
+  }, [deviceVersion, hasWaitingServiceWorker, publishedVersion]);
+
+  useEffect(() => {
+    if (!publishedVersion) {
+      return;
+    }
+
+    if (normalizeAppVersion(deviceVersion) !== publishedVersion) {
+      void checkForUpdates();
+    }
+  }, [checkForUpdates, deviceVersion, publishedVersion]);
 
   useEffect(() => {
     if (!isServiceWorkerSupported() || hasInitializedRef.current) {
@@ -136,7 +217,7 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     const handleControllerChange = () => {
-      if (hasReloadedRef.current) {
+      if (isApplyingUpdateRef.current || hasReloadedRef.current) {
         return;
       }
 
@@ -188,11 +269,19 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [checkForUpdates]);
 
+  const isUpdateAvailable = useMemo(
+    () => hasWaitingServiceWorker || (Boolean(publishedVersion) && normalizeAppVersion(deviceVersion) !== publishedVersion),
+    [deviceVersion, hasWaitingServiceWorker, publishedVersion]
+  );
+
   return (
     <AppUpdateContext.Provider
       value={{
         isUpdateAvailable,
         isApplyingUpdate,
+        publishedVersion,
+        deviceVersion,
+        releaseNotes,
         applyUpdate,
         checkForUpdates,
       }}

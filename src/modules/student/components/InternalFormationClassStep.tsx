@@ -24,6 +24,8 @@ interface InternalFormationClassStepProps {
   onSelectClassroom?: (classroomId: string) => void;
 }
 
+const EMPTY_SELECTED_CLASSROOM_IDS: string[] = [];
+
 const formatSchedule = (classroom: IClassroom): string => {
   if (!classroom.schedule?.dayOfWeek || !classroom.schedule?.time) {
     return 'Horario por confirmar';
@@ -44,13 +46,37 @@ const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
   unselectedLabel,
   existingHistoryCount = 0,
   currentEnrollmentCount = 0,
-  selectedClassroomIds = [],
+  selectedClassroomIds = EMPTY_SELECTED_CLASSROOM_IDS,
   selectedClassroomId,
   errorMessage,
   onToggleClassroom,
   onSelectClassroom,
 }) => {
   const isHistoryVariant = variant === 'history';
+  const orderedOptions = React.useMemo(
+    () =>
+      [...options].sort((classroomA, classroomB) => {
+        const positionA = classroomA.programPosition ?? Number.MAX_SAFE_INTEGER;
+        const positionB = classroomB.programPosition ?? Number.MAX_SAFE_INTEGER;
+
+        if (positionA !== positionB) {
+          return positionA - positionB;
+        }
+
+        const startDateA = classroomA.startDate ? new Date(classroomA.startDate).getTime() : 0;
+        const startDateB = classroomB.startDate ? new Date(classroomB.startDate).getTime() : 0;
+
+        if (startDateA !== startDateB) {
+          return startDateA - startDateB;
+        }
+
+        return `${classroomA.subject} ${classroomA.name}`.localeCompare(
+          `${classroomB.subject} ${classroomB.name}`,
+          'es'
+        );
+      }),
+    [options]
+  );
   const resolvedTitle = title || (isHistoryVariant ? 'Clases ya impartidas' : 'Clase para inscripción');
   const resolvedDescription = description || (
     isHistoryVariant
@@ -80,9 +106,9 @@ const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
           </Badge>
         </div>
 
-        {options.length > 0 ? (
+        {orderedOptions.length > 0 ? (
           <div className="student-onboarding-choice-grid">
-            {options.map((classroom) => {
+            {orderedOptions.map((classroom) => {
               const isSelected = isHistoryVariant
                 ? selectedClassroomIds.includes(classroom.id)
                 : selectedClassroomId === classroom.id;

@@ -224,23 +224,24 @@ const StudentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="px-1 pb-6 -mx-3 -my-3">
+    <div className="px-1 pb-6 -mx-3 -my-6">
       {/* Hero Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 px-5 pt-5 pb-6 rounded-b-[28px] mb-4 shadow-lg"
+        className="bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 px-5 pt-4 !pb-1 rounded-b-[28px] mb-4 shadow-lg"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-blue-200 text-xs font-medium mb-0.5">Bienvenido de vuelta</p>
             <h1 className="text-white text-xl font-bold leading-tight">
               ¡Hola, {user?.firstName}!
             </h1>
           </div>
+          {/* TEMPORARY HIDDEN TO KEEP DESIGN SIMPLE: THIS WILL BE EVALUATE IN THE FUTURE */}
           <button
             onClick={() => navigate('/student/profile')}
-            className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center transition-all active:scale-95 border-0"
+            className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center transition-all active:scale-95 border-0 hidden"
           >
             {user?.profilePhoto ? (
               <img
@@ -253,9 +254,9 @@ const StudentDashboard: React.FC = () => {
             )}
           </button>
         </div>
-
+          {/* TEMPORARY HIDDEN TO KEEP DESIGN SIMPLE: THIS WILL BE EVALUATE IN THE FUTURE */}
         {/* Inline grade ring */}
-        <div className="flex items-center gap-4 bg-white/10 backdrop-blur rounded-2xl p-3">
+        <div className="flex items-center gap-4 bg-white/10 backdrop-blur rounded-2xl p-3 hidden">
           <GradeRing value={stats.averageGrade} size={52} strokeWidth={5} />
           <div className="flex-1 min-w-0">
             <div className="text-white text-sm font-semibold">Promedio General</div>

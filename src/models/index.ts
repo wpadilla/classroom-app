@@ -9,6 +9,7 @@ export * from './resource.model';
 export * from './registration.model';
 export * from './statistics.model';
 export * from './payment.model';
+export * from './app-version.model';
 
 // Re-export commonly used types for convenience
 export type { UserRole, IUser, IClassroomHistory, IUserDocument, IUserOnceState } from './user.model';
@@ -39,3 +40,4 @@ export type {
   IClassroomStudentPaymentStatus,
   IClassroomPaymentsSnapshot,
 } from './payment.model';
+export type { IAppVersionConfig, IAppVersionConfigUpsert } from './app-version.model';

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Badge,
@@ -16,7 +16,13 @@ import {
   Row,
   Table,
 } from 'reactstrap';
-import { IClassroomRun } from '../../models';
+import { toast } from 'react-toastify';
+import { IClassroom, IClassroomRun, IStudentRunRecord } from '../../models';
+import { ClassroomService } from '../../services/classroom/classroom.service';
+import DataTable, { Column } from '../common/DataTable';
+import StudentEnrollmentManagerModal, {
+  IStudentEnrollmentTarget,
+} from '../enrollment/StudentEnrollmentManagerModal';
 import {
   buildPaymentsSnapshotSummary,
   formatCurrency,
@@ -54,12 +60,40 @@ const ClassroomRunDetailsModal: React.FC<ClassroomRunDetailsModalProps> = ({
   run,
 }) => {
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
+  const [enrollmentModalOpen, setEnrollmentModalOpen] = useState(false);
+  const [enrollmentTargetIds, setEnrollmentTargetIds] = useState<string[]>([]);
+  const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
+  const [loadingClassrooms, setLoadingClassrooms] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setExpandedStudentId(null);
+      setSelectedStudentIds(new Set());
+      setEnrollmentTargetIds([]);
     }
   }, [isOpen, run?.id]);
+
+  const loadClassrooms = useCallback(async () => {
+    try {
+      setLoadingClassrooms(true);
+      const classroomsList = await ClassroomService.getAllClassrooms();
+      setClassrooms(classroomsList);
+    } catch (error) {
+      console.error('Error loading classrooms for run details:', error);
+      toast.error('Error al cargar las clases disponibles para reinscripción.');
+    } finally {
+      setLoadingClassrooms(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    void loadClassrooms();
+  }, [isOpen, loadClassrooms]);
 
   const totalStudents = run?.totalStudents || run?.students.length || 0;
   const paymentSummary = useMemo(() => {
@@ -84,11 +118,137 @@ const ClassroomRunDetailsModal: React.FC<ClassroomRunDetailsModalProps> = ({
     return groupPaymentsByStudent(run.paymentsSnapshot.payments);
   }, [run]);
 
+  const sortedStudents = useMemo(
+    () =>
+      (run?.students || [])
+        .slice()
+        .sort((studentA, studentB) => (studentB.finalGrade || 0) - (studentA.finalGrade || 0)),
+    [run?.students]
+  );
+
+  const passedStudents = useMemo(
+    () => sortedStudents.filter((student) => student.status === 'completed'),
+    [sortedStudents]
+  );
+
+  const failedStudents = useMemo(
+    () => sortedStudents.filter((student) => student.status !== 'completed'),
+    [sortedStudents]
+  );
+
+  const enrollmentTargetsById = useMemo(
+    () =>
+      new Map<string, IStudentEnrollmentTarget>(
+        sortedStudents.map((student) => [
+          student.studentId,
+          {
+            id: student.studentId,
+            fullName: student.studentName,
+            phone: student.studentPhone,
+            email: student.studentEmail,
+          },
+        ])
+      ),
+    [sortedStudents]
+  );
+
+  const selectedStudents = useMemo(
+    () => sortedStudents.filter((student) => selectedStudentIds.has(student.studentId)),
+    [selectedStudentIds, sortedStudents]
+  );
+
+  const enrollmentTargets = useMemo(
+    () =>
+      enrollmentTargetIds
+        .map((studentId) => enrollmentTargetsById.get(studentId))
+        .filter((student): student is IStudentEnrollmentTarget => Boolean(student)),
+    [enrollmentTargetIds, enrollmentTargetsById]
+  );
+
+  const studentColumns = useMemo<Column<IStudentRunRecord>[]>(
+    () => [
+      {
+        header: 'Estudiante',
+        accessor: 'studentName',
+        render: (_, student) => (
+          <div>
+            <div className="fw-semibold">{student.studentName}</div>
+            {student.studentEmail && (
+              <div className="small text-muted">{student.studentEmail}</div>
+            )}
+          </div>
+        ),
+      },
+      {
+        header: 'Teléfono',
+        accessor: 'studentPhone',
+        mobileHidden: true,
+      },
+      {
+        header: 'Calificación',
+        accessor: 'finalGrade',
+        align: 'center',
+        render: (finalGrade) =>
+          finalGrade !== undefined ? (
+            <Badge color={getGradeColor(finalGrade)}>{finalGrade.toFixed(1)}%</Badge>
+          ) : (
+            <span className="text-muted">N/A</span>
+          ),
+      },
+      {
+        header: 'Asistencia',
+        accessor: 'attendanceRate',
+        align: 'center',
+        render: (attendanceRate) => (
+          <Badge color={attendanceRate >= 80 ? 'success' : 'warning'}>
+            {attendanceRate?.toFixed?.(0) || 0}%
+          </Badge>
+        ),
+      },
+      {
+        header: 'Participación',
+        accessor: 'participationPoints',
+        align: 'center',
+        render: (participationPoints) => (
+          <Badge color="info">{participationPoints} pts</Badge>
+        ),
+        mobileHidden: true,
+      },
+      {
+        header: 'Estado',
+        accessor: 'status',
+        align: 'center',
+        render: (status) => (
+          <Badge color={status === 'completed' ? 'success' : 'danger'}>
+            {status === 'completed' ? 'Aprobado' : 'Reprobado'}
+          </Badge>
+        ),
+      },
+    ],
+    []
+  );
+
   const toggleStudent = (studentId: string) => {
     setExpandedStudentId(current => (current === studentId ? null : studentId));
   };
 
+  const openEnrollmentModalForStudents = (students: IStudentRunRecord[]) => {
+    if (students.length === 0) {
+      toast.info('No hay estudiantes disponibles para esa acción.');
+      return;
+    }
+
+    setEnrollmentTargetIds(students.map((student) => student.studentId));
+    setEnrollmentModalOpen(true);
+  };
+
+  const handleCloseEnrollmentModal = () => {
+    setEnrollmentModalOpen(false);
+    setEnrollmentTargetIds([]);
+  };
+
   return (
+    <>
     <Modal isOpen={isOpen} toggle={onClose} size="xl">
       <ModalHeader toggle={onClose}>
         <i className="bi bi-file-earmark-text me-2"></i>
@@ -544,67 +704,57 @@ const ClassroomRunDetailsModal: React.FC<ClassroomRunDetailsModalProps> = ({
             </Card>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="d-flex flex-wrap align-items-center justify-content-between gap-2">
                 <h6 className="mb-0">Lista de Estudiantes ({run.totalStudents})</h6>
+                <div className="d-flex flex-wrap gap-2">
+                  <Button
+                    color="success"
+                    size="sm"
+                    onClick={() => openEnrollmentModalForStudents(passedStudents)}
+                    disabled={loadingClassrooms || passedStudents.length === 0}
+                  >
+                    <i className="bi bi-person-check me-1"></i>
+                    Inscribir aprobados
+                  </Button>
+                  <Button
+                    color="warning"
+                    size="sm"
+                    onClick={() => openEnrollmentModalForStudents(failedStudents)}
+                    disabled={loadingClassrooms || failedStudents.length === 0}
+                  >
+                    <i className="bi bi-arrow-repeat me-1"></i>
+                    Inscribir reprobados
+                  </Button>
+                </div>
               </CardHeader>
               <CardBody>
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  <Table responsive hover size="sm">
-                    <thead className="sticky-top bg-white">
-                      <tr>
-                        <th>#</th>
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th className="text-center">Calificación</th>
-                        <th className="text-center">Asistencia</th>
-                        <th className="text-center">Participación</th>
-                        <th className="text-center">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {run.students
-                        .slice()
-                        .sort((a, b) => (b.finalGrade || 0) - (a.finalGrade || 0))
-                        .map((student, index) => (
-                          <tr key={student.studentId}>
-                            <td>{index + 1}</td>
-                            <td>
-                              <strong>{student.studentName}</strong>
-                              {student.studentEmail && (
-                                <>
-                                  <br />
-                                  <small className="text-muted">{student.studentEmail}</small>
-                                </>
-                              )}
-                            </td>
-                            <td>{student.studentPhone}</td>
-                            <td className="text-center">
-                              {student.finalGrade !== undefined ? (
-                                <Badge color={getGradeColor(student.finalGrade)}>
-                                  {student.finalGrade.toFixed(1)}%
-                                </Badge>
-                              ) : (
-                                <span className="text-muted">N/A</span>
-                              )}
-                            </td>
-                            <td className="text-center">
-                              <Badge color={student.attendanceRate >= 80 ? 'success' : 'warning'}>
-                                {student.attendanceRate.toFixed(0)}%
-                              </Badge>
-                            </td>
-                            <td className="text-center">
-                              <Badge color="info">{student.participationPoints} pts</Badge>
-                            </td>
-                            <td className="text-center">
-                              <Badge color={student.status === 'completed' ? 'success' : 'danger'}>
-                                {student.status === 'completed' ? 'Aprobado' : 'Reprobado'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </Table>
-                </div>
+                <DataTable<IStudentRunRecord>
+                  data={sortedStudents}
+                  columns={studentColumns}
+                  keyExtractor={(student) => student.studentId}
+                  searchable
+                  searchFields={['studentName', 'studentPhone', 'studentEmail', 'status']}
+                  searchPlaceholder="Buscar estudiante por nombre, teléfono o correo"
+                  selectable
+                  selectedIds={selectedStudentIds}
+                  onSelectionChange={setSelectedStudentIds}
+                  bulkActions={
+                    <Button
+                      color="primary"
+                      size="sm"
+                      onClick={() => openEnrollmentModalForStudents(selectedStudents)}
+                      disabled={loadingClassrooms || selectedStudents.length === 0}
+                    >
+                      <i className="bi bi-people-fill me-1"></i>
+                      Inscribir seleccionados
+                    </Button>
+                  }
+                  emptyState={
+                    <Alert color="light" className="mb-0">
+                      No hay estudiantes registrados en esta ejecución.
+                    </Alert>
+                  }
+                />
               </CardBody>
             </Card>
 
@@ -623,6 +773,22 @@ const ClassroomRunDetailsModal: React.FC<ClassroomRunDetailsModalProps> = ({
         </Button>
       </ModalFooter>
     </Modal>
+    <StudentEnrollmentManagerModal
+      isOpen={enrollmentModalOpen}
+      onClose={handleCloseEnrollmentModal}
+      students={enrollmentTargets}
+      classrooms={classrooms}
+      mode="bulk-add"
+      title="Reinscribir estudiantes en clases"
+      description="Selecciona una o varias clases para reinscribir estudiantes luego de finalizar esta ejecución."
+      confirmLabel="Confirmar reinscripción"
+      loadingClassrooms={loadingClassrooms}
+      onSaved={async () => {
+        setSelectedStudentIds(new Set());
+        await loadClassrooms();
+      }}
+    />
+    </>
   );
 };
 

@@ -4,10 +4,10 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/guards/ProtectedRoute';
+import StudentOnboardingGuard from './components/guards/StudentOnboardingGuard';
 
 // Auth Components
 import Login from './modules/auth/Login';
-import Register from './modules/auth/Register';
 
 // Admin Components
 import AdminDashboard from './modules/admin/AdminDashboard';
@@ -30,6 +30,9 @@ import UserProfile from './modules/shared/UserProfile';
 // Student Components (to be created)
 import StudentDashboard from './modules/student/StudentDashboard';
 import StudentClassroom from './modules/student/StudentClassroom';
+import StudentGrades from './modules/student/StudentGrades';
+import StudentSchedule from './modules/student/StudentSchedule';
+import StudentOnboarding from './modules/student/StudentOnboarding';
 
 // Layout Components
 import MobileLayout from './components/layout/MobileLayout';
@@ -47,8 +50,8 @@ const App: React.FC = () => {
       <MobileLayout>
         <Routes>
           {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login mode="login" />} />
+          <Route path="/register" element={<Login mode="create" />} />
           
           {/* Root redirect based on authentication */}
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -102,12 +105,17 @@ const App: React.FC = () => {
             path="/student/*"
             element={
               <ProtectedRoute allowedRoles={['student', 'teacher', 'admin']}>
-                <Routes>
-                  <Route path="dashboard" element={<StudentDashboard />} />
-                  <Route path="profile" element={<UserProfile />} />
-                  <Route path="classroom/:id" element={<StudentClassroom />} />
-                  <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
-                </Routes>
+                <StudentOnboardingGuard>
+                  <Routes>
+                    <Route path="dashboard" element={<StudentDashboard />} />
+                    <Route path="profile" element={<UserProfile />} />
+                    <Route path="classroom/:id" element={<StudentClassroom />} />
+                    <Route path="grades" element={<StudentGrades />} />
+                    <Route path="schedule" element={<StudentSchedule />} />
+                    <Route path="onboarding" element={<StudentOnboarding />} />
+                    <Route path="*" element={<Navigate to="/student/dashboard" replace />} />
+                  </Routes>
+                </StudentOnboardingGuard>
               </ProtectedRoute>
             }
           />

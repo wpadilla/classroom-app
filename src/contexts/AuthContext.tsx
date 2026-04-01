@@ -5,6 +5,8 @@ import { AuthService } from '../services/auth/auth.service';
 import { IAuthUser, IAuthCredentials, IRegistrationData, UserRole } from '../models';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { STUDENT_ONBOARDING_ROUTE } from '../constants/onboarding.constants';
+import { needsStudentOnboarding } from '../utils/onboarding';
 
 interface AuthContextType {
   user: IAuthUser | null;
@@ -66,18 +68,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         toast.success(response.message || 'Inicio de sesión exitoso');
         
         // Navigate based on role
-        switch (response.user.role) {
-          case 'admin':
-            navigate('/admin/dashboard');
-            break;
-          case 'teacher':
-            navigate('/teacher/dashboard');
-            break;
-          case 'student':
-            navigate('/student/dashboard');
-            break;
-          default:
-            navigate('/');
+        if (needsStudentOnboarding(response.user)) {
+          navigate(STUDENT_ONBOARDING_ROUTE);
+        } else {
+          switch (response.user.role) {
+            case 'admin':
+              navigate('/admin/dashboard');
+              break;
+            case 'teacher':
+              navigate('/teacher/dashboard');
+              break;
+            case 'student':
+              navigate('/student/dashboard');
+              break;
+            default:
+              navigate('/');
+          }
         }
         return true;
       } else {
@@ -101,13 +107,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.user) {
         setUser(response.user);
         toast.success(response.message || 'Registro exitoso');
-        
-        // Navigate to appropriate dashboard
-        if (response.user.role === 'student') {
-          navigate('/student/dashboard');
-        } else {
-          navigate('/');
-        }
         return true;
       } else {
         toast.error(response.error || 'Error al registrar');

@@ -111,11 +111,19 @@ const ClassroomList: React.FC = () => {
     if (!editingClassroom) return;
 
     try {
+      const programId = editingClassroom.programId;
+
       // Update classroom
       await ClassroomService.updateClassroom(editingClassroom.id, {
         ...formData,
-        programId: editingClassroom.programId
+        programId
       });
+
+      await ClassroomService.setClassroomProgramPosition(
+        programId,
+        editingClassroom.id,
+        formData.programPosition
+      );
 
       // Update teacher assignment if changed
       if (formData.teacherId !== editingClassroom.teacherId) {
@@ -146,6 +154,14 @@ const ClassroomList: React.FC = () => {
     return programs.get(editingClassroom.programId) || null;
   };
 
+  const getEditingProgramClassrooms = (): IClassroom[] => {
+    if (!editingClassroom) return [];
+
+    return ClassroomService.sortClassroomsByProgramPosition(
+      classrooms.filter((classroom) => classroom.programId === editingClassroom.programId)
+    );
+  };
+
   if (loading) {
     return (
       <Container className="py-5 text-center">
@@ -154,8 +170,6 @@ const ClassroomList: React.FC = () => {
       </Container>
     );
   }
-
-  console.log("classrooms", filteredClassrooms);
 
   return (
     <Container fluid className="py-3 px-2 px-sm-3">
@@ -339,6 +353,7 @@ const ClassroomList: React.FC = () => {
         onSave={handleSaveClassroom}
         classroom={editingClassroom}
         program={getEditingProgram()}
+        programClassrooms={getEditingProgramClassrooms()}
         teachers={teachersList}
       />
     </Container>

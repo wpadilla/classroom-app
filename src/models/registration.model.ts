@@ -17,12 +17,9 @@ export type AcademicLevel =
   | 'Doctorate';
 
 /**
- * Enrollment type - what program the student is enrolling in
+ * Enrollment type - stores the selected program name
  */
-export type EnrollmentType =
-  | 'TheologyDegree'
-  | 'SingleCourse'
-  | 'InternalFormation';
+export type EnrollmentType = string;
 
 /**
  * Contact information for a person (e.g., pastor)

@@ -30,6 +30,7 @@ import { useProgramProgress } from '../../../hooks/useProgramProgress';
 import { toast } from 'react-toastify';
 import { UserProfilePdfDownloadButton } from '../../../components/pdf/components/UserProfilePdfDownloadButton';
 import { validateFileSize } from '../../../utils/fileUtils';
+import { StudentClassroomManagementService } from '../../../services/student/student-classroom-management.service';
 import InfoTab from './user-detail/InfoTab';
 import HistoryTab from './user-detail/HistoryTab';
 import ProgressTab from './user-detail/ProgressTab';
@@ -425,31 +426,21 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       return;
     }
 
-    const newEntry: IClassroomHistory = {
-      classroomId: historyForm.classroomId,
-      classroomName: classroom.name,
-      programId: classroom.programId,
-      programName: program?.name || 'Sin programa',
-      role: 'student',
+    const newEntry: IClassroomHistory = StudentClassroomManagementService.buildHistoryEntry({
+      classroom,
+      program,
       enrollmentDate: new Date(historyForm.enrollmentDate),
       completionDate: new Date(historyForm.completionDate),
       finalGrade: historyForm.finalGrade,
       status: historyForm.status,
-    };
+    });
 
     setSaving(true);
     try {
-      let completedClassrooms = [...(currentUser.completedClassrooms || [])];
-
-      if (editingHistory) {
-        // Update existing
-        completedClassrooms = completedClassrooms.map(c =>
-          c.classroomId === editingHistory.classroomId ? newEntry : c
-        );
-      } else {
-        // Add new
-        completedClassrooms.push(newEntry);
-      }
+      const completedClassrooms = StudentClassroomManagementService.upsertStudentHistoryEntry(
+        currentUser.completedClassrooms || [],
+        newEntry
+      );
 
       await UserService.updateUser(currentUser.id, { completedClassrooms });
       setCurrentUser(prev => prev ? { ...prev, completedClassrooms } : null);

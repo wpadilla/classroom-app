@@ -24,6 +24,7 @@
     "file-saver": "^2.0.5",
     "firebase": "^10.3.0",
     "framer-motion": "^12.37.0",
+    "html-to-image": "^1.11.13",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-apexcharts": "^2.0.1",

@@ -24,9 +24,7 @@ import {
   UncontrolledDropdown,
   DropdownToggle,
   DropdownMenu,
-  DropdownItem,
-  ListGroup,
-  ListGroupItem
+  DropdownItem
 } from 'reactstrap';
 import { toast } from 'react-toastify';
 import { ProgramService } from '../../services/program/program.service';
@@ -38,6 +36,9 @@ import ClassroomRestartModal from './components/ClassroomRestartModal';
 import { ProgramPensumPdfDownloadButton } from '../../components/pdf/components/ProgramPensumPdfDownloadButton';
 import ClassroomRunsHistoryModal from '../../components/classroom-runs/ClassroomRunsHistoryModal';
 import ClassroomRunDetailsModal from '../../components/classroom-runs/ClassroomRunDetailsModal';
+import { formatDateForInput } from '../../utils/moduleUtils';
+import { formatProgramEnrollmentRange, isProgramEnrollmentActive } from '../../utils/programPeriods';
+import './ProgramManagement.css';
 
 const ProgramManagement: React.FC = () => {
   // State
@@ -71,6 +72,8 @@ const ProgramManagement: React.FC = () => {
     name: '',
     description: '',
     code: '',
+    startDate: '',
+    endDate: '',
     category: 'general' as any,
     level: 'basic' as any,
     duration: '',
@@ -117,6 +120,8 @@ const ProgramManagement: React.FC = () => {
         name: program.name,
         description: program.description,
         code: program.code,
+        startDate: formatDateForInput(program.startDate),
+        endDate: formatDateForInput(program.endDate),
         category: program.category || 'general',
         level: program.level || 'basic',
         duration: program.duration || '',
@@ -137,6 +142,8 @@ const ProgramManagement: React.FC = () => {
         name: '',
         description: '',
         code: '',
+        startDate: '',
+        endDate: '',
         category: 'general',
         level: 'basic',
         duration: '',
@@ -158,15 +165,36 @@ const ProgramManagement: React.FC = () => {
       return;
     }
 
+    if ((programForm.startDate && !programForm.endDate) || (!programForm.startDate && programForm.endDate)) {
+      toast.error('Debes completar ambas fechas del período de inscripción');
+      return;
+    }
+
+    if (programForm.startDate && programForm.endDate) {
+      const startDate = new Date(`${programForm.startDate}T00:00:00`);
+      const endDate = new Date(`${programForm.endDate}T23:59:59`);
+
+      if (startDate > endDate) {
+        toast.error('La fecha final de inscripción no puede ser menor que la inicial');
+        return;
+      }
+    }
+
     try {
+      const normalizedProgramForm = {
+        ...programForm,
+        startDate: programForm.startDate ? new Date(`${programForm.startDate}T00:00:00`) : undefined,
+        endDate: programForm.endDate ? new Date(`${programForm.endDate}T23:59:59`) : undefined,
+      };
+
       if (editingProgram) {
         // Update existing program
-        await ProgramService.updateProgram(editingProgram.id, programForm);
+        await ProgramService.updateProgram(editingProgram.id, normalizedProgramForm);
         toast.success('Programa actualizado exitosamente');
       } else {
         // Create new program
         await ProgramService.createProgram({
-          ...programForm,
+          ...normalizedProgramForm,
           classrooms: []
         });
         toast.success('Programa creado exitosamente');
@@ -232,6 +260,11 @@ const ProgramManagement: React.FC = () => {
           ...formData,
           programId: selectedProgram.id
         });
+        await ClassroomService.setClassroomProgramPosition(
+          selectedProgram.id,
+          editingClassroom.id,
+          formData.programPosition
+        );
 
         // Update teacher assignment if changed
         if (formData.teacherId !== editingClassroom.teacherId) {
@@ -251,6 +284,12 @@ const ProgramManagement: React.FC = () => {
           startDate: new Date(),
           modules: formData.modules
         });
+
+        await ClassroomService.setClassroomProgramPosition(
+          selectedProgram.id,
+          classroomId,
+          formData.programPosition
+        );
 
         // Add classroom to program
         await ProgramService.addClassroomToProgram(selectedProgram.id, classroomId);
@@ -291,6 +330,23 @@ const ProgramManagement: React.FC = () => {
     }
   };
 
+  const handleMoveClassroomPosition = async (
+    programId: string,
+    classroomId: string,
+    direction: 'up' | 'down'
+  ) => {
+    try {
+      await ClassroomService.moveClassroomProgramPosition(programId, classroomId, direction);
+      toast.success(
+        `Clase movida ${direction === 'up' ? 'hacia arriba' : 'hacia abajo'} exitosamente`
+      );
+      await loadData();
+    } catch (error) {
+      console.error('Error moving classroom position:', error);
+      toast.error('No se pudo actualizar el orden de la clase');
+    }
+  };
+
   const handleOpenRestartModal = (classroom: IClassroom) => {
     setClassroomToRestart(classroom);
     setRestartModal(true);
@@ -326,7 +382,9 @@ const ProgramManagement: React.FC = () => {
   };
 
   const getProgramClassrooms = (programId: string) => {
-    return classrooms.filter(c => c.programId === programId);
+    return ClassroomService.sortClassroomsByProgramPosition(
+      classrooms.filter(c => c.programId === programId)
+    );
   };
 
   const getCategoryColor = (category: string) => {
@@ -349,6 +407,12 @@ const ProgramManagement: React.FC = () => {
     return badges[level] || 'secondary';
   };
 
+  const getProgramLevelLabel = (level?: string) => {
+    if (level === 'intermediate') return 'Intermedio';
+    if (level === 'advanced') return 'Avanzado';
+    return 'Básico';
+  };
+
   if (loading) {
     return (
       <Container className="py-5 text-center">
@@ -359,13 +423,19 @@ const ProgramManagement: React.FC = () => {
   }
 
   return (
-    <Container className="py-4">
+    <Container className="program-management-page py-3">
       {/* Header */}
       <Row className="mb-4">
         <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <h2>Gestión de Programas</h2>
-            <Button color="primary" onClick={() => handleOpenProgramModal()}>
+          <div className="program-management-hero">
+            <div>
+              <p className="program-management-hero__eyebrow">Administración académica</p>
+              <h2 className="program-management-hero__title">Gestión de Programas</h2>
+              <p className="program-management-hero__text">
+                Organiza el pensum, ordena las clases y define campañas de inscripción por programa.
+              </p>
+            </div>
+            <Button color="primary" onClick={() => handleOpenProgramModal()} className="program-management-hero__button">
               <i className="bi bi-plus-circle me-2"></i>
               Nuevo Programa
             </Button>
@@ -374,40 +444,60 @@ const ProgramManagement: React.FC = () => {
       </Row>
 
       {/* Statistics */}
-      <Row className="mb-4">
+      <Row className="g-3 mb-4">
         <Col md={3}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0">{programs.length}</h3>
-              <small className="text-muted">Total Programas</small>
+          <Card className="program-management-stat">
+            <CardBody className="program-management-stat__body">
+              <div className="program-management-stat__icon bg-slate-100 text-slate-700">
+                <i className="bi bi-grid-1x2"></i>
+              </div>
+              <div>
+                <h3 className="mb-0">{programs.length}</h3>
+                <small className="text-muted">Total Programas</small>
+              </div>
             </CardBody>
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-success">
+          <Card className="program-management-stat">
+            <CardBody className="program-management-stat__body">
+              <div className="program-management-stat__icon bg-emerald-50 text-emerald-600">
+                <i className="bi bi-check2-circle"></i>
+              </div>
+              <div>
+                <h3 className="mb-0 text-success">
                 {programs.filter(p => p.isActive).length}
-              </h3>
-              <small className="text-muted">Activos</small>
+                </h3>
+                <small className="text-muted">Activos</small>
+              </div>
             </CardBody>
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-info">{classrooms.length}</h3>
-              <small className="text-muted">Total Clases</small>
+          <Card className="program-management-stat">
+            <CardBody className="program-management-stat__body">
+              <div className="program-management-stat__icon bg-sky-50 text-sky-600">
+                <i className="bi bi-collection"></i>
+              </div>
+              <div>
+                <h3 className="mb-0 text-info">{classrooms.length}</h3>
+                <small className="text-muted">Total Clases</small>
+              </div>
             </CardBody>
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-warning">
+          <Card className="program-management-stat">
+            <CardBody className="program-management-stat__body">
+              <div className="program-management-stat__icon bg-amber-50 text-amber-600">
+                <i className="bi bi-lightning-charge"></i>
+              </div>
+              <div>
+                <h3 className="mb-0 text-warning">
                 {classrooms.filter(c => c.isActive).length}
-              </h3>
-              <small className="text-muted">Clases Activas</small>
+                </h3>
+                <small className="text-muted">Clases Activas</small>
+              </div>
             </CardBody>
           </Card>
         </Col>
@@ -425,33 +515,50 @@ const ProgramManagement: React.FC = () => {
           const isExpanded = expandedProgram === program.id;
 
           return (
-            <Card key={program.id} className="mb-3">
-              <CardHeader>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div
-                    className="flex-grow-1"
-                    style={{ cursor: 'pointer' }}
+            <Card key={program.id} className="program-management-card mb-3">
+              <CardHeader className="program-management-card__header">
+                <div className="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                  <button
+                    type="button"
+                    className="program-management-card__trigger"
                     onClick={() => setExpandedProgram(isExpanded ? null : program.id)}
+                    aria-expanded={isExpanded}
+                    aria-controls={`program-panel-${program.id}`}
                   >
-                    <h5 className="mb-1">
-                      <i className={`bi bi-chevron-${isExpanded ? 'down' : 'right'} me-2`}></i>
-                      {program.name}
-                      <Badge color={getCategoryColor(program.category || 'general')} className="ms-2">
+                    <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+                      <span className="program-management-chevron">
+                        <i className={`bi bi-chevron-${isExpanded ? 'down' : 'right'}`}></i>
+                      </span>
+                      <h5 className="mb-0 program-management-card__title">
+                        {program.name}
+                      </h5>
+                      <Badge color={getCategoryColor(program.category || 'general')}>
                         {program.category || 'General'}
                       </Badge>
-                      <Badge color={getLevelBadge(program.level || 'basic')} className="ms-2">
-                        {program.level === 'basic' ? 'Básico' :
-                          program.level === 'intermediate' ? 'Intermedio' : 'Avanzado'}
+                      <Badge color={getLevelBadge(program.level || 'basic')}>
+                        {getProgramLevelLabel(program.level)}
                       </Badge>
-                      {!program.isActive && (
-                        <Badge color="danger" className="ms-2">Inactivo</Badge>
+                      {isProgramEnrollmentActive(program) && (
+                        <Badge color="success">
+                          <i className="bi bi-calendar-check me-1"></i>
+                          Inscripción abierta
+                        </Badge>
                       )}
+                      {!program.isActive && (
+                        <Badge color="danger">Inactivo</Badge>
+                      )}
+                    </div>
+                    <h5 className="mb-1 d-none">
+                      <i className={`bi bi-chevron-${isExpanded ? 'down' : 'right'} me-2`}></i>
+                      {program.name}
                     </h5>
-                    <p className="text-muted mb-0">
-                      Código: {program.code} • {programClassrooms.length} clases •
-                      {program.duration && ` Duración: ${program.duration}`}
-                    </p>
-                  </div>
+                    <div className="program-management-card__meta">
+                      <span>Código: {program.code}</span>
+                      <span>{programClassrooms.length} clases</span>
+                      {program.duration && <span>Duración: {program.duration}</span>}
+                      <span>Inscripción: {formatProgramEnrollmentRange(program)}</span>
+                    </div>
+                  </button>
 
                   <UncontrolledDropdown>
                     <DropdownToggle color="link" className="text-dark p-0">
@@ -497,68 +604,132 @@ const ProgramManagement: React.FC = () => {
               </CardHeader>
 
               {isExpanded && (
-                <CardBody>
-                  <Row>
-                    <Col md={8}>
-                      <p>{program.description}</p>
+                <CardBody className="program-management-card__body" id={`program-panel-${program.id}`}>
+                  <Row className="g-3">
+                    <Col xl={8}>
+                      <div className="program-management-section">
+                        <p className="program-management-description">{program.description}</p>
 
-                      {program.requirements && program.requirements.length > 0 && (
-                        <div className="mb-3">
-                          <h6>Requisitos:</h6>
-                          <ul>
-                            {program.requirements.map((req, index) => (
-                              <li key={index}>{req}</li>
+                        {program.requirements && program.requirements.length > 0 && (
+                          <div className="mb-3">
+                            <h6 className="program-management-section__title">Requisitos</h6>
+                            <ul className="program-management-bullets">
+                            {program.requirements.map((req) => (
+                              <li key={req}>{req}</li>
                             ))}
-                          </ul>
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
+                          <h6 className="program-management-section__title mb-0">Clases del programa</h6>
+                          <Button color="primary" size="sm" outline onClick={() => handleOpenClassroomModal(program)}>
+                            <i className="bi bi-plus-circle me-1"></i>
+                            Agregar clase
+                          </Button>
                         </div>
-                      )}
 
-                      <h6>Clases del Programa:</h6>
-                      {programClassrooms.length === 0 ? (
-                        <Alert color="warning">
-                          No hay clases asignadas a este programa
-                        </Alert>
-                      ) : (
-                        <ListGroup>
-                          {programClassrooms.map(classroom => {
-                            const teacher = teachers.find(t => t.id === classroom.teacherId);
-                            const completedModules = classroom.modules?.filter(m => m.isCompleted).length || 0;
-                            const totalModules = classroom.modules?.length || 0;
+                        {programClassrooms.length === 0 ? (
+                          <Alert color="warning" className="mb-0">
+                            No hay clases asignadas a este programa.
+                          </Alert>
+                        ) : (
+                          <div className="program-management-classroom-list">
+                            {programClassrooms.map((classroom, index) => {
+                              const teacher = teachers.find(t => t.id === classroom.teacherId);
+                              const completedModules = classroom.modules?.filter(m => m.isCompleted).length || 0;
+                              const totalModules = classroom.modules?.length || 0;
+                              const isFirst = index === 0;
+                              const isLast = index === programClassrooms.length - 1;
 
-                            return (
-                              <ListGroupItem key={classroom.id}>
-                                <div className="d-flex justify-content-between align-items-center">
-                                  <div className="flex-grow-1">
-                                    <div className="d-flex align-items-center gap-2 mb-1">
-                                      <strong>{classroom.subject}</strong> - {classroom.name}
+                              return (
+                                <div key={classroom.id} className="program-management-classroom-card">
+                                  <div className="program-management-classroom-card__main">
+                                    <div className="program-management-classroom-card__header">
+                                      <div className="d-flex flex-wrap align-items-center gap-2">
+                                        <span className="program-management-classroom-card__order">
+                                          {classroom.programPosition || index + 1}
+                                        </span>
+                                        <div className="min-w-0">
+                                          <h6 className="program-management-classroom-card__title">
+                                            {classroom.subject}
+                                          </h6>
+                                          <p className="program-management-classroom-card__subtitle">
+                                            {classroom.name}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="d-flex flex-wrap gap-2">
+                                        <Badge color={classroom.isActive ? 'success' : 'secondary'}>
+                                          {classroom.isActive ? 'Activa' : 'Inactiva'}
+                                        </Badge>
+                                        {!classroom.isActive && classroom.endDate && (
+                                          <Badge color="warning">Finalizada</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="program-management-classroom-card__meta">
+                                      <span>
+                                        <i className="bi bi-person-badge me-1"></i>
+                                        {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Sin asignar'}
+                                      </span>
+                                      <span>
+                                        <i className="bi bi-people me-1"></i>
+                                        {classroom.studentIds?.length || 0} estudiantes
+                                      </span>
+                                      <span>
+                                        <i className="bi bi-list-check me-1"></i>
+                                        {completedModules}/{totalModules} módulos
+                                      </span>
+                                      {classroom.schedule?.time && (
+                                        <span>
+                                          <i className="bi bi-clock me-1"></i>
+                                          {classroom.schedule.dayOfWeek} {classroom.schedule.time}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="program-management-classroom-card__tags">
                                       {classroom.room && (
                                         <Badge color="secondary" className="small">
                                           <i className="bi bi-door-open me-1"></i>
                                           {classroom.room}
                                         </Badge>
                                       )}
+                                      {classroom.location && (
+                                        <Badge color="light" className="small text-dark border">
+                                          <i className="bi bi-geo-alt me-1"></i>
+                                          {classroom.location}
+                                        </Badge>
+                                      )}
                                     </div>
-                                    <small className="text-muted d-block mb-1">
-                                      <i className="bi bi-person-badge me-1"></i>
-                                      Profesor: {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'Sin asignar'}
-                                      {' • '}
-                                      <i className="bi bi-people ms-2 me-1"></i>
-                                      {classroom.studentIds?.length || 0} estudiantes
-                                      {' • '}
-                                      <i className="bi bi-list-check ms-2 me-1"></i>
-                                      {completedModules}/{totalModules} módulos
-                                    </small>
                                   </div>
-                                  <div className="d-flex align-items-center gap-2">
-                                    {/* Finalized Badge */}
-                                    {!classroom.isActive && classroom.endDate && (
-                                      <Badge color="warning" className="me-1">
-                                        <i className="bi bi-flag-fill me-1"></i>
-                                        Finalizada
-                                      </Badge>
-                                    )}
 
-                                    {/* View History Button - Show for all classes */}
+                                  <div className="program-management-classroom-card__actions">
+                                    <div className="program-management-classroom-card__order-actions">
+                                      <Button
+                                        color="light"
+                                        size="sm"
+                                        outline
+                                        disabled={isFirst}
+                                        onClick={() => handleMoveClassroomPosition(program.id, classroom.id, 'up')}
+                                        title="Subir de lugar"
+                                      >
+                                        <i className="bi bi-arrow-up"></i>
+                                      </Button>
+                                      <Button
+                                        color="light"
+                                        size="sm"
+                                        outline
+                                        disabled={isLast}
+                                        onClick={() => handleMoveClassroomPosition(program.id, classroom.id, 'down')}
+                                        title="Bajar de lugar"
+                                      >
+                                        <i className="bi bi-arrow-down"></i>
+                                      </Button>
+                                    </div>
+
                                     <Button
                                       color="info"
                                       size="sm"
@@ -569,7 +740,6 @@ const ProgramManagement: React.FC = () => {
                                       <i className="bi bi-archive"></i>
                                     </Button>
 
-                                    {/* Restart Button - Only show for finalized classes */}
                                     {!classroom.isActive && classroom.endDate && (
                                       <Button
                                         color="success"
@@ -582,8 +752,7 @@ const ProgramManagement: React.FC = () => {
                                       </Button>
                                     )}
 
-                                    {/* Status Switch */}
-                                    <div className="form-check form-switch">
+                                    <div className="form-check form-switch m-0">
                                       <input
                                         className="form-check-input"
                                         type="checkbox"
@@ -602,7 +771,6 @@ const ProgramManagement: React.FC = () => {
                                       </label>
                                     </div>
 
-                                    {/* Edit Button */}
                                     <Button
                                       color="primary"
                                       size="sm"
@@ -613,7 +781,6 @@ const ProgramManagement: React.FC = () => {
                                       <i className="bi bi-pencil"></i>
                                     </Button>
 
-                                    {/* Duplicate Button */}
                                     <Button
                                       color="secondary"
                                       size="sm"
@@ -625,40 +792,45 @@ const ProgramManagement: React.FC = () => {
                                     </Button>
                                   </div>
                                 </div>
-                              </ListGroupItem>
-                            );
-                          })}
-                        </ListGroup>
-                      )}
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </Col>
 
-                    <Col md={4}>
-                      <Card className="bg-light">
+                    <Col xl={4}>
+                      <Card className="program-management-info-card">
                         <CardBody>
-                          <h6>Información del Programa</h6>
-                          <hr />
-                          <p className="mb-2">
-                            <strong>Estudiantes:</strong> {program.minStudents} - {program.maxStudents}
-                          </p>
-                          <p className="mb-2">
-                            <strong>Créditos:</strong> {program.totalCredits || 0}
-                          </p>
-                          {program.materials && (
-                            <>
-                              <p className="mb-2">
-                                <strong>Costo Material:</strong> RD${program.materials.cost || 0}
-                              </p>
-                              {program.materials.books && program.materials.books.length > 0 && (
-                                <div>
-                                  <strong>Libros:</strong>
-                                  <ul className="mb-0">
-                                    {program.materials.books.map((book, index) => (
-                                      <li key={index}>{book}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </>
+                          <h6 className="program-management-section__title">Información del programa</h6>
+                          <div className="program-management-info-grid">
+                            <div className="program-management-info-item">
+                              <span className="program-management-info-item__label">Estudiantes</span>
+                              <strong>{program.minStudents} - {program.maxStudents}</strong>
+                            </div>
+                            <div className="program-management-info-item">
+                              <span className="program-management-info-item__label">Créditos</span>
+                              <strong>{program.totalCredits || 0}</strong>
+                            </div>
+                            <div className="program-management-info-item">
+                              <span className="program-management-info-item__label">Inscripción</span>
+                              <strong>{formatProgramEnrollmentRange(program)}</strong>
+                            </div>
+                            <div className="program-management-info-item">
+                              <span className="program-management-info-item__label">Costo material</span>
+                              <strong>RD${program.materials?.cost || 0}</strong>
+                            </div>
+                          </div>
+
+                          {program.materials?.books && program.materials.books.length > 0 && (
+                            <div className="mt-3">
+                              <span className="program-management-info-item__label">Libros</span>
+                              <ul className="program-management-bullets mb-0 mt-2">
+                                {program.materials.books.map((book) => (
+                                  <li key={book}>{book}</li>
+                                ))}
+                              </ul>
+                            </div>
                           )}
                         </CardBody>
                       </Card>
@@ -748,6 +920,28 @@ const ProgramManagement: React.FC = () => {
               </Col>
               <Col md={4}>
                 <FormGroup>
+                  <Label for="startDate">Inicio de inscripción</Label>
+                  <Input
+                    type="date"
+                    id="startDate"
+                    value={programForm.startDate}
+                    onChange={(e) => setProgramForm({ ...programForm, startDate: e.target.value })}
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={4}>
+                <FormGroup>
+                  <Label for="endDate">Fin de inscripción</Label>
+                  <Input
+                    type="date"
+                    id="endDate"
+                    value={programForm.endDate}
+                    onChange={(e) => setProgramForm({ ...programForm, endDate: e.target.value })}
+                  />
+                </FormGroup>
+              </Col>
+              <Col md={4}>
+                <FormGroup>
                   <Label for="duration">Duración</Label>
                   <Input
                     type="text"
@@ -825,6 +1019,7 @@ const ProgramManagement: React.FC = () => {
         classroom={editingClassroom}
         initialData={duplicationSourceClassroom}
         program={selectedProgram}
+        programClassrooms={selectedProgram ? getProgramClassrooms(selectedProgram.id) : []}
         teachers={teachers}
       />
 

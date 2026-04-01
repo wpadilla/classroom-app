@@ -35,11 +35,7 @@ export const formatDate = (
   options?: Intl.DateTimeFormatOptions
 ): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return dateObj.toLocaleDateString('es-DO', options || {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return dateObj?.toLocaleString?.();
 };
 
 /**

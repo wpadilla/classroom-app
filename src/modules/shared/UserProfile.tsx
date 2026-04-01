@@ -1,13 +1,9 @@
-// Universal User Profile Component - Works for Students, Teachers, and Admins
+// Universal User Profile — Mobile-First Redesign
+// Sections page (iOS Settings style) with profile sharing feature
 
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
   Container,
-  Row,
-  Col,
-  Card,
-  CardBody,
-  CardHeader,
   Button,
   Form,
   FormGroup,
@@ -18,19 +14,14 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Table,
   Badge,
-  Alert,
   Spinner,
   Progress,
-  Nav,
-  NavItem,
-  NavLink,
-  TabContent,
-  TabPane
 } from 'reactstrap';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toPng } from 'html-to-image';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
@@ -43,6 +34,10 @@ import ProgramsProgressTab from './components/ProgramsProgressTab';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
 import UserDocumentsSection from '../../components/user-documents/UserDocumentsSection';
 import ClassroomRunDetailsModal from '../../components/classroom-runs/ClassroomRunDetailsModal';
+import ProfileShareCard from '../../components/student/ProfileShareCard';
+import SectionHeader from '../../components/student/SectionHeader';
+import GradeRing from '../../components/student/GradeRing';
+import { BottomDrawer } from '../../components/mobile/BottomDrawer';
 import {
   DOCUMENT_TYPE_OPTIONS,
   ACADEMIC_LEVEL_OPTIONS,
@@ -53,6 +48,7 @@ import { DocumentType, AcademicLevel } from '../../models/registration.model';
 const UserProfile: React.FC = () => {
   const { user, updatePassword, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
 
   // State
   const [profile, setProfile] = useState<IUser | null>(null);
@@ -60,16 +56,17 @@ const UserProfile: React.FC = () => {
   const [teachingClassrooms, setTeachingClassrooms] = useState<IClassroom[]>([]);
   const [evaluations, setEvaluations] = useState<IStudentEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('profile');
   const [teacherRuns, setTeacherRuns] = useState<IClassroomRun[]>([]);
   const [selectedRun, setSelectedRun] = useState<IClassroomRun | null>(null);
   const [runDetailsModal, setRunDetailsModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [sharingProfile, setSharingProfile] = useState(false);
 
-  // Modal states
+  // Modal/drawer states
   const [passwordModal, setPasswordModal] = useState(false);
   const [photoModal, setPhotoModal] = useState(false);
+  const [editDrawer, setEditDrawer] = useState(false);
 
   // Form states
   const [newPassword, setNewPassword] = useState('');
@@ -123,7 +120,6 @@ const UserProfile: React.FC = () => {
     try {
       setLoading(true);
 
-      // Load full user profile
       const userProfile = await UserService.getUserById(user.id);
       if (userProfile) {
         setProfile(userProfile);
@@ -141,30 +137,50 @@ const UserProfile: React.FC = () => {
           pastorPhone: userProfile.pastor?.phone || '',
         });
 
-        // Load enrolled classrooms (for students and teachers who are also students)
-        if (userProfile.enrolledClassrooms && userProfile.enrolledClassrooms.length > 0) {
-          const classrooms = await Promise.all(
-            userProfile.enrolledClassrooms.map(id => ClassroomService.getClassroomById(id))
+        // Parallel data loading
+        const promises: Promise<any>[] = [
+          EvaluationService.getStudentEvaluations(user.id),
+        ];
+
+        if (userProfile.enrolledClassrooms?.length) {
+          promises.push(
+            Promise.all(
+              userProfile.enrolledClassrooms.map((id) => ClassroomService.getClassroomById(id))
+            )
           );
-          setEnrolledClassrooms(classrooms.filter(c => c !== null) as IClassroom[]);
         }
 
-        // Load teaching classrooms (for teachers and admins)
-        if (userProfile.teachingClassrooms && userProfile.teachingClassrooms.length > 0) {
-          const classrooms = await Promise.all(
-            userProfile.teachingClassrooms.map(id => ClassroomService.getClassroomById(id))
+        if (userProfile.teachingClassrooms?.length) {
+          promises.push(
+            Promise.all(
+              userProfile.teachingClassrooms.map((id) => ClassroomService.getClassroomById(id))
+            )
           );
-          setTeachingClassrooms(classrooms.filter(c => c !== null) as IClassroom[]);
         }
 
-        // Load evaluations
-        const studentEvaluations = await EvaluationService.getStudentEvaluations(user.id);
-        setEvaluations(studentEvaluations);
-
-        // Load teacher runs if user is teacher or admin
         if (userProfile.isTeacher || userProfile.role === 'teacher' || userProfile.role === 'admin') {
-          const runs = await ClassroomRestartService.getTeacherRuns(user.id);
-          setTeacherRuns(runs);
+          promises.push(ClassroomRestartService.getTeacherRuns(user.id));
+        }
+
+        const results = await Promise.all(promises);
+
+        setEvaluations(results[0] || []);
+
+        let resultIdx = 1;
+        if (userProfile.enrolledClassrooms?.length) {
+          setEnrolledClassrooms(
+            (results[resultIdx] || []).filter((c: any) => c !== null)
+          );
+          resultIdx++;
+        }
+        if (userProfile.teachingClassrooms?.length) {
+          setTeachingClassrooms(
+            (results[resultIdx] || []).filter((c: any) => c !== null)
+          );
+          resultIdx++;
+        }
+        if (userProfile.isTeacher || userProfile.role === 'teacher' || userProfile.role === 'admin') {
+          setTeacherRuns(results[resultIdx] || []);
         }
       }
     } catch (error) {
@@ -179,22 +195,20 @@ const UserProfile: React.FC = () => {
     loadProfileData();
   }, [loadProfileData]);
 
+  // Handlers (kept from original)
   const handlePasswordChange = async () => {
     if (!newPassword || !confirmPassword) {
       toast.error('Por favor complete todos los campos');
       return;
     }
-
     if (newPassword !== confirmPassword) {
       toast.error('Las contraseñas no coinciden');
       return;
     }
-
     if (newPassword.length < 6) {
       toast.error('La contraseña debe tener al menos 6 caracteres');
       return;
     }
-
     const success = await updatePassword(newPassword);
     if (success) {
       setPasswordModal(false);
@@ -206,44 +220,28 @@ const UserProfile: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
       toast.error('Por favor seleccione una imagen válida');
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       toast.error('La imagen no debe superar los 5MB');
       return;
     }
-
     setSelectedPhoto(file);
-
-    // Create preview
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoPreview(reader.result as string);
-    };
+    reader.onloadend = () => setPhotoPreview(reader.result as string);
     reader.readAsDataURL(file);
-
     setPhotoModal(true);
   };
 
   const handlePhotoUpload = async () => {
     if (!selectedPhoto || !user) return;
-
     try {
       setUploadingPhoto(true);
       const photoUrl = await UserService.updateProfilePhoto(user.id, selectedPhoto);
-
-      // Update local profile
-      if (profile) {
-        setProfile({ ...profile, profilePhoto: photoUrl });
-      }
-
-      // Refresh user context
+      if (profile) setProfile({ ...profile, profilePhoto: photoUrl });
       await refreshUser();
-
       toast.success('Foto de perfil actualizada');
       setPhotoModal(false);
       setSelectedPhoto(null);
@@ -271,12 +269,11 @@ const UserProfile: React.FC = () => {
       pastorName: profile.pastor?.fullName || '',
       pastorPhone: profile.pastor?.phone || '',
     });
-    setEditMode(false);
+    setEditDrawer(false);
   };
 
   const handleProfileSave = async (data: UserSelfEditFormData) => {
     if (!profile) return;
-
     setSavingProfile(true);
     try {
       const updates: Partial<IUser> = {
@@ -289,17 +286,17 @@ const UserProfile: React.FC = () => {
         country: data.country || undefined,
         churchName: data.churchName || undefined,
         academicLevel: (data.academicLevel || undefined) as AcademicLevel,
-        pastor: data.pastorName || data.pastorPhone
-          ? { fullName: data.pastorName || '', phone: data.pastorPhone || '' }
-          : undefined,
+        pastor:
+          data.pastorName || data.pastorPhone
+            ? { fullName: data.pastorName || '', phone: data.pastorPhone || '' }
+            : undefined,
       };
-
       await UserService.updateUser(profile.id, updates);
       const nextProfile = { ...profile, ...updates } as IUser;
       setProfile(nextProfile);
       await refreshUser();
       toast.success('Perfil actualizado');
-      setEditMode(false);
+      setEditDrawer(false);
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast.error(error.message || 'Error al actualizar el perfil');
@@ -308,14 +305,80 @@ const UserProfile: React.FC = () => {
     }
   };
 
+  const handleShareProfile = async () => {
+    if (!shareCardRef.current || !profile) return;
+    try {
+      setSharingProfile(true);
+
+      // Temporarily make visible for capture
+      const el = shareCardRef.current;
+      el.style.position = 'fixed';
+      el.style.left = '0';
+      el.style.top = '0';
+      el.style.zIndex = '-1';
+      el.style.opacity = '1';
+
+      await new Promise((r) => setTimeout(r, 100));
+
+      const dataUrl = await toPng(el, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: '#1e3a8a',
+      });
+
+      // Restore hidden
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      el.style.top = '-9999px';
+      el.style.zIndex = '';
+      el.style.opacity = '';
+
+      if (navigator.share && /Mobi/i.test(navigator.userAgent)) {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'perfil-amoa.png', { type: 'image/png' });
+        await navigator.share({ title: 'Mi Perfil — AMOA', files: [file] });
+      } else {
+        const link = document.createElement('a');
+        link.download = 'perfil-amoa.png';
+        link.href = dataUrl;
+        link.click();
+      }
+      toast.success('Perfil compartido');
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing profile:', error);
+        toast.error('Error al compartir el perfil');
+      }
+    } finally {
+      setSharingProfile(false);
+    }
+  };
+
   const calculateOverallGrade = (): number => {
     if (evaluations.length === 0) return 0;
-
-    const completedEvaluations = evaluations.filter(e => e.status === 'evaluated');
+    const completedEvaluations = evaluations.filter((e) => e.status === 'evaluated');
     if (completedEvaluations.length === 0) return 0;
-
     const totalPercentage = completedEvaluations.reduce((sum, e) => sum + e.percentage, 0);
     return totalPercentage / completedEvaluations.length;
+  };
+
+  const getRoleLabel = (role: UserRole): string => {
+    switch (role) {
+      case 'admin': return 'Administrador';
+      case 'teacher': return 'Profesor';
+      case 'student': return 'Estudiante';
+      default: return role;
+    }
+  };
+
+  const getRoleBadgeClass = (role: UserRole): string => {
+    switch (role) {
+      case 'admin': return 'bg-red-50 text-red-700';
+      case 'teacher': return 'bg-blue-50 text-blue-700';
+      case 'student': return 'bg-indigo-50 text-indigo-700';
+      default: return 'bg-gray-50 text-gray-700';
+    }
   };
 
   const getGradeColor = (percentage: number): string => {
@@ -325,891 +388,612 @@ const UserProfile: React.FC = () => {
     return 'danger';
   };
 
-  const getRoleLabel = (role: UserRole): string => {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'teacher':
-        return 'Profesor';
-      case 'student':
-        return 'Estudiante';
-      default:
-        return role;
-    }
-  };
-
-  const getRoleColor = (role: UserRole): string => {
-    switch (role) {
-      case 'admin':
-        return 'danger';
-      case 'teacher':
-        return 'info';
-      case 'student':
-        return 'primary';
-      default:
-        return 'secondary';
-    }
-  };
+  // Share card stats
+  const shareStats = useMemo(
+    () => ({
+      averageGrade: calculateOverallGrade(),
+      totalClasses:
+        (profile?.completedClassrooms?.length || 0) + enrolledClassrooms.length,
+      completedPrograms: 0, // Will be calculated by ProgramsProgressTab
+      currentEnrollments: enrolledClassrooms.length,
+      attendanceRate: (() => {
+        let present = 0,
+          total = 0;
+        evaluations.forEach((e) => {
+          if (e.attendanceRecords) {
+            present += e.attendanceRecords.filter((r) => r.isPresent).length;
+            total += e.attendanceRecords.length;
+          }
+        });
+        return total > 0 ? (present / total) * 100 : 0;
+      })(),
+    }),
+    [evaluations, enrolledClassrooms, profile]
+  );
 
   if (loading) {
     return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="primary" />
-        <p className="mt-3">Cargando perfil...</p>
-      </Container>
+      <div className="px-1 py-4 animate-pulse space-y-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-24 h-24 bg-gray-200 rounded-full" />
+          <div className="h-6 w-40 bg-gray-200 rounded" />
+          <div className="h-4 w-32 bg-gray-200 rounded" />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded-xl" />
+          ))}
+        </div>
+        <div className="h-32 bg-gray-200 rounded-2xl" />
+      </div>
     );
   }
 
   if (!profile) {
     return (
-      <Container className="py-5">
-        <Alert color="danger">No se pudo cargar el perfil</Alert>
-      </Container>
+      <div className="px-4 py-8 text-center">
+        <i className="bi bi-exclamation-triangle text-red-400 text-4xl mb-3 block" />
+        <p className="text-red-600 font-medium">No se pudo cargar el perfil</p>
+      </div>
     );
   }
 
   return (
-    <Container className="py-4">
-      {/* Profile Header */}
-      <Row className="mb-4">
-        <Col>
-          <Card className="border-0 shadow-sm">
-            <CardBody>
-              <Row className="align-items-center">
-                <Col md={2} className="text-center mb-3 mb-md-0">
-                  <div className="position-relative d-inline-block">
-                    {profile.profilePhoto ? (
-                      <img
-                        src={profile.profilePhoto}
-                        alt="Profile"
-                        className="rounded-circle"
-                        style={{ width: '120px', height: '120px', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div
-                        className="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center"
-                        style={{ width: '120px', height: '120px' }}
-                      >
-                        <i className="bi bi-person-fill text-white" style={{ fontSize: '3rem' }}></i>
-                      </div>
-                    )}
-                    <Button
-                      color="primary"
-                      size="sm"
-                      className="position-absolute bottom-0 end-0 rounded-circle"
-                      style={{ width: '32px', height: '32px', padding: 0 }}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <i className="bi bi-camera-fill"></i>
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      style={{ display: 'none' }}
-                    />
-                  </div>
-                </Col>
-                <Col md={7}>
-                  <h2 className="mb-1">{profile.firstName} {profile.lastName}</h2>
-                  <p className="text-muted mb-2">
-                    <i className="bi bi-telephone me-2"></i>
-                    {profile.phone}
-                  </p>
-                  {profile.email && (
-                    <p className="text-muted mb-2">
-                      <i className="bi bi-envelope me-2"></i>
-                      {profile.email}
-                    </p>
-                  )}
-                  <div className="d-flex flex-wrap gap-2">
-                    <Badge color={getRoleColor(profile.role)}>{getRoleLabel(profile.role)}</Badge>
-                    {profile.isTeacher && profile.role !== 'teacher' && (
-                      <Badge color="info">También Profesor</Badge>
-                    )}
-                    {profile.isActive ? (
-                      <Badge color="success">Activo</Badge>
-                    ) : (
-                      <Badge color="danger">Inactivo</Badge>
-                    )}
-                  </div>
-                </Col>
-                <Col md={3} className="text-md-end mt-3 mt-md-0">
-                  {/* Show grade stats only if user has student evaluations */}
-                  {evaluations.length > 0 && (
-                    <div className="mb-3">
-                      <h5 className="text-muted mb-1">Promedio General</h5>
-                      <h2 className="mb-0">
-                        <Badge color={getGradeColor(calculateOverallGrade())}>
-                          {calculateOverallGrade().toFixed(1)}%
-                        </Badge>
-                      </h2>
-                    </div>
-                  )}
-                  <div className="d-flex gap-2 flex-wrap">
-                    <Button
-                      color="outline-primary"
-                      size="sm"
-                      onClick={() => setPasswordModal(true)}
-                    >
-                      <i className="bi bi-key me-2"></i>
-                      Cambiar Contraseña
-                    </Button>
-                    {profile && (
-                      <UserProfilePdfDownloadButton user={profile}>
-                        <Button color="outline-secondary" size="sm" tag="span">
-                          <i className="bi bi-file-earmark-pdf me-2"></i>
-                          Descargar PDF
-                        </Button>
-                      </UserProfilePdfDownloadButton>
-                    )}
-                  </div>
-                </Col>
-              </Row>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Tabs */}
-      <Nav tabs className="mb-3">
-        <NavItem>
-          <NavLink
-            className={activeTab === 'profile' ? 'active' : ''}
-            onClick={() => setActiveTab('profile')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-person me-2"></i>
-            Información Personal
-          </NavLink>
-        </NavItem>
-
-        {/* Show teaching classes tab for teachers and admins */}
-        {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
-          <NavItem>
-            <NavLink
-              className={activeTab === 'teaching' ? 'active' : ''}
-              onClick={() => setActiveTab('teaching')}
-              style={{ cursor: 'pointer' }}
-            >
-              <i className="bi bi-easel me-2"></i>
-              Clases Actuales
-            </NavLink>
-          </NavItem>
-        )}
-
-        {/* Show runs history tab for teachers and admins */}
-        {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
-          <NavItem>
-            <NavLink
-              className={activeTab === 'runs' ? 'active' : ''}
-              onClick={() => setActiveTab('runs')}
-              style={{ cursor: 'pointer' }}
-            >
-              <i className="bi bi-archive me-2"></i>
-              Historial de Ejecuciones
-            </NavLink>
-          </NavItem>
-        )}
-
-        {/* Show enrolled classes tab for students and teachers who are also students */}
-        {(profile.role === 'student' || enrolledClassrooms.length > 0) && (
-          <NavItem>
-            <NavLink
-              className={activeTab === 'enrolled' ? 'active' : ''}
-              onClick={() => setActiveTab('enrolled')}
-              style={{ cursor: 'pointer' }}
-            >
-              <i className="bi bi-book me-2"></i>
-              Clases Inscritas
-            </NavLink>
-          </NavItem>
-        )}
-
-        <NavItem>
-          <NavLink
-            className={activeTab === 'history' ? 'active' : ''}
-            onClick={() => setActiveTab('history')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-clock-history me-2"></i>
-            Historial
-          </NavLink>
-        </NavItem>
-
-        <NavItem>
-          <NavLink
-            className={activeTab === 'documents' ? 'active' : ''}
-            onClick={() => setActiveTab('documents')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-folder2-open me-2"></i>
-            Documentos
-          </NavLink>
-        </NavItem>
-
-        {/* Show programs progress tab for all users */}
-        <NavItem>
-          <NavLink
-            className={activeTab === 'programs' ? 'active' : ''}
-            onClick={() => setActiveTab('programs')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-graph-up me-2"></i>
-            Progreso en Programas
-          </NavLink>
-        </NavItem>
-      </Nav>
-
-      <TabContent activeTab={activeTab}>
-        {/* Profile Tab */}
-        <TabPane tabId="profile">
-          <Card>
-            <Form onSubmit={handleSubmit(handleProfileSave)}>
-              <CardHeader>
-                <div className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">Información Personal</h5>
-                  {!editMode ? (
-                    <Button color="primary" size="sm" onClick={() => setEditMode(true)}>
-                      <i className="bi bi-pencil me-1"></i>
-                      Editar
-                    </Button>
-                  ) : (
-                    <div className="d-flex gap-2">
-                      <Button color="secondary" size="sm" onClick={handleCancelEdit}>
-                        Cancelar
-                      </Button>
-                      <Button color="success" size="sm" type="submit" disabled={savingProfile || !isDirty}>
-                        {savingProfile ? <Spinner size="sm" className="me-1" /> : <i className="bi bi-check me-1"></i>}
-                        Guardar
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardBody>
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Nombre</Label>
-                      {editMode ? (
-                        <>
-                          <Input
-                            {...firstNameField}
-                            innerRef={firstNameRef}
-                            invalid={!!errors.firstName}
-                          />
-                          <FormFeedback>{errors.firstName?.message}</FormFeedback>
-                        </>
-                      ) : (
-                        <p className="fw-bold">{profile.firstName}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Apellido</Label>
-                      {editMode ? (
-                        <>
-                          <Input
-                            {...lastNameField}
-                            innerRef={lastNameRef}
-                            invalid={!!errors.lastName}
-                          />
-                          <FormFeedback>{errors.lastName?.message}</FormFeedback>
-                        </>
-                      ) : (
-                        <p className="fw-bold">{profile.lastName}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Teléfono</Label>
-                      {editMode ? (
-                        <>
-                          <Input
-                            {...phoneField}
-                            innerRef={phoneRef}
-                            invalid={!!errors.phone}
-                          />
-                          <FormFeedback>{errors.phone?.message}</FormFeedback>
-                        </>
-                      ) : (
-                        <p className="fw-bold">{profile.phone}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Correo Electrónico</Label>
-                      {editMode ? (
-                        <>
-                          <Input
-                            {...emailField}
-                            innerRef={emailRef}
-                            invalid={!!errors.email}
-                          />
-                          <FormFeedback>{String(errors.email?.message || '')}</FormFeedback>
-                        </>
-                      ) : (
-                        <p className="fw-bold">{profile.email || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Rol</Label>
-                      <p className="fw-bold">{getRoleLabel(profile.role)}</p>
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Estado</Label>
-                      <p className="fw-bold">
-                        {profile.isActive ? (
-                          <Badge color="success">Activo</Badge>
-                        ) : (
-                          <Badge color="danger">Inactivo</Badge>
-                        )}
-                      </p>
-                    </FormGroup>
-                  </Col>
-                </Row>
-
-                <hr className="my-3" />
-                <h6 className="text-muted mb-3">Información Adicional</h6>
-                <Row>
-                  <Col md={4}>
-                    <FormGroup>
-                      <Label className="text-muted">Tipo de Documento</Label>
-                      {editMode ? (
-                        <Input type="select" {...documentTypeField} innerRef={documentTypeRef}>
-                          <option value="">Seleccionar...</option>
-                          {DOCUMENT_TYPE_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </Input>
-                      ) : (
-                        <p className="fw-bold">{profile.documentType || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={4}>
-                    <FormGroup>
-                      <Label className="text-muted">Número de Documento</Label>
-                      {editMode ? (
-                        <Input
-                          {...documentNumberField}
-                          innerRef={documentNumberRef}
-                          placeholder="000-0000000-0"
-                        />
-                      ) : (
-                        <p className="fw-bold">{profile.documentNumber || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={4}>
-                    <FormGroup>
-                      <Label className="text-muted">País</Label>
-                      {editMode ? (
-                        <Input type="select" {...countryField} innerRef={countryRef}>
-                          <option value="">Seleccionar...</option>
-                          {COUNTRIES.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </Input>
-                      ) : (
-                        <p className="fw-bold">{profile.country || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Iglesia</Label>
-                      {editMode ? (
-                        <Input
-                          {...churchNameField}
-                          innerRef={churchNameRef}
-                          placeholder="Nombre de la iglesia"
-                        />
-                      ) : (
-                        <p className="fw-bold">{profile.churchName || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Nivel Académico</Label>
-                      {editMode ? (
-                        <Input type="select" {...academicLevelField} innerRef={academicLevelRef}>
-                          <option value="">Seleccionar...</option>
-                          {ACADEMIC_LEVEL_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </Input>
-                      ) : (
-                        <p className="fw-bold">{profile.academicLevel || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                </Row>
-                <Row>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Nombre del Pastor</Label>
-                      {editMode ? (
-                        <Input
-                          {...pastorNameField}
-                          innerRef={pastorNameRef}
-                          placeholder="Nombre del pastor"
-                        />
-                      ) : (
-                        <p className="fw-bold">{profile.pastor?.fullName || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                  <Col md={6}>
-                    <FormGroup>
-                      <Label className="text-muted">Teléfono del Pastor</Label>
-                      {editMode ? (
-                        <>
-                          <Input
-                            {...pastorPhoneField}
-                            innerRef={pastorPhoneRef}
-                            invalid={!!errors.pastorPhone}
-                            placeholder="Número de teléfono"
-                          />
-                          <FormFeedback>{errors.pastorPhone?.message}</FormFeedback>
-                        </>
-                      ) : (
-                        <p className="fw-bold">{profile.pastor?.phone || 'No registrado'}</p>
-                      )}
-                    </FormGroup>
-                  </Col>
-                </Row>
-              </CardBody>
-            </Form>
-          </Card>
-        </TabPane>
-
-        <TabPane tabId="documents">
-          <Card>
-            <CardHeader>
-              <h5 className="mb-0">Documentos</h5>
-            </CardHeader>
-            <CardBody>
-              <UserDocumentsSection
-                documents={profile.documents || []}
-                canManage={false}
+    <div className="pb-6 -mx-3 -my-3">
+      {/* Profile Hero */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-800 px-5 pt-6 pb-8 rounded-b-[28px] shadow-lg"
+      >
+        {/* Photo + Name */}
+        <div className="flex flex-col items-center mb-5">
+          <div className="relative mb-3">
+            {profile.profilePhoto ? (
+              <img
+                src={profile.profilePhoto}
+                alt=""
+                className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-lg"
               />
-            </CardBody>
-          </Card>
-        </TabPane>
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/10">
+                <i className="bi bi-person-fill text-white text-4xl" />
+              </div>
+            )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center border-0 active:scale-95 transition-transform"
+            >
+              <i className="bi bi-camera-fill text-blue-600 text-sm" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              style={{ display: 'none' }}
+            />
+          </div>
 
-        {/* Teaching Classes Tab - Current Active Classes */}
+          <h1 className="text-white text-xl font-bold text-center">
+            {profile.firstName} {profile.lastName}
+          </h1>
+
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/20 text-white`}>
+              {getRoleLabel(profile.role)}
+            </span>
+            {profile.isTeacher && profile.role !== 'teacher' && (
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-400/30 text-blue-100">
+                También Profesor
+              </span>
+            )}
+            <span
+              className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                profile.isActive ? 'bg-emerald-400/30 text-emerald-100' : 'bg-red-400/30 text-red-100'
+              }`}
+            >
+              {profile.isActive ? 'Activo' : 'Inactivo'}
+            </span>
+          </div>
+        </div>
+
+        {/* Stat chips row */}
+        {evaluations.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-white/10 rounded-xl p-2.5 text-center">
+              <div className="text-white text-lg font-bold">
+                {calculateOverallGrade().toFixed(0)}%
+              </div>
+              <div className="text-blue-200 text-[10px]">Promedio</div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-2.5 text-center">
+              <div className="text-white text-lg font-bold">
+                {enrolledClassrooms.length}
+              </div>
+              <div className="text-blue-200 text-[10px]">Inscritas</div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-2.5 text-center">
+              <div className="text-white text-lg font-bold">
+                {profile.completedClassrooms?.length || 0}
+              </div>
+              <div className="text-blue-200 text-[10px]">Completadas</div>
+            </div>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Quick Actions Row */}
+      <div className="px-4 -mt-4 mb-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center justify-around">
+          <button
+            onClick={handleShareProfile}
+            disabled={sharingProfile}
+            className="flex flex-col items-center gap-1 bg-transparent border-0 active:opacity-70 disabled:opacity-40"
+          >
+            {sharingProfile ? (
+              <i className="bi bi-hourglass-split text-blue-500 animate-spin" />
+            ) : (
+              <i className="bi bi-share text-blue-500" />
+            )}
+            <span className="text-[10px] text-gray-500 font-medium">Compartir</span>
+          </button>
+
+          <div className="w-px h-8 bg-gray-100" />
+
+          <button
+            onClick={() => setPasswordModal(true)}
+            className="flex flex-col items-center gap-1 bg-transparent border-0 active:opacity-70"
+          >
+            <i className="bi bi-key text-amber-500" />
+            <span className="text-[10px] text-gray-500 font-medium">Contraseña</span>
+          </button>
+
+          <div className="w-px h-8 bg-gray-100" />
+
+          <UserProfilePdfDownloadButton user={profile}>
+            <button className="flex flex-col items-center gap-1 bg-transparent border-0 active:opacity-70">
+              <i className="bi bi-file-earmark-pdf text-red-500" />
+              <span className="text-[10px] text-gray-500 font-medium">PDF</span>
+            </button>
+          </UserProfilePdfDownloadButton>
+
+          <div className="w-px h-8 bg-gray-100" />
+
+          <button
+            onClick={() => {
+              setEditDrawer(true);
+              setEditMode(true);
+            }}
+            className="flex flex-col items-center gap-1 bg-transparent border-0 active:opacity-70"
+          >
+            <i className="bi bi-pencil text-emerald-500" />
+            <span className="text-[10px] text-gray-500 font-medium">Editar</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="px-4">
+        {/* Personal Info — Read-only section */}
+        <SectionHeader icon="bi-person" title="Información Personal" defaultOpen={true}>
+          <div className="space-y-3">
+            {[
+              { label: 'Teléfono', value: profile.phone, icon: 'bi-telephone' },
+              { label: 'Correo', value: profile.email || 'No registrado', icon: 'bi-envelope' },
+              { label: 'Documento', value: profile.documentNumber || 'No registrado', icon: 'bi-card-text' },
+              { label: 'País', value: profile.country || 'No registrado', icon: 'bi-globe' },
+              { label: 'Iglesia', value: profile.churchName || 'No registrado', icon: 'bi-building' },
+              { label: 'Nivel Académico', value: profile.academicLevel || 'No registrado', icon: 'bi-mortarboard' },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-3 py-1.5">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                  <i className={`bi ${item.icon} text-gray-400 text-sm`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] text-gray-400">{item.label}</div>
+                  <div className="text-sm font-medium text-gray-700 truncate">{item.value}</div>
+                </div>
+              </div>
+            ))}
+
+            {/* Pastor info */}
+            {(profile.pastor?.fullName || profile.pastor?.phone) && (
+              <div className="bg-gray-50 rounded-xl p-3 mt-2">
+                <div className="text-[11px] text-gray-400 mb-1.5 font-medium">Información del Pastor</div>
+                <div className="text-sm text-gray-700">
+                  {profile.pastor.fullName || 'No registrado'}
+                </div>
+                {profile.pastor.phone && (
+                  <div className="text-xs text-gray-500 mt-0.5">{profile.pastor.phone}</div>
+                )}
+              </div>
+            )}
+          </div>
+        </SectionHeader>
+
+        {/* Enrolled Classes (students) */}
+        {(profile.role === 'student' || enrolledClassrooms.length > 0) && (
+          <SectionHeader
+            icon="bi-book"
+            title="Clases Inscritas"
+            badge={enrolledClassrooms.length}
+            defaultOpen={enrolledClassrooms.length > 0}
+          >
+            {enrolledClassrooms.length === 0 ? (
+              <div className="text-center py-4">
+                <i className="bi bi-book text-gray-300 text-2xl mb-2 block" />
+                <p className="text-gray-400 text-sm">No está inscrito en ninguna clase</p>
+              </div>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                {enrolledClassrooms.map((classroom) => {
+                  const evaluation = evaluations.find((e) => e.classroomId === classroom.id);
+                  return (
+                    <div
+                      key={classroom.id}
+                      className="shrink-0 w-[220px] bg-white rounded-xl border border-gray-100 shadow-sm p-3"
+                    >
+                      <div className="text-sm font-bold text-gray-900 truncate mb-0.5">
+                        {classroom.subject}
+                      </div>
+                      <div className="text-xs text-gray-400 mb-2 truncate">{classroom.name}</div>
+                      {evaluation && (
+                        <div className="flex items-center gap-3">
+                          <GradeRing value={evaluation.percentage || 0} size={32} strokeWidth={3} />
+                          <div className="text-xs text-gray-500">
+                            <span className="font-semibold text-gray-700">
+                              {(evaluation.percentage || 0).toFixed(0)}%
+                            </span>{' '}
+                            promedio
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </SectionHeader>
+        )}
+
+        {/* Teaching Classes (teachers/admins) */}
         {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
-          <TabPane tabId="teaching">
-            <Row>
-              {teachingClassrooms.length === 0 ? (
-                <Col>
-                  <Alert color="info">
-                    <i className="bi bi-info-circle me-2"></i>
-                    No tiene clases asignadas como profesor actualmente
-                  </Alert>
-                </Col>
-              ) : (
-                teachingClassrooms.map(classroom => {
-                  const completedModules = classroom.modules?.filter(m => m.isCompleted).length || 0;
+          <SectionHeader
+            icon="bi-easel"
+            title="Clases Actuales"
+            badge={teachingClassrooms.length}
+            defaultOpen={false}
+          >
+            {teachingClassrooms.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-400 text-sm">No tiene clases asignadas</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {teachingClassrooms.map((classroom) => {
+                  const completedModules = classroom.modules?.filter((m) => m.isCompleted).length || 0;
                   const totalModules = classroom.modules?.length || 0;
                   const progress = totalModules > 0 ? (completedModules / totalModules) * 100 : 0;
 
                   return (
-                    <Col md={6} key={classroom.id} className="mb-3">
-                      <Card className="h-100 border-info">
-                        <CardHeader className="bg-info text-white">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <h6 className="mb-0">{classroom.subject}</h6>
-                            <Badge color="light" className="text-info">
-                              {classroom.name}
-                            </Badge>
+                    <div
+                      key={classroom.id}
+                      className="bg-white rounded-xl border border-gray-100 shadow-sm p-3"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold text-gray-900 truncate">
+                            {classroom.subject}
                           </div>
-                        </CardHeader>
-                        <CardBody>
-                          <div className="mb-3">
-                            <div className="d-flex justify-content-between mb-1">
-                              <small className="text-muted">Progreso del Curso</small>
-                              <small className="text-muted">{completedModules}/{totalModules}</small>
-                            </div>
-                            <Progress
-                              value={progress}
-                              color={progress >= 75 ? 'success' : progress >= 50 ? 'warning' : 'danger'}
-                              style={{ height: '8px' }}
-                            />
-                          </div>
-
-                          <div className="d-flex justify-content-between mb-2">
-                            <span className="text-muted">
-                              <i className="bi bi-people me-2"></i>
-                              Estudiantes:
-                            </span>
-                            <Badge color="primary">{classroom.studentIds?.length || 0}</Badge>
-                          </div>
-
-                          <div className="d-flex justify-content-between mb-2">
-                            <span className="text-muted">
-                              <i className="bi bi-calendar me-2"></i>
-                              Módulo actual:
-                            </span>
-                            <Badge color="secondary">
-                              Semana {classroom.currentModule?.weekNumber || 1}
-                            </Badge>
-                          </div>
-
-                          {classroom.schedule && (
-                            <div className="d-flex justify-content-between mb-2">
-                              <span className="text-muted">
-                                <i className="bi bi-clock me-2"></i>
-                                Horario:
-                              </span>
-                              <span className="small">
-                                {classroom.schedule.dayOfWeek} {classroom.schedule.time}
-                              </span>
-                            </div>
-                          )}
-
-                          {classroom.room && (
-                            <div className="d-flex justify-content-between mb-2">
-                              <span className="text-muted">
-                                <i className="bi bi-door-open me-2"></i>
-                                Salón:
-                              </span>
-                              <span className="small">{classroom.room}</span>
-                            </div>
-                          )}
-
-                          <hr />
-
-                          <div className="d-flex justify-content-between align-items-center">
-                            <Badge color={classroom.isActive ? 'success' : 'secondary'}>
-                              {classroom.isActive ? 'Activa' : 'Inactiva'}
-                            </Badge>
-                            {classroom.whatsappGroup && (
-                              <Badge color="success">
-                                <i className="bi bi-whatsapp me-1"></i>
-                                WhatsApp
-                              </Badge>
-                            )}
-                          </div>
-                        </CardBody>
-                      </Card>
-                    </Col>
+                          <div className="text-xs text-gray-400 truncate">{classroom.name}</div>
+                        </div>
+                        <Badge
+                          color={classroom.isActive ? 'success' : 'secondary'}
+                          className="shrink-0"
+                        >
+                          {classroom.isActive ? 'Activa' : 'Inactiva'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span>
+                          <i className="bi bi-people me-1" />
+                          {classroom.studentIds?.length || 0}
+                        </span>
+                        <span>
+                          <i className="bi bi-journal me-1" />
+                          {completedModules}/{totalModules}
+                        </span>
+                        {classroom.schedule && (
+                          <span>
+                            <i className="bi bi-clock me-1" />
+                            {classroom.schedule.dayOfWeek} {classroom.schedule.time}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <Progress
+                          value={progress}
+                          color={progress >= 75 ? 'success' : progress >= 50 ? 'warning' : 'danger'}
+                          style={{ height: '4px' }}
+                        />
+                      </div>
+                    </div>
                   );
-                })
-              )}
-            </Row>
-          </TabPane>
+                })}
+              </div>
+            )}
+          </SectionHeader>
         )}
 
-        {/* Teacher Runs History Tab - Historical Executions */}
-        {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) && (
-          <TabPane tabId="runs">
-            <Card>
-              <CardHeader>
-                <h5 className="mb-0">
-                  <i className="bi bi-archive me-2"></i>
-                  Historial de Clases Finalizadas
-                </h5>
-                <small className="text-muted">
-                  Todas las ejecuciones de clases que has impartido
-                </small>
-              </CardHeader>
-              <CardBody>
-                {teacherRuns.length === 0 ? (
-                  <Alert color="info">
-                    <i className="bi bi-info-circle me-2"></i>
-                    No hay ejecuciones de clases finalizadas aún
-                  </Alert>
-                ) : (
-                  <Table responsive hover>
-                    <thead>
-                      <tr>
-                        <th>Ejecución</th>
-                        <th>Materia</th>
-                        <th>Programa</th>
-                        <th className="text-center">Estudiantes</th>
-                        <th className="text-center">Promedio</th>
-                        <th className="text-center">Aprobados</th>
-                        <th>Fecha Finalización</th>
-                        <th className="text-center">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {teacherRuns.map((run: IClassroomRun) => {
-                        const passedStudents =
-                          run.statistics.distribution.excellent +
-                          run.statistics.distribution.good +
-                          run.statistics.distribution.regular;
+        {/* Teacher Runs History */}
+        {(profile.role === 'teacher' || profile.role === 'admin' || profile.isTeacher) &&
+          teacherRuns.length > 0 && (
+            <SectionHeader
+              icon="bi-archive"
+              title="Historial de Ejecuciones"
+              badge={teacherRuns.length}
+              defaultOpen={false}
+            >
+              <div className="space-y-2">
+                {teacherRuns.map((run) => {
+                  const passedStudents =
+                    run.statistics.distribution.excellent +
+                    run.statistics.distribution.good +
+                    run.statistics.distribution.regular;
 
-                        return (
-                          <tr key={run.id}>
-                            <td>
-                              <Badge color="secondary">#{run.runNumber}</Badge>
-                            </td>
-                            <td>
-                              <strong>{run.classroomSubject}</strong>
-                              <br />
-                              <small className="text-muted">{run.classroomName}</small>
-                            </td>
-                            <td>{run.programName}</td>
-                            <td className="text-center">
-                              <Badge color="primary">{run.totalStudents}</Badge>
-                            </td>
-                            <td className="text-center">
-                              <Badge color={getGradeColor(run.statistics.averageGrade)}>
-                                {run.statistics.averageGrade.toFixed(1)}%
-                              </Badge>
-                            </td>
-                            <td className="text-center">
-                              <Badge color="success">
-                                {passedStudents}/{run.totalStudents}
-                              </Badge>
-                              <br />
-                              <small className="text-muted">
-                                {run.statistics.passRate.toFixed(0)}%
-                              </small>
-                            </td>
-                            <td>
-                              <small>
-                                {new Date(run.endDate).toLocaleDateString('es-ES', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </small>
-                            </td>
-                            <td className="text-center">
-                              <Button
-                                color="primary"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedRun(run);
-                                  setRunDetailsModal(true);
-                                }}
-                              >
-                                <i className="bi bi-eye"></i>
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </Table>
-                )}
-
-                {/* Summary Stats */}
-                {teacherRuns.length > 0 && (
-                  <Card className="bg-light mt-3">
-                    <CardBody>
-                      <Row className="text-center">
-                        <Col md={3}>
-                          <h5 className="mb-0">{teacherRuns.length}</h5>
-                          <small className="text-muted">Total Ejecuciones</small>
-                        </Col>
-                        <Col md={3}>
-                          <h5 className="mb-0">
-                            {teacherRuns.reduce((sum, r) => sum + r.totalStudents, 0)}
-                          </h5>
-                          <small className="text-muted">Estudiantes Enseñados</small>
-                        </Col>
-                        <Col md={3}>
-                          <h5 className="mb-0">
-                            {(teacherRuns.reduce((sum, r) => sum + r.statistics.averageGrade, 0) / teacherRuns.length).toFixed(1)}%
-                          </h5>
-                          <small className="text-muted">Promedio Histórico</small>
-                        </Col>
-                        <Col md={3}>
-                          <h5 className="mb-0">
-                            {(teacherRuns.reduce((sum, r) => sum + r.statistics.passRate, 0) / teacherRuns.length).toFixed(0)}%
-                          </h5>
-                          <small className="text-muted">Tasa Aprobación</small>
-                        </Col>
-                      </Row>
-                    </CardBody>
-                  </Card>
-                )}
-              </CardBody>
-            </Card>
-          </TabPane>
-        )}
-
-        {/* Enrolled Classes Tab */}
-        {(profile.role === 'student' || enrolledClassrooms.length > 0) && (
-          <TabPane tabId="enrolled">
-            <Row>
-              {enrolledClassrooms.length === 0 ? (
-                <Col>
-                  <Alert color="info">
-                    <i className="bi bi-info-circle me-2"></i>
-                    No está inscrito en ninguna clase actualmente
-                  </Alert>
-                </Col>
-              ) : (
-                enrolledClassrooms.map(classroom => {
-                  const evaluation = evaluations.find(e => e.classroomId === classroom.id);
                   return (
-                    <Col md={6} key={classroom.id} className="mb-3">
-                      <Card className="h-100">
-                        <CardHeader className="bg-primary text-white">
-                          <h6 className="mb-0">{classroom.subject}</h6>
-                        </CardHeader>
-                        <CardBody>
-                          <p className="text-muted mb-2">
-                            <i className="bi bi-person-badge me-2"></i>
-                            Profesor: {classroom.teacherId}
-                          </p>
-                          <p className="text-muted mb-2">
-                            <i className="bi bi-calendar me-2"></i>
-                            Módulo actual: {classroom.currentModule?.name || 'No definido'}
-                          </p>
-
-                          {evaluation && (
-                            <>
-                              <hr />
-                              <Row className="text-center">
-                                <Col>
-                                  <small className="text-muted d-block">Asistencia</small>
-                                  <Badge color="info">
-                                    {evaluation.attendanceRecords?.length || 0}/{classroom.modules.length}
-                                  </Badge>
-                                </Col>
-                                <Col>
-                                  <small className="text-muted d-block">Participación</small>
-                                  <Badge color="info">
-                                    {evaluation.participationRecords?.reduce((sum, r) => sum + r.points, 0) || 0} pts
-                                  </Badge>
-                                </Col>
-                                <Col>
-                                  <small className="text-muted d-block">Promedio</small>
-                                  <Badge color={getGradeColor(evaluation.percentage || 0)}>
-                                    {evaluation.percentage?.toFixed(1) || 0}%
-                                  </Badge>
-                                </Col>
-                              </Row>
-                            </>
-                          )}
-                        </CardBody>
-                      </Card>
-                    </Col>
+                    <button
+                      key={run.id}
+                      onClick={() => {
+                        setSelectedRun(run);
+                        setRunDetailsModal(true);
+                      }}
+                      className="w-full bg-white rounded-xl border border-gray-100 shadow-sm p-3 text-left active:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono">
+                              #{run.runNumber}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900 truncate">
+                              {run.classroomSubject}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400">{run.programName}</div>
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <div className="text-sm font-bold text-gray-700">
+                            {run.statistics.averageGrade.toFixed(0)}%
+                          </div>
+                          <div className="text-[10px] text-gray-400">
+                            {passedStudents}/{run.totalStudents}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
                   );
-                })
-              )}
-            </Row>
-          </TabPane>
-        )}
+                })}
+              </div>
+            </SectionHeader>
+          )}
 
-        {/* History Tab */}
-        <TabPane tabId="history">
-          {/* Combine student and teacher history */}
+        {/* History */}
+        <SectionHeader
+          icon="bi-clock-history"
+          title="Historial"
+          badge={
+            (profile.completedClassrooms?.length || 0) + (profile.taughtClassrooms?.length || 0)
+          }
+          defaultOpen={false}
+        >
           {(() => {
             const studentHistory = profile.completedClassrooms || [];
             const teacherHistory = profile.taughtClassrooms || [];
             const combinedHistory = [...studentHistory, ...teacherHistory].sort(
-              (a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()
+              (a, b) =>
+                new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()
             );
 
-            return combinedHistory.length > 0 ? (
-              <Card>
-                <CardBody>
-                  <Table responsive hover>
-                    <thead>
-                      <tr>
-                        <th>Clase</th>
-                        <th>Programa</th>
-                        <th>Rol</th>
-                        <th>Fecha Inicio</th>
-                        <th>Fecha Fin</th>
-                        <th className="text-center">Calificación</th>
-                        <th className="text-center">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {combinedHistory.map((history: IClassroomHistory, index) => (
-                        <tr key={`${history.classroomId}-${history.role}-${index}`}>
-                          <td>{history.classroomName}</td>
-                          <td>{history.programName}</td>
-                          <td>
-                            <Badge color={history.role === 'teacher' ? 'info' : 'primary'}>
-                              {history.role === 'teacher' ? 'Profesor' : 'Estudiante'}
-                            </Badge>
-                          </td>
-                          <td>
-                            {new Date(history.enrollmentDate).toLocaleDateString('es-ES')}
-                          </td>
-                          <td>
-                            {new Date(history.completionDate).toLocaleDateString('es-ES')}
-                          </td>
-                          <td className="text-center">
-                            {history.role === 'student' && history.finalGrade !== undefined ? (
-                              <Badge color={getGradeColor(history.finalGrade)}>
-                                {history.finalGrade.toFixed(1)}%
-                              </Badge>
-                            ) : (
-                              <span className="text-muted">N/A</span>
-                            )}
-                          </td>
-                          <td className="text-center">
-                            <Badge color={
-                              history.status === 'completed' ? 'success' :
-                                history.status === 'dropped' ? 'warning' : 'danger'
-                            }>
-                              {history.status === 'completed' ? 'Completado' :
-                                history.status === 'dropped' ? 'Abandonado' : 'Reprobado'}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </CardBody>
-              </Card>
-            ) : (
-              <Alert color="info">
-                <i className="bi bi-info-circle me-2"></i>
-                No hay clases completadas en el historial
-              </Alert>
+            if (combinedHistory.length === 0) {
+              return (
+                <div className="text-center py-4">
+                  <p className="text-gray-400 text-sm">No hay historial</p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="relative ml-3">
+                <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
+                {combinedHistory.map((history, index) => (
+                  <div
+                    key={`${history.classroomId}-${history.role}-${index}`}
+                    className="relative flex items-start gap-3 pb-4 last:pb-0"
+                  >
+                    <div
+                      className={`relative z-10 w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 ${
+                        history.status === 'completed'
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : history.status === 'dropped'
+                          ? 'bg-amber-500 border-amber-500'
+                          : 'bg-red-500 border-red-500'
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {history.classroomName}
+                        </span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                            history.role === 'teacher'
+                              ? 'bg-blue-50 text-blue-600'
+                              : 'bg-indigo-50 text-indigo-600'
+                          }`}
+                        >
+                          {history.role === 'teacher' ? 'Prof.' : 'Est.'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">
+                        {history.programName} ·{' '}
+                        {new Date(history.completionDate).toLocaleDateString('es-ES', {
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </div>
+                      {history.role === 'student' && history.finalGrade !== undefined && (
+                        <div className="mt-1">
+                          <GradeRing value={history.finalGrade} size={28} strokeWidth={2.5} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             );
           })()}
-        </TabPane>
+        </SectionHeader>
 
-        {/* Programs Progress Tab */}
-        <TabPane tabId="programs">
-          <Card>
-            <CardHeader>
-              <h5 className="mb-0">
-                <i className="bi bi-graph-up me-2"></i>
-                Progreso en Programas
-              </h5>
-            </CardHeader>
-            <CardBody>
-              <ProgramsProgressTab
-                user={profile}
-                showDetails={true}
-                compact={false}
-              />
-            </CardBody>
-          </Card>
-        </TabPane>
-      </TabContent>
+        {/* Documents */}
+        <SectionHeader icon="bi-folder2-open" title="Documentos" defaultOpen={false}>
+          <UserDocumentsSection documents={profile.documents || []} canManage={false} />
+        </SectionHeader>
+
+        {/* Programs Progress */}
+        <SectionHeader icon="bi-graph-up" title="Progreso en Programas" defaultOpen={false}>
+          <ProgramsProgressTab user={profile} showDetails={true} compact={false} />
+        </SectionHeader>
+      </div>
+
+      {/* Profile Share Card (off-screen) */}
+      {profile && <ProfileShareCard ref={shareCardRef} user={profile} stats={shareStats} />}
+
+      {/* Edit Profile Bottom Drawer */}
+      <BottomDrawer
+        isOpen={editDrawer}
+        onClose={handleCancelEdit}
+        title="Editar Perfil"
+        height="full"
+      >
+        <div className="p-4">
+          <Form onSubmit={handleSubmit(handleProfileSave)}>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <FormGroup>
+                  <Label className="text-xs text-gray-500">Nombre</Label>
+                  <Input {...firstNameField} innerRef={firstNameRef} invalid={!!errors.firstName} />
+                  <FormFeedback>{errors.firstName?.message}</FormFeedback>
+                </FormGroup>
+                <FormGroup>
+                  <Label className="text-xs text-gray-500">Apellido</Label>
+                  <Input {...lastNameField} innerRef={lastNameRef} invalid={!!errors.lastName} />
+                  <FormFeedback>{errors.lastName?.message}</FormFeedback>
+                </FormGroup>
+              </div>
+
+              <FormGroup>
+                <Label className="text-xs text-gray-500">Teléfono</Label>
+                <Input {...phoneField} innerRef={phoneRef} invalid={!!errors.phone} />
+                <FormFeedback>{errors.phone?.message}</FormFeedback>
+              </FormGroup>
+
+              <FormGroup>
+                <Label className="text-xs text-gray-500">Correo Electrónico</Label>
+                <Input {...emailField} innerRef={emailRef} invalid={!!errors.email} />
+                <FormFeedback>{String(errors.email?.message || '')}</FormFeedback>
+              </FormGroup>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormGroup>
+                  <Label className="text-xs text-gray-500">Tipo Documento</Label>
+                  <Input type="select" {...documentTypeField} innerRef={documentTypeRef}>
+                    <option value="">Seleccionar...</option>
+                    {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Input>
+                </FormGroup>
+                <FormGroup>
+                  <Label className="text-xs text-gray-500">Nro. Documento</Label>
+                  <Input
+                    {...documentNumberField}
+                    innerRef={documentNumberRef}
+                    placeholder="000-0000000-0"
+                  />
+                </FormGroup>
+              </div>
+
+              <FormGroup>
+                <Label className="text-xs text-gray-500">País</Label>
+                <Input type="select" {...countryField} innerRef={countryRef}>
+                  <option value="">Seleccionar...</option>
+                  {COUNTRIES.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </Input>
+              </FormGroup>
+
+              <FormGroup>
+                <Label className="text-xs text-gray-500">Iglesia</Label>
+                <Input {...churchNameField} innerRef={churchNameRef} placeholder="Nombre de la iglesia" />
+              </FormGroup>
+
+              <FormGroup>
+                <Label className="text-xs text-gray-500">Nivel Académico</Label>
+                <Input type="select" {...academicLevelField} innerRef={academicLevelRef}>
+                  <option value="">Seleccionar...</option>
+                  {ACADEMIC_LEVEL_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </Input>
+              </FormGroup>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormGroup>
+                  <Label className="text-xs text-gray-500">Pastor</Label>
+                  <Input {...pastorNameField} innerRef={pastorNameRef} placeholder="Nombre" />
+                </FormGroup>
+                <FormGroup>
+                  <Label className="text-xs text-gray-500">Tel. Pastor</Label>
+                  <Input
+                    {...pastorPhoneField}
+                    innerRef={pastorPhoneRef}
+                    invalid={!!errors.pastorPhone}
+                    placeholder="Teléfono"
+                  />
+                  <FormFeedback>{errors.pastorPhone?.message}</FormFeedback>
+                </FormGroup>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6 pb-4">
+              <Button color="secondary" className="flex-1" onClick={handleCancelEdit}>
+                Cancelar
+              </Button>
+              <Button
+                color="primary"
+                className="flex-1"
+                type="submit"
+                disabled={savingProfile || !isDirty}
+              >
+                {savingProfile ? <Spinner size="sm" className="me-1" /> : null}
+                Guardar
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </BottomDrawer>
 
       {/* Password Change Modal */}
       <Modal isOpen={passwordModal} toggle={() => setPasswordModal(false)}>
-        <ModalHeader toggle={() => setPasswordModal(false)}>
-          Cambiar Contraseña
-        </ModalHeader>
+        <ModalHeader toggle={() => setPasswordModal(false)}>Cambiar Contraseña</ModalHeader>
         <ModalBody>
           <Form>
             <FormGroup>
@@ -1251,23 +1035,14 @@ const UserProfile: React.FC = () => {
         </ModalHeader>
         <ModalBody className="text-center">
           {photoPreview && (
-            <img
-              src={photoPreview}
-              alt="Preview"
-              className="img-fluid rounded"
-              style={{ maxHeight: '300px' }}
-            />
+            <img src={photoPreview} alt="Preview" className="img-fluid rounded" style={{ maxHeight: '300px' }} />
           )}
         </ModalBody>
         <ModalFooter>
           <Button color="secondary" onClick={() => setPhotoModal(false)}>
             Cancelar
           </Button>
-          <Button
-            color="primary"
-            onClick={handlePhotoUpload}
-            disabled={uploadingPhoto}
-          >
+          <Button color="primary" onClick={handlePhotoUpload} disabled={uploadingPhoto}>
             {uploadingPhoto ? (
               <>
                 <Spinner size="sm" className="me-2" />
@@ -1285,7 +1060,7 @@ const UserProfile: React.FC = () => {
         onClose={() => setRunDetailsModal(false)}
         run={selectedRun}
       />
-    </Container>
+    </div>
   );
 };
 

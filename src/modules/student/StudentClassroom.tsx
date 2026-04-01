@@ -1,87 +1,66 @@
-// Complete Student Classroom View with all features
+// Student Classroom View — Mobile-First Redesign
+// Single page with sections: step timeline, donut grades, avatar stack
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Badge,
-  Progress,
-  Alert,
-  Spinner,
-  ListGroup,
-  ListGroupItem,
-  Table,
-  Nav,
-  NavItem,
-  NavLink,
-  TabContent,
-  TabPane
-} from 'reactstrap';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { UserService } from '../../services/user/user.service';
 import { IClassroom, IStudentEvaluation, IUser, IModule } from '../../models';
 import { toast } from 'react-toastify';
+import GradeRing from '../../components/student/GradeRing';
+import SectionHeader from '../../components/student/SectionHeader';
+import { BottomDrawer } from '../../components/mobile/BottomDrawer';
 
 const StudentClassroom: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const [classroom, setClassroom] = useState<IClassroom | null>(null);
   const [evaluation, setEvaluation] = useState<IStudentEvaluation | null>(null);
   const [teacher, setTeacher] = useState<IUser | null>(null);
   const [classmates, setClassmates] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [showClassmates, setShowClassmates] = useState(false);
 
   const loadClassroomData = useCallback(async () => {
     if (!id || !user) return;
-    
+
     try {
       setLoading(true);
-      
-      // Load classroom
+
       const classroomData = await ClassroomService.getClassroomById(id);
       if (!classroomData) {
         toast.error('Clase no encontrada');
         navigate('/student/dashboard');
         return;
       }
-      
-      // Check if student is enrolled
+
       if (!classroomData.studentIds?.includes(user.id)) {
         toast.error('No estás inscrito en esta clase');
         navigate('/student/dashboard');
         return;
       }
-      
+
       setClassroom(classroomData);
-      
-      // Load teacher
-      if (classroomData.teacherId) {
-        const teacherData = await UserService.getUserById(classroomData.teacherId);
-        setTeacher(teacherData);
-      }
-      
-      // Load evaluation
-      const evaluationData = await EvaluationService.getStudentClassroomEvaluation(user.id, id);
+
+      const [teacherData, evaluationData] = await Promise.all([
+        classroomData.teacherId ? UserService.getUserById(classroomData.teacherId) : null,
+        EvaluationService.getStudentClassroomEvaluation(user.id, id),
+      ]);
+
+      setTeacher(teacherData);
       setEvaluation(evaluationData);
-      
-      // Load classmates
+
       if (classroomData.studentIds && classroomData.studentIds.length > 0) {
         const classmatePromises = classroomData.studentIds
-          .filter(studentId => studentId !== user.id)
-          .map(studentId => UserService.getUserById(studentId));
+          .filter((studentId) => studentId !== user.id)
+          .map((studentId) => UserService.getUserById(studentId));
         const classmateResults = await Promise.all(classmatePromises);
-        setClassmates(classmateResults.filter(c => c !== null) as IUser[]);
+        setClassmates(classmateResults.filter((c) => c !== null) as IUser[]);
       }
     } catch (error) {
       console.error('Error loading classroom data:', error);
@@ -103,19 +82,9 @@ const StudentClassroom: React.FC = () => {
     return 'upcoming';
   };
 
-  const getModuleColor = (status: string): string => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'current': return 'primary';
-      default: return 'secondary';
-    }
-  };
-
   const getAttendanceRate = (): number => {
-    if (!evaluation?.attendanceRecords || evaluation.attendanceRecords.length === 0) {
-      return 0;
-    }
-    const present = evaluation.attendanceRecords.filter(r => r.isPresent).length;
+    if (!evaluation?.attendanceRecords || evaluation.attendanceRecords.length === 0) return 0;
+    const present = evaluation.attendanceRecords.filter((r) => r.isPresent).length;
     return (present / evaluation.attendanceRecords.length) * 100;
   };
 
@@ -126,551 +95,582 @@ const StudentClassroom: React.FC = () => {
 
   const getOverallProgress = (): number => {
     if (!classroom) return 0;
-    const completedModules = classroom.modules.filter(m => m.isCompleted).length;
+    const completedModules = classroom.modules.filter((m) => m.isCompleted).length;
     return (completedModules / classroom.modules.length) * 100;
   };
 
   const getGradeBreakdown = () => {
-    if (!evaluation || !classroom?.evaluationCriteria) {
-      return [];
-    }
-    
+    if (!evaluation || !classroom?.evaluationCriteria) return [];
+
     const criteria = classroom.evaluationCriteria;
     const scores = evaluation.scores;
-    
+
     return [
       {
         name: 'Cuestionarios',
         points: criteria.questionnaires,
         earned: scores.questionnaires,
-        percentage: criteria.questionnaires > 0 
-          ? (scores.questionnaires / criteria.questionnaires) * 100 
-          : 0
+        percentage:
+          criteria.questionnaires > 0
+            ? (scores.questionnaires / criteria.questionnaires) * 100
+            : 0,
+        icon: 'bi-journal-text',
+        color: 'blue',
       },
       {
         name: 'Asistencia',
         points: criteria.attendance,
         earned: scores.attendance,
-        percentage: criteria.attendance > 0 
-          ? (scores.attendance / criteria.attendance) * 100 
-          : 0
+        percentage:
+          criteria.attendance > 0 ? (scores.attendance / criteria.attendance) * 100 : 0,
+        icon: 'bi-calendar-check',
+        color: 'green',
       },
       {
         name: 'Participación',
         points: criteria.participation,
         earned: scores.participation,
-        percentage: criteria.participation > 0 
-          ? (scores.participation / criteria.participation) * 100 
-          : 0
+        percentage:
+          criteria.participation > 0
+            ? (scores.participation / criteria.participation) * 100
+            : 0,
+        icon: 'bi-hand-thumbs-up',
+        color: 'purple',
       },
       {
         name: 'Examen Final',
         points: criteria.finalExam,
         earned: scores.finalExam,
-        percentage: criteria.finalExam > 0 
-          ? (scores.finalExam / criteria.finalExam) * 100 
-          : 0
+        percentage:
+          criteria.finalExam > 0 ? (scores.finalExam / criteria.finalExam) * 100 : 0,
+        icon: 'bi-file-earmark-text',
+        color: 'amber',
       },
-      ...criteria.customCriteria.map(c => ({
+      ...criteria.customCriteria.map((c) => ({
         name: c.name,
         points: c.points,
-        earned: scores.customScores.find(cs => cs.criterionId === c.id)?.score || 0,
-        percentage: c.points > 0 
-          ? ((scores.customScores.find(cs => cs.criterionId === c.id)?.score || 0) / c.points) * 100 
-          : 0
-      }))
+        earned: scores.customScores.find((cs) => cs.criterionId === c.id)?.score || 0,
+        percentage:
+          c.points > 0
+            ? ((scores.customScores.find((cs) => cs.criterionId === c.id)?.score || 0) /
+                c.points) *
+              100
+            : 0,
+        icon: 'bi-star',
+        color: 'indigo',
+      })),
     ];
+  };
+
+  const barColorMap: Record<string, string> = {
+    blue: 'bg-blue-500',
+    green: 'bg-emerald-500',
+    purple: 'bg-purple-500',
+    amber: 'bg-amber-500',
+    indigo: 'bg-indigo-500',
   };
 
   if (loading) {
     return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="primary" />
-        <p className="mt-3">Cargando clase...</p>
-      </Container>
+      <div className="px-1 py-4 animate-pulse space-y-4">
+        <div className="h-6 w-24 bg-gray-200 rounded" />
+        <div className="h-16 bg-gray-200 rounded-2xl" />
+        <div className="grid grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded-xl" />
+          ))}
+        </div>
+        <div className="h-32 bg-gray-200 rounded-2xl" />
+      </div>
     );
   }
 
   if (!classroom) {
     return (
-      <Container className="py-4">
-        <Alert color="danger">
-          <i className="bi bi-exclamation-triangle me-2"></i>
-          Clase no encontrada
-        </Alert>
-      </Container>
+      <div className="px-4 py-8 text-center">
+        <i className="bi bi-exclamation-triangle text-red-400 text-4xl mb-3 block" />
+        <p className="text-red-600 font-medium">Clase no encontrada</p>
+      </div>
     );
   }
 
   return (
-    <Container className="py-4">
-      {/* Header */}
-      <Row className="mb-4">
-        <Col>
-          <Button
-            color="link"
-            className="p-0 mb-3 text-decoration-none"
-            onClick={() => navigate('/student/dashboard')}
+    <div className="px-1 pb-6 -mx-3 -my-3">
+      {/* Compact Header */}
+      <div className="bg-white border-b border-gray-100 px-4 pt-3 pb-4">
+        <button
+          onClick={() => navigate('/student/dashboard')}
+          className="flex items-center gap-1.5 text-blue-600 text-sm font-medium mb-3 bg-transparent border-0 p-0 active:opacity-70"
+        >
+          <i className="bi bi-arrow-left" />
+          <span>Panel</span>
+        </button>
+
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-gray-900 mb-0.5 truncate">
+              {classroom.subject}
+            </h1>
+            <p className="text-sm text-gray-500 mb-1 truncate">{classroom.name}</p>
+            {teacher && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <i className="bi bi-person-badge" />
+                <span>
+                  {teacher.firstName} {teacher.lastName}
+                </span>
+              </div>
+            )}
+          </div>
+          <span
+            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
+              classroom.isActive
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-gray-100 text-gray-500'
+            }`}
           >
-            <i className="bi bi-arrow-left me-2"></i>
-            Volver al Panel
-          </Button>
-          
-          <div className="d-flex justify-content-between align-items-start">
-            <div>
-              <h2>{classroom.subject}</h2>
-              <p className="text-muted mb-1">{classroom.name}</p>
-              {teacher && (
-                <p className="text-muted mb-0">
-                  <i className="bi bi-person-badge me-2"></i>
-                  Profesor: {teacher.firstName} {teacher.lastName}
-                </p>
-              )}
+            {classroom.isActive ? 'Activa' : 'Inactiva'}
+          </span>
+        </div>
+      </div>
+
+      {/* Quick Stats Strip */}
+      <div className="px-4 py-3">
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            {
+              value: `${evaluation?.percentage?.toFixed(0) || 0}%`,
+              label: 'Nota',
+              color:
+                (evaluation?.percentage || 0) >= 70
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-amber-600 bg-amber-50',
+            },
+            {
+              value: `${getAttendanceRate().toFixed(0)}%`,
+              label: 'Asistencia',
+              color:
+                getAttendanceRate() >= 80
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-amber-600 bg-amber-50',
+            },
+            {
+              value: `${getParticipationPoints()}`,
+              label: 'Particip.',
+              color: 'text-blue-600 bg-blue-50',
+            },
+            {
+              value: `${classroom.currentModule?.weekNumber || 1}/${classroom.modules.length}`,
+              label: 'Módulo',
+              color: 'text-indigo-600 bg-indigo-50',
+            },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className={`${stat.color} rounded-xl p-2.5 text-center`}
+            >
+              <div className="font-bold text-base leading-tight">{stat.value}</div>
+              <div className="text-[10px] opacity-70 mt-0.5">{stat.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-4">
+        {/* Current Module Highlight */}
+        {classroom.currentModule && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 mb-5 text-white"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
+                <i className="bi bi-play-circle text-sm" />
+              </div>
+              <span className="text-white/80 text-xs font-semibold uppercase tracking-wide">
+                Módulo Actual
+              </span>
             </div>
-            <div className="text-end">
-              {classroom.isActive ? (
-                <Badge color="success" className="mb-2">Activa</Badge>
-              ) : (
-                <Badge color="secondary" className="mb-2">Inactiva</Badge>
-              )}
-              {classroom.whatsappGroup && (
-                <div>
-                  <Badge color="success">
-                    <i className="bi bi-whatsapp me-1"></i>
-                    Grupo WhatsApp
-                  </Badge>
+            <h3 className="font-bold text-base mb-1">
+              Semana {classroom.currentModule.weekNumber}
+            </h3>
+            {classroom.currentModule.topics && (
+              <p className="text-white/70 text-xs mb-2 line-clamp-2">
+                {classroom.currentModule.topics.join(', ')}
+              </p>
+            )}
+            <div className="flex items-center justify-between mt-2">
+              <div className="text-white/60 text-xs">
+                <i className="bi bi-calendar-check me-1" />
+                {new Date(classroom.currentModule.date).toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </div>
+              {/* Progress indicator */}
+              <div className="flex items-center gap-1.5">
+                <div className="h-1 w-16 bg-white/20 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white/80 rounded-full"
+                    style={{ width: `${getOverallProgress()}%` }}
+                  />
+                </div>
+                <span className="text-white/60 text-[10px]">
+                  {getOverallProgress().toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Modules — Step Timeline */}
+        <SectionHeader icon="bi-list-task" title="Módulos" badge={classroom.modules.length}>
+          <div className="relative ml-3">
+            {/* Vertical line */}
+            <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
+
+            {classroom.modules.map((module, index) => {
+              const status = getModuleStatus(module);
+              const attendanceRecord = evaluation?.attendanceRecords?.find(
+                (r) => r.moduleId === module.weekNumber.toString()
+              );
+              const participationRecord = evaluation?.participationRecords?.find(
+                (r) => r.moduleId === module.weekNumber.toString()
+              );
+
+              return (
+                <motion.div
+                  key={module.weekNumber}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                  className="relative flex items-start gap-3 pb-4 last:pb-0"
+                >
+                  {/* Dot */}
+                  <div
+                    className={`relative z-10 w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 ${
+                      status === 'completed'
+                        ? 'bg-emerald-500 border-emerald-500'
+                        : status === 'current'
+                        ? 'bg-blue-500 border-blue-500 ring-4 ring-blue-100'
+                        : 'bg-white border-gray-300'
+                    }`}
+                  >
+                    {status === 'completed' && (
+                      <i className="bi bi-check text-white text-[10px] absolute inset-0 flex items-center justify-center" />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 pb-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-sm font-semibold ${
+                            status === 'completed'
+                              ? 'text-gray-900'
+                              : status === 'current'
+                              ? 'text-blue-700'
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          Sem. {module.weekNumber}
+                        </span>
+                        {status === 'current' && (
+                          <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">
+                            EN CURSO
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Attendance/Participation badges */}
+                      {status === 'completed' && (
+                        <div className="flex items-center gap-1">
+                          {attendanceRecord && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                attendanceRecord.isPresent
+                                  ? 'bg-emerald-50 text-emerald-600'
+                                  : 'bg-red-50 text-red-600'
+                              }`}
+                            >
+                              {attendanceRecord.isPresent ? '✓' : '✗'}
+                            </span>
+                          )}
+                          {participationRecord && participationRecord.points > 0 && (
+                            <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-medium">
+                              +{participationRecord.points}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {module.topics && module.topics.length > 0 && (
+                      <p
+                        className={`text-xs mt-0.5 truncate ${
+                          status === 'upcoming' ? 'text-gray-300' : 'text-gray-500'
+                        }`}
+                      >
+                        {module.topics.join(', ')}
+                      </p>
+                    )}
+
+                    <div
+                      className={`text-[11px] mt-0.5 ${
+                        status === 'upcoming' ? 'text-gray-300' : 'text-gray-400'
+                      }`}
+                    >
+                      {new Date(module.date).toLocaleDateString('es-ES', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </SectionHeader>
+
+        {/* Grades — Donut + Breakdown List */}
+        <SectionHeader icon="bi-clipboard-data" title="Calificaciones">
+          {evaluation ? (
+            <div>
+              {/* Central Grade Ring */}
+              <div className="flex flex-col items-center mb-5">
+                <GradeRing
+                  value={evaluation.percentage || 0}
+                  size={80}
+                  strokeWidth={7}
+                />
+                <div className="text-center mt-2">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {evaluation.percentage?.toFixed(1) || 0}%
+                  </div>
+                  <div className="text-xs text-gray-400">Calificación Total</div>
+                </div>
+              </div>
+
+              {/* Breakdown list */}
+              <div className="space-y-3">
+                {getGradeBreakdown().map((item, index) => (
+                  <motion.div
+                    key={item.name}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                      <i className={`bi ${item.icon} text-gray-500 text-sm`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline mb-1">
+                        <span className="text-sm font-medium text-gray-700 truncate">
+                          {item.name}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-2 shrink-0">
+                          {item.earned.toFixed(1)}/{item.points}
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(item.percentage, 100)}%` }}
+                          transition={{ delay: index * 0.04 + 0.2, duration: 0.5 }}
+                          className={`h-full rounded-full ${
+                            barColorMap[item.color] || 'bg-blue-500'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {evaluation.status !== 'evaluated' && (
+                <div className="mt-4 bg-blue-50 rounded-xl p-3 flex items-center gap-2">
+                  <i className="bi bi-info-circle text-blue-500" />
+                  <span className="text-xs text-blue-700">
+                    Calificación en progreso — puede cambiar
+                  </span>
                 </div>
               )}
             </div>
-          </div>
-        </Col>
-      </Row>
+          ) : (
+            <div className="text-center py-6">
+              <i className="bi bi-clipboard text-gray-300 text-3xl mb-2 block" />
+              <p className="text-gray-400 text-sm">No hay calificaciones disponibles</p>
+            </div>
+          )}
+        </SectionHeader>
 
-      {/* Quick Stats */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="border-0 shadow-sm">
-            <CardBody className="text-center">
-              <h4 className="mb-0">
-                <Badge color={evaluation?.percentage && evaluation.percentage >= 70 ? 'success' : 'warning'}>
-                  {evaluation?.percentage?.toFixed(1) || 0}%
-                </Badge>
-              </h4>
-              <small className="text-muted">Calificación Actual</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="border-0 shadow-sm">
-            <CardBody className="text-center">
-              <h4 className="mb-0">
-                <Badge color={getAttendanceRate() >= 80 ? 'success' : 'warning'}>
-                  {getAttendanceRate().toFixed(0)}%
-                </Badge>
-              </h4>
-              <small className="text-muted">Asistencia</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="border-0 shadow-sm">
-            <CardBody className="text-center">
-              <h4 className="mb-0">
-                <Badge color="info">
-                  {getParticipationPoints()} pts
-                </Badge>
-              </h4>
-              <small className="text-muted">Participación</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="border-0 shadow-sm">
-            <CardBody className="text-center">
-              <h4 className="mb-0">
-                <Badge color="primary">
-                  {classroom.currentModule?.weekNumber || 1}/{classroom.modules.length}
-                </Badge>
-              </h4>
-              <small className="text-muted">Módulo Actual</small>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
+        {/* Class Info */}
+        <SectionHeader icon="bi-info-circle" title="Información" defaultOpen={false}>
+          <div className="space-y-3">
+            {classroom.description && (
+              <p className="text-sm text-gray-600">{classroom.description}</p>
+            )}
 
-      {/* Navigation Tabs */}
-      <Nav tabs className="mb-3">
-        <NavItem>
-          <NavLink
-            className={activeTab === 'overview' ? 'active' : ''}
-            onClick={() => setActiveTab('overview')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-house me-2"></i>
-            General
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'modules' ? 'active' : ''}
-            onClick={() => setActiveTab('modules')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-list-task me-2"></i>
-            Módulos
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'grades' ? 'active' : ''}
-            onClick={() => setActiveTab('grades')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-clipboard-data me-2"></i>
-            Calificaciones
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'classmates' ? 'active' : ''}
-            onClick={() => setActiveTab('classmates')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-people me-2"></i>
-            Compañeros
-          </NavLink>
-        </NavItem>
-      </Nav>
-
-      <TabContent activeTab={activeTab}>
-        {/* Overview Tab */}
-        <TabPane tabId="overview">
-          <Row>
-            <Col md={8}>
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <h5 className="mb-0">Información de la Clase</h5>
-                </CardHeader>
-                <CardBody>
-                  {classroom.description && (
-                    <div className="mb-3">
-                      <strong>Descripción:</strong>
-                      <p className="mt-1">{classroom.description}</p>
-                    </div>
-                  )}
-                  
-                  <Row>
-                    <Col md={6}>
-                      <ListGroup flush>
-                        <ListGroupItem className="px-0">
-                          <i className="bi bi-calendar me-2"></i>
-                          <strong>Horario:</strong> {classroom.schedule?.dayOfWeek} {classroom.schedule?.time}
-                        </ListGroupItem>
-                        <ListGroupItem className="px-0">
-                          <i className="bi bi-clock me-2"></i>
-                          <strong>Duración:</strong> {classroom.schedule?.duration} minutos
-                        </ListGroupItem>
-                        {classroom.location && (
-                          <ListGroupItem className="px-0">
-                            <i className="bi bi-geo-alt me-2"></i>
-                            <strong>Ubicación:</strong> {classroom.location}
-                          </ListGroupItem>
-                        )}
-                      </ListGroup>
-                    </Col>
-                    <Col md={6}>
-                      <ListGroup flush>
-                        <ListGroupItem className="px-0">
-                          <i className="bi bi-people me-2"></i>
-                          <strong>Estudiantes:</strong> {classroom.studentIds?.length || 0}
-                        </ListGroupItem>
-                        <ListGroupItem className="px-0">
-                          <i className="bi bi-book me-2"></i>
-                          <strong>Módulos:</strong> {classroom.modules.length}
-                        </ListGroupItem>
-                        <ListGroupItem className="px-0">
-                          <i className="bi bi-trophy me-2"></i>
-                          <strong>Progreso:</strong>
-                          <Progress
-                            value={getOverallProgress()}
-                            color={getOverallProgress() >= 75 ? 'success' : 'warning'}
-                            className="mt-1"
-                          >
-                            {getOverallProgress().toFixed(0)}%
-                          </Progress>
-                        </ListGroupItem>
-                      </ListGroup>
-                    </Col>
-                  </Row>
-                </CardBody>
-              </Card>
-            </Col>
-            
-            <Col md={4}>
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="bg-primary text-white">
-                  <h6 className="mb-0">Módulo Actual</h6>
-                </CardHeader>
-                <CardBody>
-                  {classroom.currentModule ? (
-                    <>
-                      <h5>Semana {classroom.currentModule.weekNumber}</h5>
-                      <p className="text-muted">{classroom.currentModule.topics?.join(', ')}</p>
-                      {classroom.currentModule.description && (
-                        <p className="small">{classroom.currentModule.description}</p>
-                      )}
-                      <hr />
-                      <div className="d-flex justify-content-between">
-                        <small>
-                          <i className="bi bi-calendar-check me-1"></i>
-                          Fecha: {new Date(classroom.currentModule.date).toLocaleDateString()}
-                        </small>
-                      </div>
-                    </>
-                  ) : (
-                    <Alert color="info">
-                      No hay módulo activo actualmente
-                    </Alert>
-                  )}
-                </CardBody>
-              </Card>
-            </Col>
-          </Row>
-        </TabPane>
-
-        {/* Modules Tab */}
-        <TabPane tabId="modules">
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <h5 className="mb-0">Módulos del Curso</h5>
-            </CardHeader>
-            <CardBody>
-              <ListGroup>
-                {classroom.modules.map(module => {
-                  const status = getModuleStatus(module);
-                  const attendanceRecord = evaluation?.attendanceRecords?.find(
-                    r => r.moduleId === module.weekNumber.toString()
-                  );
-                  const participationRecord = evaluation?.participationRecords?.find(
-                    r => r.moduleId === module.weekNumber.toString()
-                  );
-                  
-                  return (
-                    <ListGroupItem key={module.weekNumber} className="mb-2">
-                      <div className="d-flex justify-content-between align-items-start">
-                        <div className="flex-grow-1">
-                          <div className="d-flex align-items-center mb-2">
-                            <Badge color={getModuleColor(status)} className="me-2">
-                              Semana {module.weekNumber}
-                            </Badge>
-                            {status === 'current' && (
-                              <Badge color="warning">
-                                <i className="bi bi-play-circle me-1"></i>
-                                En Curso
-                              </Badge>
-                            )}
-                          </div>
-                          <h6 className="mb-1">{module.topics?.join(', ')}</h6>
-                          {module.description && (
-                            <p className="text-muted small mb-2">{module.description}</p>
-                          )}
-                          <small className="text-muted">
-                            <i className="bi bi-calendar me-1"></i>
-                            {new Date(module.date).toLocaleDateString()}
-                          </small>
-                        </div>
-                        
-                        <div className="text-end">
-                          {status === 'completed' && (
-                            <>
-                              <div className="mb-1">
-                                {attendanceRecord?.isPresent ? (
-                                  <Badge color="success">
-                                    <i className="bi bi-check-circle me-1"></i>
-                                    Presente
-                                  </Badge>
-                                ) : (
-                                  <Badge color="danger">
-                                    <i className="bi bi-x-circle me-1"></i>
-                                    Ausente
-                                  </Badge>
-                                )}
-                              </div>
-                              {participationRecord && participationRecord.points > 0 && (
-                                <Badge color="info">
-                                  <i className="bi bi-hand-thumbs-up me-1"></i>
-                                  {participationRecord.points} pts
-                                </Badge>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </ListGroupItem>
-                  );
-                })}
-              </ListGroup>
-            </CardBody>
-          </Card>
-        </TabPane>
-
-        {/* Grades Tab */}
-        <TabPane tabId="grades">
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <h5 className="mb-0">Desglose de Calificaciones</h5>
-            </CardHeader>
-            <CardBody>
-              {evaluation ? (
-                <>
-                  <div className="text-center mb-4">
-                    <h2 className="mb-1">
-                      <Badge color={evaluation.percentage && evaluation.percentage >= 70 ? 'success' : 'warning'}>
-                        {evaluation.percentage?.toFixed(1) || 0}%
-                      </Badge>
-                    </h2>
-                    <p className="text-muted">Calificación Total</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  icon: 'bi-calendar',
+                  label: 'Horario',
+                  value: `${classroom.schedule?.dayOfWeek || ''} ${classroom.schedule?.time || ''}`,
+                },
+                {
+                  icon: 'bi-clock',
+                  label: 'Duración',
+                  value: `${classroom.schedule?.duration || '-'} min`,
+                },
+                {
+                  icon: 'bi-geo-alt',
+                  label: 'Ubicación',
+                  value: classroom.location || 'No definida',
+                },
+                {
+                  icon: 'bi-people',
+                  label: 'Estudiantes',
+                  value: `${classroom.studentIds?.length || 0}`,
+                },
+              ].map((item) => (
+                <div key={item.label} className="bg-gray-50 rounded-xl p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <i className={`bi ${item.icon} text-gray-400 text-xs`} />
+                    <span className="text-[11px] text-gray-400">{item.label}</span>
                   </div>
-                  
-                  <Table hover>
-                    <thead>
-                      <tr>
-                        <th>Criterio</th>
-                        <th className="text-center">Puntos Posibles</th>
-                        <th className="text-center">Puntos Obtenidos</th>
-                        <th className="text-center">Porcentaje</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getGradeBreakdown().map((item, index) => (
-                        <tr key={index}>
-                          <td>{item.name}</td>
-                          <td className="text-center">{item.points}</td>
-                          <td className="text-center">{item.earned.toFixed(1)}</td>
-                          <td className="text-center">
-                            <Progress
-                              value={item.percentage}
-                              color={item.percentage >= 70 ? 'success' : 'warning'}
-                              style={{ height: '10px' }}
-                            />
-                            <small>{item.percentage.toFixed(0)}%</small>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <th>Total</th>
-                        <th className="text-center">100</th>
-                        <th className="text-center">{evaluation.totalScore?.toFixed(1) || 0}</th>
-                        <th className="text-center">
-                          <Badge color={evaluation.percentage && evaluation.percentage >= 70 ? 'success' : 'warning'}>
-                            {evaluation.percentage?.toFixed(1) || 0}%
-                          </Badge>
-                        </th>
-                      </tr>
-                    </tfoot>
-                  </Table>
-                  
-                  {evaluation.status !== 'evaluated' && (
-                    <Alert color="info" className="mt-3">
-                      <i className="bi bi-info-circle me-2"></i>
-                      Esta calificación está en progreso y puede cambiar
-                    </Alert>
-                  )}
-                </>
-              ) : (
-                <Alert color="info">
-                  <i className="bi bi-info-circle me-2"></i>
-                  Aún no hay calificaciones disponibles
-                </Alert>
-              )}
-            </CardBody>
-          </Card>
-        </TabPane>
+                  <div className="text-sm font-medium text-gray-700 truncate">{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SectionHeader>
 
-        {/* Classmates Tab */}
-        <TabPane tabId="classmates">
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="mb-0">Compañeros de Clase</h5>
-                <Badge color="primary">
-                  {classmates.length + 1} estudiantes
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardBody>
-              <ListGroup>
-                {/* Current User */}
-                <ListGroupItem>
-                  <div className="d-flex align-items-center">
-                    {user?.profilePhoto ? (
+        {/* Classmates — Avatar Stack */}
+        <SectionHeader
+          icon="bi-people"
+          title="Compañeros"
+          badge={classmates.length + 1}
+          defaultOpen={false}
+        >
+          <button
+            onClick={() => setShowClassmates(true)}
+            className="w-full flex items-center justify-between bg-gray-50 rounded-xl p-3 border-0 active:bg-gray-100 transition-colors"
+          >
+            {/* Avatar stack */}
+            <div className="flex items-center">
+              <div className="flex -space-x-2">
+                {/* Current user */}
+                <div className="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center z-10">
+                  {user?.profilePhoto ? (
+                    <img src={user.profilePhoto} alt="" className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <i className="bi bi-person-fill text-white text-xs" />
+                  )}
+                </div>
+                {classmates.slice(0, 3).map((mate, i) => (
+                  <div
+                    key={mate.id}
+                    className="w-8 h-8 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center"
+                    style={{ zIndex: 9 - i }}
+                  >
+                    {mate.profilePhoto ? (
                       <img
-                        src={user.profilePhoto}
-                        alt="Profile"
-                        className="rounded-circle me-3"
-                        style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+                        src={mate.profilePhoto}
+                        alt=""
+                        className="w-full h-full rounded-full object-cover"
                       />
                     ) : (
-                      <div
-                        className="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center me-3"
-                        style={{ width: '40px', height: '40px' }}
-                      >
-                        <i className="bi bi-person-fill text-white"></i>
-                      </div>
+                      <span className="text-white text-[10px] font-bold">
+                        {mate.firstName.charAt(0)}
+                      </span>
                     )}
-                    <div>
-                      <strong>{user?.firstName} {user?.lastName}</strong>
-                      <Badge color="primary" className="ms-2">Tú</Badge>
-                      <br />
-                      <small className="text-muted">{user?.email || user?.phone}</small>
-                    </div>
                   </div>
-                </ListGroupItem>
-                
-                {/* Classmates */}
-                {classmates.map(classmate => (
-                  <ListGroupItem key={classmate.id}>
-                    <div className="d-flex align-items-center">
-                      {classmate.profilePhoto ? (
-                        <img
-                          src={classmate.profilePhoto}
-                          alt={classmate.firstName}
-                          className="rounded-circle me-3"
-                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div
-                          className="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-3"
-                          style={{ width: '40px', height: '40px' }}
-                        >
-                          <i className="bi bi-person-fill text-white"></i>
-                        </div>
-                      )}
-                      <div>
-                        <strong>{classmate.firstName} {classmate.lastName}</strong>
-                        <br />
-                        <small className="text-muted">{classmate.email || classmate.phone}</small>
-                      </div>
-                    </div>
-                  </ListGroupItem>
                 ))}
-                
-                {classmates.length === 0 && (
-                  <ListGroupItem>
-                    <Alert color="info" className="mb-0">
-                      <i className="bi bi-info-circle me-2"></i>
-                      Eres el único estudiante en esta clase actualmente
-                    </Alert>
-                  </ListGroupItem>
+                {classmates.length > 3 && (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center z-0">
+                    <span className="text-gray-500 text-[10px] font-bold">
+                      +{classmates.length - 3}
+                    </span>
+                  </div>
                 )}
-              </ListGroup>
-            </CardBody>
-          </Card>
-        </TabPane>
-      </TabContent>
-    </Container>
+              </div>
+              <span className="text-sm text-gray-600 ml-3">
+                {classmates.length + 1} estudiantes
+              </span>
+            </div>
+            <i className="bi bi-chevron-right text-gray-400" />
+          </button>
+        </SectionHeader>
+      </div>
+
+      {/* Classmates Bottom Drawer */}
+      <BottomDrawer
+        isOpen={showClassmates}
+        onClose={() => setShowClassmates(false)}
+        title="Compañeros de Clase"
+      >
+        <div className="p-4 space-y-3">
+          {/* Current user */}
+          <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-xl">
+            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+              {user?.profilePhoto ? (
+                <img src={user.profilePhoto} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <i className="bi bi-person-fill text-white" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-gray-900">
+                {user?.firstName} {user?.lastName}
+              </div>
+              <div className="text-xs text-gray-500">{user?.email || user?.phone}</div>
+            </div>
+            <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-semibold">
+              Tú
+            </span>
+          </div>
+
+          {classmates.map((classmate) => (
+            <div key={classmate.id} className="flex items-center gap-3 p-2">
+              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                {classmate.profilePhoto ? (
+                  <img
+                    src={classmate.profilePhoto}
+                    alt=""
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-500 text-sm font-bold">
+                    {classmate.firstName.charAt(0)}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900 truncate">
+                  {classmate.firstName} {classmate.lastName}
+                </div>
+                <div className="text-xs text-gray-400 truncate">
+                  {classmate.email || classmate.phone}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {classmates.length === 0 && (
+            <div className="text-center py-6">
+              <i className="bi bi-people text-gray-300 text-3xl mb-2 block" />
+              <p className="text-gray-400 text-sm">Eres el único estudiante</p>
+            </div>
+          )}
+        </div>
+      </BottomDrawer>
+    </div>
   );
 };
 

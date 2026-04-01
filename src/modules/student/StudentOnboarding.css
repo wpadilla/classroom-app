@@ -1,0 +1,269 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --onboarding-ink: #14324a;
+  --onboarding-ink-soft: #4d697f;
+  --onboarding-surface: rgba(255, 251, 245, 0.93);
+  --onboarding-border: rgba(20, 50, 74, 0.12);
+  --onboarding-accent: #be7a2f;
+  --onboarding-accent-soft: rgba(243, 223, 192, 0.56);
+  --onboarding-success: #45654b;
+  --onboarding-shadow: 0 18px 50px rgba(20, 50, 74, 0.12);
+}
+
+.student-onboarding-page {
+  @apply min-h-full flex flex-col justify-between;
+  position: fixed;
+  top:0;
+  left: 0;
+  width: 100dvw;
+  height: 100dvh;
+  z-index: 99999999999999;
+  overflow-y: auto;
+  font-family: 'Manrope', sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(190, 122, 47, 0.18), transparent 32%),
+    linear-gradient(180deg, #f7f0e4 0%, #f2eee8 45%, #eef3f6 100%);
+}
+
+.student-onboarding-shell {
+  @apply relative overflow-hidden overflow-y-auto border px-4 py-4 md:px-5 md:py-5 !h-full !max-h-[calc(100vh-66px)];
+  border-color: var(--onboarding-border);
+  background: var(--onboarding-surface);
+  box-shadow: var(--onboarding-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.student-onboarding-shell::before {
+  @apply absolute left-0 top-0 h-[5px] w-full;
+  content: '';
+  background: linear-gradient(90deg, var(--onboarding-accent), #d5a25d, #8ba3b3);
+}
+
+.student-onboarding-hero {
+  @apply mb-4 grid gap-2;
+}
+
+.student-onboarding-hero__eyebrow,
+.student-onboarding-step-card__eyebrow,
+.student-onboarding-banner__eyebrow {
+  @apply mb-1 text-[11px] font-extrabold uppercase tracking-[0.18em];
+  color: var(--onboarding-accent);
+}
+
+.student-onboarding-hero__title {
+  @apply mb-0 text-[1.7rem] leading-none md:text-[2.2rem];
+  font-family: 'Fraunces', serif;
+  color: var(--onboarding-ink);
+}
+
+.student-onboarding-hero__text,
+.student-onboarding-step-card__text,
+.student-onboarding-choice__subtitle,
+.student-onboarding-choice__detail,
+.student-onboarding-step-label,
+.student-onboarding-review-card__content {
+  @apply text-sm leading-5;
+  color: var(--onboarding-ink-soft);
+}
+
+.student-onboarding-metric {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold;
+  background: rgba(20, 50, 74, 0.06);
+  color: var(--onboarding-ink);
+}
+
+.student-onboarding-progress {
+  @apply mb-4;
+}
+
+.student-onboarding-progress__bar {
+  @apply h-[9px] overflow-hidden rounded-full;
+  background: rgba(20, 50, 74, 0.08);
+}
+
+.student-onboarding-progress__fill {
+  @apply h-full rounded-full;
+  background: linear-gradient(90deg, var(--onboarding-accent), #d9ab6b 55%, #7291a6);
+}
+
+.student-onboarding-steps {
+  @apply mt-3 flex gap-2 overflow-x-auto pb-1 scroll-smooth;
+}
+
+.student-onboarding-step-pill {
+  @apply shrink-0 rounded-2xl border bg-white/80 px-3 py-3 text-left;
+  min-width: 132px;
+  border-color: var(--onboarding-border);
+  color: var(--onboarding-ink-soft);
+}
+
+.student-onboarding-step-pill.is-active {
+  border-color: rgba(190, 122, 47, 0.3);
+  background: linear-gradient(135deg, rgba(190, 122, 47, 0.14), rgba(255, 255, 255, 0.96));
+  color: var(--onboarding-ink);
+}
+
+.student-onboarding-step-pill__index {
+  @apply mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold;
+  background: rgba(20, 50, 74, 0.08);
+}
+
+.student-onboarding-step-pill.is-active .student-onboarding-step-pill__index {
+  background: var(--onboarding-accent);
+  color: #fff;
+}
+
+.student-onboarding-step-layout,
+.student-onboarding-review-grid {
+  @apply grid gap-3;
+}
+
+.student-onboarding-step-card,
+.student-onboarding-review-card {
+  @apply rounded-[22px] border bg-white/80 p-4;
+  border-color: var(--onboarding-border);
+}
+
+.student-onboarding-step-card__header {
+  @apply mb-3 flex items-start justify-between gap-3;
+}
+
+.student-onboarding-step-card__title,
+.student-onboarding-review-card__title {
+  @apply mb-1 text-base font-bold;
+  color: var(--onboarding-ink);
+}
+
+.student-onboarding-choice-grid {
+  @apply grid gap-3;
+}
+
+.student-onboarding-choice {
+  @apply relative w-full rounded-[18px] border bg-white px-4 py-4 text-left transition duration-200;
+  border-color: rgba(20, 50, 74, 0.12);
+}
+
+.student-onboarding-choice:hover {
+  @apply -translate-y-[1px];
+  border-color: rgba(190, 122, 47, 0.35);
+  box-shadow: 0 12px 26px rgba(20, 50, 74, 0.08);
+}
+
+.student-onboarding-choice.is-selected {
+  border-color: rgba(190, 122, 47, 0.42);
+  background: linear-gradient(135deg, var(--onboarding-accent-soft), rgba(255, 255, 255, 0.98));
+}
+
+.student-onboarding-choice__indicator {
+  @apply absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full border text-[11px];
+  border-color: rgba(20, 50, 74, 0.2);
+  color: transparent;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.student-onboarding-choice__indicator.is-active {
+  border-color: var(--onboarding-accent);
+  background: var(--onboarding-accent);
+  color: #fff;
+}
+
+.student-onboarding-choice__meta {
+  @apply mb-3 flex flex-wrap gap-2 pr-8;
+}
+
+.student-onboarding-choice__pill {
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold;
+  background: rgba(20, 50, 74, 0.08);
+  color: var(--onboarding-ink);
+}
+
+.student-onboarding-choice__pill.success {
+  background: rgba(69, 101, 75, 0.12);
+  color: var(--onboarding-success);
+}
+
+.student-onboarding-choice__pill.muted {
+  color: var(--onboarding-ink-soft);
+}
+
+.student-onboarding-choice__title {
+  @apply mb-1 pr-8 text-sm font-semibold;
+  color: var(--onboarding-ink);
+}
+
+.student-onboarding-empty {
+  @apply flex items-start gap-3 rounded-2xl px-4 py-4 text-sm leading-5;
+  background: rgba(20, 50, 74, 0.06);
+  color: var(--onboarding-ink);
+}
+
+.student-onboarding-error {
+  @apply text-xs font-bold;
+  color: #9f2d20;
+}
+
+.student-onboarding-review-card__content {
+  @apply mb-0 whitespace-pre-line;
+}
+
+.student-onboarding-footer {
+  @apply sticky bottom-0 z-20 border-t px-0 !py-3;
+  margin-left: -1rem;
+  margin-right: -1rem;
+  background: #fefbf4;
+  border-color: rgba(20, 50, 74, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.student-onboarding-footer__actions {
+  @apply mx-4 flex items-center gap-2;
+}
+
+.student-onboarding-footer .btn {
+  @apply min-h-[44px] flex-1 rounded-2xl px-4 text-sm font-bold;
+}
+
+.student-onboarding-footer__ghost {
+  @apply invisible pointer-events-none;
+}
+
+.student-onboarding-banner {
+  @apply fixed left-0 right-0 z-[1035] px-3 pt-2;
+  top: 60px;
+}
+
+.student-onboarding-banner__content {
+  @apply mx-auto flex max-w-[1320px] items-center justify-between gap-3 rounded-[20px] px-4 py-3;
+  background: linear-gradient(135deg, rgba(20, 50, 74, 0.97), rgba(39, 77, 110, 0.96));
+  box-shadow: 0 14px 30px rgba(20, 50, 74, 0.24);
+}
+
+.student-onboarding-banner__title {
+  @apply mb-0 text-sm font-semibold text-white;
+}
+
+.student-onboarding-banner__button {
+  @apply shrink-0 rounded-full px-4 text-xs font-extrabold;
+  color: var(--onboarding-ink) !important;
+}
+
+.student-onboarding-loading {
+  @apply grid min-h-[calc(100vh-140px)] place-items-center;
+}
+
+@media (min-width: 768px) {
+  .student-onboarding-choice-grid,
+  .student-onboarding-review-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-onboarding-footer {
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+  }
+
+  .student-onboarding-footer__actions {
+    @apply mx-5;
+  }
+}

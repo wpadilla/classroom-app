@@ -21,6 +21,10 @@ export interface IClassroomHistory {
   status: 'completed' | 'dropped' | 'failed';
 }
 
+export interface IUserOnceState {
+  onboarding?: boolean;
+}
+
 export interface IUserDocument {
   id: string;
   name: string;
@@ -69,6 +73,7 @@ export interface IUser {
   pastor?: IContact;
   academicLevel?: AcademicLevel;
   enrollmentType?: EnrollmentType;
+  once?: IUserOnceState;
 
   // User documents (uploaded files)
   documents?: IUserDocument[];

@@ -24,6 +24,7 @@ import { EvaluationService } from '../../services/evaluation/evaluation.service'
 import { IClassroom, IUser, IStudentEvaluation } from '../../models';
 import { toast } from 'react-toastify';
 import PWAInstallPrompt from '../../components/common/PWAInstallPrompt';
+import ProgramEnrollmentCampaigns from '../../components/programs/ProgramEnrollmentCampaigns';
 
 const TeacherDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -168,6 +169,10 @@ const TeacherDashboard: React.FC = () => {
           </p>
         </Col>
       </Row>
+
+      {user?.id && (
+        <ProgramEnrollmentCampaigns userId={user.id} audience="teacher" />
+      )}
 
       {/* Statistics Cards */}
       <Row className="mb-4">

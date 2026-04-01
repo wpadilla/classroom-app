@@ -39,6 +39,7 @@ import BulkOperationsToolbar from './components/BulkOperationsToolbar';
 import UserDetailModal from './components/UserDetailModal';
 import StudentImporter from './components/StudentImporter';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
+import StudentEnrollmentManagerModal from '../../components/enrollment/StudentEnrollmentManagerModal';
 
 const UserManagement: React.FC = () => {
   // State
@@ -50,7 +51,6 @@ const UserManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<UserRole | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [programFilter, setProgramFilter] = useState<string>('');
-
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -61,7 +61,6 @@ const UserManagement: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<IUser | null>(null);
   const [enrollModal, setEnrollModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
-  const [selectedClassrooms, setSelectedClassrooms] = useState<string[]>([]);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailUser, setDetailUser] = useState<IUser | null>(null);
   const [showImporter, setShowImporter] = useState(false);
@@ -242,7 +241,8 @@ const UserManagement: React.FC = () => {
           enrolledClassrooms: [],
           completedClassrooms: [],
           teachingClassrooms: [],
-          taughtClassrooms: []
+          taughtClassrooms: [],
+          once: formData.role === 'student' ? { onboarding: false } : undefined,
         });
         toast.success('Usuario creado exitosamente');
       }
@@ -294,37 +294,12 @@ const UserManagement: React.FC = () => {
 
   const handleOpenEnrollModal = (user: IUser) => {
     setSelectedUser(user);
-    setSelectedClassrooms(user.enrolledClassrooms || []);
     setEnrollModal(true);
   };
 
-  const handleSaveEnrollment = async () => {
-    if (!selectedUser) return;
-
-    try {
-      // Get current enrollments
-      const currentEnrollments = selectedUser.enrolledClassrooms || [];
-
-      // Find classrooms to add and remove
-      const toAdd = selectedClassrooms.filter(id => !currentEnrollments.includes(id));
-      const toRemove = currentEnrollments.filter(id => !selectedClassrooms.includes(id));
-
-      // Process enrollments
-      for (const classroomId of toAdd) {
-        await ClassroomService.addStudentToClassroom(classroomId, selectedUser.id);
-      }
-
-      for (const classroomId of toRemove) {
-        await ClassroomService.removeStudentFromClassroom(classroomId, selectedUser.id);
-      }
-
-      toast.success('Inscripciones actualizadas exitosamente');
-      setEnrollModal(false);
-      await loadData();
-    } catch (error) {
-      console.error('Error updating enrollments:', error);
-      toast.error('Error al actualizar inscripciones');
-    }
+  const handleCloseEnrollModal = () => {
+    setEnrollModal(false);
+    setSelectedUser(null);
   };
 
   const getUserStats = () => {
@@ -782,50 +757,26 @@ const UserManagement: React.FC = () => {
         </ModalFooter>
       </Modal>
 
-      {/* Enrollment Modal */}
-      <Modal isOpen={enrollModal} toggle={() => setEnrollModal(false)} size="lg">
-        <ModalHeader toggle={() => setEnrollModal(false)}>
-          Gestionar Inscripciones - {selectedUser?.firstName} {selectedUser?.lastName}
-        </ModalHeader>
-        <ModalBody>
-          <Alert color="info">
-            <i className="bi bi-info-circle me-2"></i>
-            Seleccione las clases en las que desea inscribir al estudiante
-          </Alert>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {classrooms.map(classroom => (
-              <FormGroup check key={classroom.id}>
-                <Input
-                  type="checkbox"
-                  id={`classroom-${classroom.id}`}
-                  checked={selectedClassrooms.includes(classroom.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedClassrooms([...selectedClassrooms, classroom.id]);
-                    } else {
-                      setSelectedClassrooms(selectedClassrooms.filter(id => id !== classroom.id));
-                    }
-                  }}
-                />
-                <Label check for={`classroom-${classroom.id}`}>
-                  <strong>{classroom.subject}</strong> - {classroom.name}
-                  {!classroom.isActive && (
-                    <Badge color="warning" className="ms-2">Inactiva</Badge>
-                  )}
-                </Label>
-              </FormGroup>
-            ))}
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setEnrollModal(false)}>
-            Cancelar
-          </Button>
-          <Button color="primary" onClick={handleSaveEnrollment}>
-            Guardar Inscripciones
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <StudentEnrollmentManagerModal
+        isOpen={enrollModal}
+        onClose={handleCloseEnrollModal}
+        students={
+          selectedUser
+            ? [{
+                id: selectedUser.id,
+                fullName: `${selectedUser.firstName} ${selectedUser.lastName}`.trim(),
+                phone: selectedUser.phone,
+                email: selectedUser.email,
+                enrolledClassrooms: selectedUser.enrolledClassrooms || [],
+              }]
+            : []
+        }
+        classrooms={classrooms}
+        programNamesById={Object.fromEntries(programs.map((program) => [program.id, program.name]))}
+        mode="sync"
+        title={selectedUser ? `Gestionar Inscripciones - ${selectedUser.firstName} ${selectedUser.lastName}` : undefined}
+        onSaved={loadData}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal isOpen={deleteModal} toggle={() => setDeleteModal(false)}>

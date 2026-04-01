@@ -24,6 +24,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { GCloudService } from '../../services/gcloud/gcloud.service';
 import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
+import { ProgramService } from '../../services/program/program.service';
 import { 
   registrationSchema, 
   RegistrationFormData 
@@ -38,6 +39,13 @@ import {
 import { PersonalInfoSection } from './components/PersonalInfoSection';
 import { ChurchInfoSection } from './components/ChurchInfoSection';
 import { AcademicInfoSection } from './components/AcademicInfoSection';
+import { STUDENT_ONBOARDING_ROUTE } from '../../constants/onboarding.constants';
+import { needsStudentOnboarding } from '../../utils/onboarding';
+import {
+  buildEnrollmentProgramOptions,
+  normalizeEnrollmentTypeValue,
+  IEnrollmentProgramOption,
+} from '../../utils/programEnrollment';
 
 const Register: React.FC = () => {
   const { register: registerUser, loading, isAuthenticated, user } = useAuth();
@@ -52,6 +60,8 @@ const Register: React.FC = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [registrationStep, setRegistrationStep] = useState<'form' | 'submitting' | 'whatsapp'>('form');
+  const [programOptions, setProgramOptions] = useState<IEnrollmentProgramOption[]>([]);
+  const [loadingPrograms, setLoadingPrograms] = useState(true);
 
   // Get enrollment type from query param
   const enrollmentFromParam = getEnrollmentFromQueryParam(searchParams.get('enrollment'));
@@ -87,9 +97,41 @@ const Register: React.FC = () => {
     },
   });
 
+  useEffect(() => {
+    const loadPrograms = async () => {
+      try {
+        setLoadingPrograms(true);
+        const programs = await ProgramService.getAllPrograms();
+        const enrollmentPrograms = buildEnrollmentProgramOptions(programs);
+        setProgramOptions(enrollmentPrograms);
+
+        const normalizedEnrollment = normalizeEnrollmentTypeValue(
+          enrollmentFromParam,
+          enrollmentPrograms
+        );
+
+        setValue('enrollmentType', normalizedEnrollment, {
+          shouldDirty: false,
+          shouldValidate: false,
+        });
+      } catch (error) {
+        console.error('Error loading programs for registration:', error);
+      } finally {
+        setLoadingPrograms(false);
+      }
+    };
+
+    void loadPrograms();
+  }, [enrollmentFromParam, setValue]);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
+      if (needsStudentOnboarding(user)) {
+        navigate(STUDENT_ONBOARDING_ROUTE, { replace: true });
+        return;
+      }
+
       switch (user.role) {
         case 'admin':
           navigate('/admin/dashboard', { replace: true });
@@ -214,8 +256,7 @@ const Register: React.FC = () => {
         console.error('WhatsApp registration error:', whatsappError);
       }
 
-      // Navigate to dashboard
-      navigate('/student/dashboard');
+      navigate(STUDENT_ONBOARDING_ROUTE);
     } catch (error) {
       console.error('Registration error:', error);
       setGeneralError('Error al registrar. Por favor intente nuevamente.');
@@ -344,6 +385,10 @@ const Register: React.FC = () => {
                   errors={errors}
                   dirtyFields={dirtyFields}
                   isSubmitted={isSubmitted}
+                  watch={watch}
+                  setValue={setValue}
+                  enrollmentOptions={programOptions}
+                  loadingEnrollmentOptions={loadingPrograms}
                   disabled={isDisabled}
                 />
 

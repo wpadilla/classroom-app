@@ -11,7 +11,7 @@ export * from './statistics.model';
 export * from './payment.model';
 
 // Re-export commonly used types for convenience
-export type { UserRole, IUser, IClassroomHistory, IUserDocument } from './user.model';
+export type { UserRole, IUser, IClassroomHistory, IUserDocument, IUserOnceState } from './user.model';
 export type { IProgram } from './program.model';
 export type { IClassroom, IModule, IEnrollment } from './classroom.model';
 export type { IStudentEvaluation, IEvaluationCriteria, IAttendanceRecord } from './evaluation.model';

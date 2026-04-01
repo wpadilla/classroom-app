@@ -74,20 +74,15 @@ export class AuthService {
       // Store session in localStorage
       this.storeSession(session);
       
-      // Store user data in localStorage as fallback for offline
-      localStorage.setItem('classroom_app_user', JSON.stringify(user));
-
-      const authUser: IAuthUser = {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        isTeacher: user.isTeacher,
-        profilePhoto: user.profilePhoto,
-        lastLogin: new Date()
+      const userWithLastLogin = {
+        ...user,
+        lastLogin: new Date(),
       };
+
+      // Store user data in localStorage as fallback for offline
+      this.cacheUser(userWithLastLogin);
+
+      const authUser = this.mapUserToAuthUser(userWithLastLogin);
 
       return {
         success: true,
@@ -171,6 +166,9 @@ export class AuthService {
         completedClassrooms: [],
         teachingClassrooms: [],
         taughtClassrooms: [],
+        once: {
+          onboarding: false,
+        },
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -184,17 +182,12 @@ export class AuthService {
       // Store session
       this.storeSession(session);
 
-      const authUser: IAuthUser = {
-        id: userId,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        email: newUser.email,
-        phone: newUser.phone,
-        role: newUser.role,
-        isTeacher: newUser.isTeacher,
-        profilePhoto: newUser.profilePhoto,
-        lastLogin: new Date()
-      };
+      this.cacheUser(userWithId);
+
+      const authUser = this.mapUserToAuthUser({
+        ...userWithId,
+        lastLogin: new Date(),
+      });
 
       return {
         success: true,
@@ -259,17 +252,9 @@ export class AuthService {
         return null;
       }
 
-      return {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        isTeacher: user.isTeacher,
-        profilePhoto: user.profilePhoto,
-        lastLogin: user.lastLogin || new Date()
-      };
+      this.cacheUser(user);
+
+      return this.mapUserToAuthUser(user);
     } catch (error) {
       console.error('Get current user error:', error);
       
@@ -292,17 +277,7 @@ export class AuthService {
           // Verify it's the same user as in the session
           if (cachedUser.id === session.userId && cachedUser.isActive) {
             console.log('Using cached user from localStorage (offline mode)');
-            return {
-              id: cachedUser.id,
-              firstName: cachedUser.firstName,
-              lastName: cachedUser.lastName,
-              email: cachedUser.email,
-              phone: cachedUser.phone,
-              role: cachedUser.role,
-              isTeacher: cachedUser.isTeacher,
-              profilePhoto: cachedUser.profilePhoto,
-              lastLogin: cachedUser.lastLogin || new Date()
-            };
+            return this.mapUserToAuthUser(cachedUser);
           }
         } catch (parseError) {
           console.error('Error parsing cached user:', parseError);
@@ -371,7 +346,29 @@ export class AuthService {
     }
   }
 
+  static cacheUser(user: IUser): void {
+    localStorage.setItem('classroom_app_user', JSON.stringify(user));
+  }
+
   // Private helper methods
+
+  private static mapUserToAuthUser(user: IUser): IAuthUser {
+    const lastLogin = user.lastLogin ? new Date(user.lastLogin) : new Date();
+
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      isTeacher: user.isTeacher,
+      profilePhoto: user.profilePhoto,
+      lastLogin,
+      enrollmentType: user.enrollmentType,
+      once: user.once,
+    };
+  }
 
   private static async createSession(user: IUser): Promise<ISession> {
     const sessionData: Omit<ISession, 'id'> = {

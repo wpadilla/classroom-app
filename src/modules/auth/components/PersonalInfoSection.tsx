@@ -2,22 +2,33 @@
 // Contains fields: firstName, lastName, documentType, documentNumber, phone, email
 
 import React from 'react';
-import { Row, Col, FormGroup, Label, Input, FormFeedback } from 'reactstrap';
-import { FieldErrors, FieldNamesMarkedBoolean, UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import { RegistrationFormData } from '../../../schemas/registration.schema';
+import { Row, Col, FormGroup, Label, Input, FormFeedback, Button } from 'reactstrap';
+import { FieldErrors, FieldNamesMarkedBoolean, Path, UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form';
+import { RegistrationFormData, StudentProfileFormData } from '../../../schemas/registration.schema';
 import { DOCUMENT_TYPE_OPTIONS, COUNTRIES } from '../../../constants/registration.constants';
 
-interface PersonalInfoSectionProps {
-  register: UseFormRegister<RegistrationFormData>;
-  errors: FieldErrors<RegistrationFormData>;
-  dirtyFields: FieldNamesMarkedBoolean<RegistrationFormData>;
-  isSubmitted: boolean;
-  watch: UseFormWatch<RegistrationFormData>;
-  setValue: UseFormSetValue<RegistrationFormData>;
+interface IProfilePhotoSectionProps {
+  previewUrl?: string;
+  errorMessage?: string;
+  inputRef: React.RefObject<HTMLInputElement>;
   disabled?: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onPickPhoto: () => void;
+  onTakePhoto: () => void;
 }
 
-export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
+interface PersonalInfoSectionProps<TFormValues extends StudentProfileFormData> {
+  register: UseFormRegister<TFormValues>;
+  errors: FieldErrors<TFormValues>;
+  dirtyFields: FieldNamesMarkedBoolean<TFormValues>;
+  isSubmitted: boolean;
+  watch: UseFormWatch<TFormValues>;
+  setValue: UseFormSetValue<TFormValues>;
+  disabled?: boolean;
+  profilePhotoSection?: IProfilePhotoSectionProps;
+}
+
+export const PersonalInfoSection = <TFormValues extends StudentProfileFormData = RegistrationFormData>({
   register,
   errors,
   dirtyFields,
@@ -25,16 +36,19 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
   watch,
   setValue,
   disabled = false,
-}) => {
-  const documentType = watch('documentType');
+  profilePhotoSection,
+}: PersonalInfoSectionProps<TFormValues>) => {
+  const typedErrors = errors as FieldErrors<StudentProfileFormData>;
+  const typedDirtyFields = dirtyFields as FieldNamesMarkedBoolean<StudentProfileFormData>;
+  const documentType = watch('documentType' as Path<TFormValues>);
   const shouldShowError = (fieldDirty?: boolean) => isSubmitted || fieldDirty;
-  const { ref: firstNameRef, ...firstNameField } = register('firstName');
-  const { ref: lastNameRef, ...lastNameField } = register('lastName');
-  const { ref: documentTypeRef, ...documentTypeField } = register('documentType');
-  const { ref: documentNumberRef, ...documentNumberField } = register('documentNumber');
-  const { ref: phoneRef, ...phoneField } = register('phone');
-  const { ref: countryRef, ...countryField } = register('country');
-  const { ref: emailRef, ...emailField } = register('email');
+  const { ref: firstNameRef, ...firstNameField } = register('firstName' as Path<TFormValues>);
+  const { ref: lastNameRef, ...lastNameField } = register('lastName' as Path<TFormValues>);
+  const { ref: documentTypeRef, ...documentTypeField } = register('documentType' as Path<TFormValues>);
+  const { ref: documentNumberRef, ...documentNumberField } = register('documentNumber' as Path<TFormValues>);
+  const { ref: phoneRef, ...phoneField } = register('phone' as Path<TFormValues>);
+  const { ref: countryRef, ...countryField } = register('country' as Path<TFormValues>);
+  const { ref: emailRef, ...emailField } = register('email' as Path<TFormValues>);
 
   return (
     <>
@@ -42,6 +56,70 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
         <i className="bi bi-person-badge me-2"></i>
         Información Personal
       </h5>
+
+      {profilePhotoSection && (
+        <div className="mb-3 rounded-4 border bg-white p-3 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {profilePhotoSection.previewUrl ? (
+                <img
+                  src={profilePhotoSection.previewUrl}
+                  alt="Foto de perfil"
+                  className="h-[64px] w-[64px] rounded-circle border object-cover"
+                />
+              ) : (
+                <div
+                  className="inline-flex h-[64px] w-[64px] items-center justify-center rounded-circle bg-secondary"
+                >
+                  <i className="bi bi-person-fill text-white fs-3"></i>
+                </div>
+              )}
+
+              <div>
+                <p className="mb-1 text-sm font-semibold text-dark">Foto de perfil</p>
+                <p className="mb-0 text-xs text-muted">
+                  Compacta tu perfil con una foto clara.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                ref={profilePhotoSection.inputRef}
+                type="file"
+                accept="image/*"
+                onChange={profilePhotoSection.onChange}
+                style={{ display: 'none' }}
+              />
+
+              <Button
+                type="button"
+                color="outline-primary"
+                size="sm"
+                onClick={profilePhotoSection.onPickPhoto}
+                disabled={profilePhotoSection.disabled}
+              >
+                <i className="bi bi-upload me-1"></i>
+                Subir
+              </Button>
+              <Button
+                type="button"
+                color="outline-primary"
+                size="sm"
+                onClick={profilePhotoSection.onTakePhoto}
+                disabled={profilePhotoSection.disabled}
+              >
+                <i className="bi bi-camera me-1"></i>
+                Tomar
+              </Button>
+            </div>
+          </div>
+
+          {profilePhotoSection.errorMessage && (
+            <p className="mb-0 mt-2 small text-danger">{profilePhotoSection.errorMessage}</p>
+          )}
+        </div>
+      )}
 
       {/* Name fields */}
       <Row>
@@ -54,11 +132,11 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               placeholder="Juan"
               {...firstNameField}
               innerRef={firstNameRef}
-              invalid={!!errors.firstName && shouldShowError(dirtyFields.firstName)}
+              invalid={!!typedErrors.firstName && shouldShowError(typedDirtyFields.firstName)}
               disabled={disabled}
             />
-            {shouldShowError(dirtyFields.firstName) && (
-              <FormFeedback>{errors.firstName?.message}</FormFeedback>
+            {shouldShowError(typedDirtyFields.firstName) && (
+              <FormFeedback>{String(typedErrors.firstName?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>
@@ -71,11 +149,11 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               placeholder="Pérez"
               {...lastNameField}
               innerRef={lastNameRef}
-              invalid={!!errors.lastName && shouldShowError(dirtyFields.lastName)}
+              invalid={!!typedErrors.lastName && shouldShowError(typedDirtyFields.lastName)}
               disabled={disabled}
             />
-            {shouldShowError(dirtyFields.lastName) && (
-              <FormFeedback>{errors.lastName?.message}</FormFeedback>
+            {shouldShowError(typedDirtyFields.lastName) && (
+              <FormFeedback>{String(typedErrors.lastName?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>
@@ -91,7 +169,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               id="documentType"
               {...documentTypeField}
               innerRef={documentTypeRef}
-              invalid={!!errors.documentType && shouldShowError(dirtyFields.documentType)}
+              invalid={!!typedErrors.documentType && shouldShowError(typedDirtyFields.documentType)}
               disabled={disabled}
             >
               {DOCUMENT_TYPE_OPTIONS.map(option => (
@@ -100,8 +178,8 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                 </option>
               ))}
             </Input>
-            {shouldShowError(dirtyFields.documentType) && (
-              <FormFeedback>{String(errors.documentType?.message || '')}</FormFeedback>
+            {shouldShowError(typedDirtyFields.documentType) && (
+              <FormFeedback>{String(typedErrors.documentType?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>
@@ -116,11 +194,11 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               placeholder={documentType === 'NationalId' ? '001-1234567-8' : 'AB1234567'}
               {...documentNumberField}
               innerRef={documentNumberRef}
-              invalid={!!errors.documentNumber && shouldShowError(dirtyFields.documentNumber)}
+              invalid={!!typedErrors.documentNumber && shouldShowError(typedDirtyFields.documentNumber)}
               disabled={disabled}
             />
-            {shouldShowError(dirtyFields.documentNumber) && (
-              <FormFeedback>{String(errors.documentNumber?.message || '')}</FormFeedback>
+            {shouldShowError(typedDirtyFields.documentNumber) && (
+              <FormFeedback>{String(typedErrors.documentNumber?.message || '')}</FormFeedback>
             )}
             {documentType === 'NationalId' && (
               <small className="text-muted">Formato: XXX-XXXXXXX-X</small>
@@ -140,11 +218,11 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               placeholder="8091234567"
               {...phoneField}
               innerRef={phoneRef}
-              invalid={!!errors.phone && shouldShowError(dirtyFields.phone)}
+              invalid={!!typedErrors.phone && shouldShowError(typedDirtyFields.phone)}
               disabled={disabled}
             />
-            {shouldShowError(dirtyFields.phone) && (
-              <FormFeedback>{String(errors.phone?.message || '')}</FormFeedback>
+            {shouldShowError(typedDirtyFields.phone) && (
+              <FormFeedback>{String(typedErrors.phone?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>
@@ -156,7 +234,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               id="country"
               {...countryField}
               innerRef={countryRef}
-              invalid={!!errors.country && shouldShowError(dirtyFields.country)}
+              invalid={!!typedErrors.country && shouldShowError(typedDirtyFields.country)}
               disabled={disabled}
             >
               {COUNTRIES.map(country => (
@@ -165,8 +243,8 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                 </option>
               ))}
             </Input>
-            {shouldShowError(dirtyFields.country) && (
-              <FormFeedback>{String(errors.country?.message || '')}</FormFeedback>
+            {shouldShowError(typedDirtyFields.country) && (
+              <FormFeedback>{String(typedErrors.country?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>
@@ -181,11 +259,11 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
           placeholder="correo@ejemplo.com"
           {...emailField}
           innerRef={emailRef}
-          invalid={!!errors.email && shouldShowError(dirtyFields.email)}
+          invalid={!!typedErrors.email && shouldShowError(typedDirtyFields.email)}
           disabled={disabled}
         />
-        {shouldShowError(dirtyFields.email) && (
-          <FormFeedback>{String(errors.email?.message || '')}</FormFeedback>
+        {shouldShowError(typedDirtyFields.email) && (
+          <FormFeedback>{String(typedErrors.email?.message || '')}</FormFeedback>
         )}
       </FormGroup>
     </>

@@ -2,7 +2,6 @@
 // Shows pending operations count and sync button
 
 import React from 'react';
-import { Badge, Button, Spinner } from 'reactstrap';
 import { useOffline } from '../../contexts/OfflineContext';
 import { toast } from 'react-toastify';
 
@@ -37,32 +36,31 @@ const OfflineSyncBadge: React.FC<OfflineSyncBadgeProps> = ({
   }
 
   return (
-    <div className={`d-flex align-items-center gap-2 ${className}`}>
-      <Badge color="warning" pill>
-        <i className="bi bi-cloud-upload me-1"></i>
-        {pendingOperations} pendiente{pendingOperations !== 1 ? 's' : ''}
-      </Badge>
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div className="flex items-center gap-1.5 bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[11px] font-semibold border border-amber-200">
+        <i className="bi bi-cloud-upload" />
+        <span>{pendingOperations} pendiente{pendingOperations !== 1 ? 's' : ''}</span>
+      </div>
       
       {showButton && !isOffline && (
-        <Button
-          color="warning"
-          size="sm"
+        <button
           onClick={handleSync}
           disabled={syncing}
           title="Sincronizar operaciones pendientes"
+          className="flex items-center gap-1.5 bg-amber-500 text-white hover:bg-amber-600 disabled:bg-amber-300 disabled:cursor-not-allowed px-3 py-1 rounded-full text-xs font-medium border-0 transition-colors"
         >
           {syncing ? (
             <>
-              <Spinner size="sm" className="me-1" />
-              Sincronizando...
+              <i className="bi bi-arrow-repeat animate-spin" />
+              <span>Sincronizando...</span>
             </>
           ) : (
             <>
-              <i className="bi bi-arrow-repeat me-1"></i>
-              Sincronizar
+              <i className="bi bi-arrow-repeat" />
+              <span>Sincronizar</span>
             </>
           )}
-        </Button>
+        </button>
       )}
     </div>
   );

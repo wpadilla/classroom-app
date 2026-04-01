@@ -101,6 +101,15 @@
     display: none;
   }
   
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
   /* Safe area insets for mobile */
   .safe-top {
     padding-top: env(safe-area-inset-top);

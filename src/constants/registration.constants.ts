@@ -2,6 +2,7 @@
 // Labels, options, and utilities for registration forms
 
 import { DocumentType, AcademicLevel, EnrollmentType } from '../models/registration.model';
+import { INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME } from './onboarding.constants';
 
 /**
  * Document type options with Spanish labels
@@ -22,14 +23,11 @@ export const ACADEMIC_LEVEL_OPTIONS: { value: AcademicLevel; label: string }[] =
   { value: 'Doctorate', label: 'Doctorado' },
 ];
 
-/**
- * Enrollment type options with Spanish labels
- */
-export const ENROLLMENT_TYPE_OPTIONS: { value: EnrollmentType; label: string }[] = [
-  { value: 'TheologyDegree', label: 'Licenciatura en Teología' },
-  { value: 'SingleCourse', label: 'Curso Individual' },
-  { value: 'InternalFormation', label: 'Formación Interna' },
-];
+const LEGACY_ENROLLMENT_TYPE_LABELS: Record<string, string> = {
+  TheologyDegree: 'Licenciatura en Teología',
+  SingleCourse: 'Curso Individual',
+  InternalFormation: INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME,
+};
 
 /**
  * Latin American countries with phone codes
@@ -104,8 +102,7 @@ export const getAcademicLevelLabel = (level: AcademicLevel): string => {
  * Get label for enrollment type
  */
 export const getEnrollmentTypeLabel = (type: EnrollmentType): string => {
-  const option = ENROLLMENT_TYPE_OPTIONS.find(o => o.value === type);
-  return option?.label ?? type;
+  return LEGACY_ENROLLMENT_TYPE_LABELS[type] ?? type;
 };
 
 /**
@@ -137,21 +134,21 @@ export const formatCedula = (cedula: string): string => {
  * Get enrollment type from query parameter
  */
 export const getEnrollmentFromQueryParam = (param: string | null): EnrollmentType => {
-  if (!param) return 'InternalFormation';
+  if (!param) return INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME;
   
   const normalizedParam = param.toLowerCase();
   
   if (normalizedParam === 'theologydegree' || normalizedParam === 'theology') {
-    return 'TheologyDegree';
+    return 'Licenciatura en Teología';
   }
   if (normalizedParam === 'singlecourse' || normalizedParam === 'course') {
-    return 'SingleCourse';
+    return 'Curso Individual';
   }
   if (normalizedParam === 'internalformation' || normalizedParam === 'internal') {
-    return 'InternalFormation';
+    return INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME;
   }
   
-  return 'InternalFormation';
+  return decodeURIComponent(param);
 };
 
 /**
@@ -161,5 +158,5 @@ export const DEFAULT_REGISTRATION_VALUES = {
   documentType: 'NationalId' as DocumentType,
   country: 'DO',
   academicLevel: 'HighSchool' as AcademicLevel,
-  enrollmentType: 'InternalFormation' as EnrollmentType,
+  enrollmentType: INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME as EnrollmentType,
 };

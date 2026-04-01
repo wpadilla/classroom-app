@@ -28,11 +28,13 @@ interface ClassroomFormProps {
   classroom?: IClassroom | null; // null for create, IClassroom for edit
   initialData?: IClassroom | null; // for duplication
   program: IProgram | null;
+  programClassrooms: IClassroom[];
   teachers: IUser[];
 }
 
 // Form Data Interface - separated from IClassroom for form handling
 export interface ClassroomFormData {
+  programPosition: number;
   name: string;
   subject: string;
   description: string;
@@ -59,11 +61,19 @@ export interface ClassroomFormData {
 }
 
 // Initial form state factory - Factory Pattern
-const createInitialFormState = (classroom?: IClassroom | null, initialData?: IClassroom | null): ClassroomFormData => {
+const createInitialFormState = (
+  classroom?: IClassroom | null,
+  initialData?: IClassroom | null,
+  programClassrooms: IClassroom[] = []
+): ClassroomFormData => {
   const sourceData = classroom || initialData;
+  const defaultProgramPosition = classroom
+    ? classroom.programPosition || 1
+    : programClassrooms.length + 1;
 
   if (sourceData) {
     return {
+      programPosition: classroom ? (sourceData.programPosition || 1) : defaultProgramPosition,
       name: classroom ? sourceData.name : `${sourceData.name} (Copia)`,
       subject: sourceData.subject,
       accreditation: sourceData.accreditation || '',
@@ -94,6 +104,7 @@ const createInitialFormState = (classroom?: IClassroom | null, initialData?: ICl
 
   // Default values for new classroom
   return {
+    programPosition: defaultProgramPosition,
     name: '',
     subject: '',
       accreditation: '',
@@ -127,19 +138,20 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
   classroom,
   initialData,
   program,
+  programClassrooms,
   teachers
 }) => {
   const [formData, setFormData] = React.useState<ClassroomFormData>(
-    createInitialFormState(classroom, initialData)
+    createInitialFormState(classroom, initialData, programClassrooms)
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Update form when classroom prop changes - Reactive Pattern
   React.useEffect(() => {
     if (isOpen) {
-      setFormData(createInitialFormState(classroom, initialData));
+      setFormData(createInitialFormState(classroom, initialData, programClassrooms));
     }
-  }, [classroom, initialData, isOpen]);
+  }, [classroom, initialData, isOpen, programClassrooms]);
 
   // Form field update handler - reduces boilerplate
   const updateField = (field: keyof ClassroomFormData, value: any) => {
@@ -173,6 +185,7 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
     if (!formData.name.trim()) return 'El nombre de la clase es requerido';
     if (!formData.subject.trim()) return 'La materia es requerida';
     if (!formData.teacherId) return 'Debe seleccionar un profesor';
+    if (formData.programPosition < 1) return 'Debe seleccionar una posición válida dentro del programa';
 
     const totalPoints =
       formData.evaluationCriteria.questionnaires +
@@ -212,7 +225,7 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
   };
 
   const handleClose = () => {
-    setFormData(createInitialFormState(null));
+    setFormData(createInitialFormState(null, null, []));
     setIsSubmitting(false);
     onClose();
   };
@@ -225,6 +238,8 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
     formData.evaluationCriteria.finalExam;
 
   const isEditMode = !!classroom;
+  const totalAvailablePositions = classroom ? programClassrooms.length : programClassrooms.length + 1;
+  const positionOptions = Array.from({ length: Math.max(totalAvailablePositions, 1) }, (_, index) => index + 1);
 
   return (
     <Modal isOpen={isOpen} toggle={handleClose} size="lg">
@@ -257,6 +272,23 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
                   onChange={(e) => updateField('subject', e.target.value)}
                   placeholder="Ej: Introducción a la Teología"
                 />
+              </FormGroup>
+            </Col>
+            <Col md={6}>
+              <FormGroup>
+                <Label for="programPosition">Lugar dentro del programa *</Label>
+                <Input
+                  type="select"
+                  id="programPosition"
+                  value={formData.programPosition}
+                  onChange={(e) => updateField('programPosition', parseInt(e.target.value, 10) || 1)}
+                >
+                  {positionOptions.map((position) => (
+                    <option key={position} value={position}>
+                      Lugar {position} de {Math.max(totalAvailablePositions, 1)}
+                    </option>
+                  ))}
+                </Input>
               </FormGroup>
             </Col>
 
@@ -490,4 +522,3 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
 };
 
 export default ClassroomForm;
-

@@ -274,7 +274,12 @@ export function DataTable<T extends Record<string, any>>({
     if (typeof column.accessor === 'function') {
       return column.accessor(row, index);
     }
-    return column?.accessor ? row[column?.accessor || ''] || row : row;
+
+    if (typeof column.accessor === 'string') {
+      return row[column.accessor];
+    }
+
+    return row;
   }, []);
   
   // Calculate column count for expanded row colspan

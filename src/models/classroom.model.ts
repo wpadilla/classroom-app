@@ -19,6 +19,7 @@ export interface IModule {
 export interface IClassroom {
   id: string;
   programId: string; // Reference to parent program
+  programPosition?: number; // Position/order within the parent program
   name: string;
   subject: string;
   accreditation?: string;

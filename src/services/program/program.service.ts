@@ -3,6 +3,7 @@
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
 import { IProgram, IProgramCreate, IProgramUpdate } from '../../models';
 import { orderBy } from 'firebase/firestore';
+import { isProgramEnrollmentActive } from '../../utils/programPeriods';
 
 export class ProgramService {
   /**
@@ -33,6 +34,30 @@ export class ProgramService {
       );
     } catch (error) {
       console.error('Error getting active programs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get active programs currently open for enrollment
+   */
+  static async getProgramsOpenForEnrollment(referenceDate: Date = new Date()): Promise<IProgram[]> {
+    try {
+      const programs = await this.getActivePrograms();
+      return programs
+        .filter((program) => isProgramEnrollmentActive(program, referenceDate))
+        .sort((programA, programB) => {
+          const startDateA = programA.startDate ? new Date(programA.startDate).getTime() : Number.MAX_SAFE_INTEGER;
+          const startDateB = programB.startDate ? new Date(programB.startDate).getTime() : Number.MAX_SAFE_INTEGER;
+
+          if (startDateA !== startDateB) {
+            return startDateA - startDateB;
+          }
+
+          return programA.name.localeCompare(programB.name, 'es');
+        });
+    } catch (error) {
+      console.error('Error getting programs open for enrollment:', error);
       return [];
     }
   }

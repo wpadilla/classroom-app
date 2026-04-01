@@ -3,28 +3,30 @@
 
 import React from 'react';
 import { Row, Col, FormGroup, Label, Input, FormFeedback } from 'reactstrap';
-import { FieldErrors, FieldNamesMarkedBoolean, UseFormRegister } from 'react-hook-form';
-import { RegistrationFormData } from '../../../schemas/registration.schema';
+import { FieldErrors, FieldNamesMarkedBoolean, Path, UseFormRegister } from 'react-hook-form';
+import { RegistrationFormData, StudentProfileFormData } from '../../../schemas/registration.schema';
 
-interface ChurchInfoSectionProps {
-  register: UseFormRegister<RegistrationFormData>;
-  errors: FieldErrors<RegistrationFormData>;
-  dirtyFields: FieldNamesMarkedBoolean<RegistrationFormData>;
+interface ChurchInfoSectionProps<TFormValues extends StudentProfileFormData> {
+  register: UseFormRegister<TFormValues>;
+  errors: FieldErrors<TFormValues>;
+  dirtyFields: FieldNamesMarkedBoolean<TFormValues>;
   isSubmitted: boolean;
   disabled?: boolean;
 }
 
-export const ChurchInfoSection: React.FC<ChurchInfoSectionProps> = ({
+export const ChurchInfoSection = <TFormValues extends StudentProfileFormData = RegistrationFormData>({
   register,
   errors,
   dirtyFields,
   isSubmitted,
   disabled = false,
-}) => {
+}: ChurchInfoSectionProps<TFormValues>) => {
+  const typedErrors = errors as FieldErrors<StudentProfileFormData>;
+  const typedDirtyFields = dirtyFields as FieldNamesMarkedBoolean<StudentProfileFormData>;
   const shouldShowError = (fieldDirty?: boolean) => isSubmitted || fieldDirty;
-  const { ref: churchNameRef, ...churchNameField } = register('churchName');
-  const { ref: pastorNameRef, ...pastorNameField } = register('pastor.fullName');
-  const { ref: pastorPhoneRef, ...pastorPhoneField } = register('pastor.phone');
+  const { ref: churchNameRef, ...churchNameField } = register('churchName' as Path<TFormValues>);
+  const { ref: pastorNameRef, ...pastorNameField } = register('pastor.fullName' as Path<TFormValues>);
+  const { ref: pastorPhoneRef, ...pastorPhoneField } = register('pastor.phone' as Path<TFormValues>);
   return (
     <>
       <h5 className="mb-3 mt-4 text-primary">
@@ -40,11 +42,11 @@ export const ChurchInfoSection: React.FC<ChurchInfoSectionProps> = ({
           placeholder="Ministerio Oasis de Amor"
           {...churchNameField}
           innerRef={churchNameRef}
-          invalid={!!errors.churchName && shouldShowError(dirtyFields.churchName)}
+          invalid={!!typedErrors.churchName && shouldShowError(typedDirtyFields.churchName)}
           disabled={disabled}
         />
-        {shouldShowError(dirtyFields.churchName) && (
-          <FormFeedback>{errors.churchName?.message}</FormFeedback>
+        {shouldShowError(typedDirtyFields.churchName) && (
+          <FormFeedback>{String(typedErrors.churchName?.message || '')}</FormFeedback>
         )}
       </FormGroup>
 
@@ -58,11 +60,11 @@ export const ChurchInfoSection: React.FC<ChurchInfoSectionProps> = ({
               placeholder="Pastor Juan Rodríguez"
               {...pastorNameField}
               innerRef={pastorNameRef}
-              invalid={!!errors.pastor?.fullName && shouldShowError(dirtyFields.pastor?.fullName)}
+              invalid={!!typedErrors.pastor?.fullName && shouldShowError(typedDirtyFields.pastor?.fullName)}
               disabled={disabled}
             />
-            {shouldShowError(dirtyFields.pastor?.fullName) && (
-              <FormFeedback>{errors.pastor?.fullName?.message}</FormFeedback>
+            {shouldShowError(typedDirtyFields.pastor?.fullName) && (
+              <FormFeedback>{String(typedErrors.pastor?.fullName?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>
@@ -75,11 +77,11 @@ export const ChurchInfoSection: React.FC<ChurchInfoSectionProps> = ({
               placeholder="8091234567"
               {...pastorPhoneField}
               innerRef={pastorPhoneRef}
-              invalid={!!errors.pastor?.phone && shouldShowError(dirtyFields.pastor?.phone)}
+              invalid={!!typedErrors.pastor?.phone && shouldShowError(typedDirtyFields.pastor?.phone)}
               disabled={disabled}
             />
-            {shouldShowError(dirtyFields.pastor?.phone) && (
-              <FormFeedback>{errors.pastor?.phone?.message}</FormFeedback>
+            {shouldShowError(typedDirtyFields.pastor?.phone) && (
+              <FormFeedback>{String(typedErrors.pastor?.phone?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>

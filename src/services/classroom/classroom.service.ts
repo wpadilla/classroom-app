@@ -9,6 +9,29 @@ import { ClassroomFinalizationService, IFinalizationOptions, IFinalizationResult
 import { ClassroomRestartService, IRestartResult } from './classroom-restart.service';
 
 export class ClassroomService {
+  static sortClassroomsByProgramPosition(classrooms: IClassroom[]): IClassroom[] {
+    return [...classrooms].sort((classroomA, classroomB) => {
+      const positionA = classroomA.programPosition ?? Number.MAX_SAFE_INTEGER;
+      const positionB = classroomB.programPosition ?? Number.MAX_SAFE_INTEGER;
+
+      if (positionA !== positionB) {
+        return positionA - positionB;
+      }
+
+      const createdAtA = classroomA.createdAt ? new Date(classroomA.createdAt).getTime() : 0;
+      const createdAtB = classroomB.createdAt ? new Date(classroomB.createdAt).getTime() : 0;
+
+      if (createdAtA !== createdAtB) {
+        return createdAtA - createdAtB;
+      }
+
+      return `${classroomA.subject} ${classroomA.name}`.localeCompare(
+        `${classroomB.subject} ${classroomB.name}`,
+        'es'
+      );
+    });
+  }
+
   /**
    * Get all classrooms
    */
@@ -46,12 +69,13 @@ export class ClassroomService {
    */
   static async getClassroomsByProgram(programId: string): Promise<IClassroom[]> {
     try {
-      return await FirebaseService.queryDocuments<IClassroom>(
+      const classrooms = await FirebaseService.queryDocuments<IClassroom>(
         COLLECTIONS.CLASSROOMS,
         'programId',
         '==',
         programId
       );
+      return this.sortClassroomsByProgramPosition(classrooms);
     } catch (error) {
       console.error(`Error getting classrooms for program ${programId}:`, error);
       return [];
@@ -119,6 +143,63 @@ export class ClassroomService {
       console.error('Error creating classroom:', error);
       throw error;
     }
+  }
+
+  static async setClassroomProgramPosition(
+    programId: string,
+    classroomId: string,
+    desiredPosition: number
+  ): Promise<void> {
+    const classrooms = await this.getClassroomsByProgram(programId);
+    const orderedClassrooms = this.sortClassroomsByProgramPosition(classrooms);
+    const classroomIndex = orderedClassrooms.findIndex((classroom) => classroom.id === classroomId);
+
+    if (classroomIndex === -1) {
+      throw new Error('Clase no encontrada dentro del programa');
+    }
+
+    const [classroomToMove] = orderedClassrooms.splice(classroomIndex, 1);
+    const boundedPosition = Math.min(
+      Math.max(desiredPosition, 1),
+      orderedClassrooms.length + 1
+    );
+
+    orderedClassrooms.splice(boundedPosition - 1, 0, classroomToMove);
+
+    const updates = orderedClassrooms
+      .map((classroom, index) => ({
+        id: classroom.id,
+        data: { programPosition: index + 1 },
+      }))
+      .filter(({ data, id }) => {
+        const currentClassroom = classrooms.find((classroom) => classroom.id === id);
+        return currentClassroom?.programPosition !== data.programPosition;
+      });
+
+    if (updates.length > 0) {
+      await FirebaseService.batchUpdate<IClassroom>(COLLECTIONS.CLASSROOMS, updates);
+    }
+  }
+
+  static async moveClassroomProgramPosition(
+    programId: string,
+    classroomId: string,
+    direction: 'up' | 'down'
+  ): Promise<void> {
+    const classrooms = await this.getClassroomsByProgram(programId);
+    const orderedClassrooms = this.sortClassroomsByProgramPosition(classrooms);
+    const classroomIndex = orderedClassrooms.findIndex((classroom) => classroom.id === classroomId);
+
+    if (classroomIndex === -1) {
+      throw new Error('Clase no encontrada dentro del programa');
+    }
+
+    const nextIndex = direction === 'up' ? classroomIndex - 1 : classroomIndex + 1;
+    if (nextIndex < 0 || nextIndex >= orderedClassrooms.length) {
+      return;
+    }
+
+    await this.setClassroomProgramPosition(programId, classroomId, nextIndex + 1);
   }
 
   /**

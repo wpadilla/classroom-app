@@ -46,7 +46,7 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsUpdateAvailable(Boolean(nextRegistration.waiting));
   }, []);
 
-  const resolveRegistration = useCallback(async (): Promise<ServiceWorkerRegistration | null> => {
+  const resolveRegistration = async (): Promise<ServiceWorkerRegistration | null> => {
     if (!isServiceWorkerSupported()) {
       return null;
     }
@@ -64,7 +64,7 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error('No se pudo obtener el registro del service worker', error);
       return null;
     }
-  }, [registration, syncRegistrationState]);
+  };
 
   const checkForUpdates = useCallback(async () => {
     const activeRegistration = await resolveRegistration();
@@ -80,8 +80,10 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [resolveRegistration, syncRegistrationState]);
 
-  const applyUpdate = useCallback(async () => {
+  const applyUpdate = async () => {
+    console.log('User initiated app update'); // Debug log for when user clicks update
     const activeRegistration = await resolveRegistration();
+    console.log('Applying update with registration:', activeRegistration); // Debug log for registration state when applying update
     if (!activeRegistration) {
       window.location.reload();
       return;
@@ -111,7 +113,7 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error('No se pudo aplicar la nueva versión de la aplicación', error);
       setIsApplyingUpdate(false);
     }
-  }, [resolveRegistration, syncRegistrationState]);
+  }
 
   useEffect(() => {
     if (!isServiceWorkerSupported() || hasInitializedRef.current) {

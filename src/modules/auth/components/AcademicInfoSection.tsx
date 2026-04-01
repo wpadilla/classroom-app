@@ -3,31 +3,53 @@
 
 import React from 'react';
 import { Row, Col, FormGroup, Label, Input, FormFeedback } from 'reactstrap';
-import { FieldErrors, FieldNamesMarkedBoolean, UseFormRegister } from 'react-hook-form';
-import { RegistrationFormData } from '../../../schemas/registration.schema';
-import { 
-  ACADEMIC_LEVEL_OPTIONS, 
-  ENROLLMENT_TYPE_OPTIONS 
-} from '../../../constants/registration.constants';
+import {
+  FieldErrors,
+  FieldNamesMarkedBoolean,
+  Path,
+  UseFormRegister,
+  UseFormSetValue,
+  UseFormWatch,
+} from 'react-hook-form';
+import { RegistrationFormData, StudentProfileFormData } from '../../../schemas/registration.schema';
+import { ACADEMIC_LEVEL_OPTIONS } from '../../../constants/registration.constants';
 
-interface AcademicInfoSectionProps {
-  register: UseFormRegister<RegistrationFormData>;
-  errors: FieldErrors<RegistrationFormData>;
-  dirtyFields: FieldNamesMarkedBoolean<RegistrationFormData>;
+interface IEnrollmentOption {
+  value: string;
+  label: string;
+}
+
+interface AcademicInfoSectionProps<TFormValues extends StudentProfileFormData> {
+  register: UseFormRegister<TFormValues>;
+  errors: FieldErrors<TFormValues>;
+  dirtyFields: FieldNamesMarkedBoolean<TFormValues>;
   isSubmitted: boolean;
+  watch: UseFormWatch<TFormValues>;
+  setValue: UseFormSetValue<TFormValues>;
+  enrollmentOptions: IEnrollmentOption[];
+  loadingEnrollmentOptions?: boolean;
   disabled?: boolean;
 }
 
-export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
+export const AcademicInfoSection = <TFormValues extends StudentProfileFormData = RegistrationFormData>({
   register,
   errors,
   dirtyFields,
   isSubmitted,
+  watch,
+  setValue,
+  enrollmentOptions,
+  loadingEnrollmentOptions = false,
   disabled = false,
-}) => {
+}: AcademicInfoSectionProps<TFormValues>) => {
+  const typedErrors = errors as FieldErrors<StudentProfileFormData>;
+  const typedDirtyFields = dirtyFields as FieldNamesMarkedBoolean<StudentProfileFormData>;
   const shouldShowError = (fieldDirty?: boolean) => isSubmitted || fieldDirty;
-  const { ref: academicLevelRef, ...academicLevelField } = register('academicLevel');
-  const { ref: enrollmentTypeRef, ...enrollmentTypeField } = register('enrollmentType');
+  const { ref: academicLevelRef, ...academicLevelField } = register('academicLevel' as Path<TFormValues>);
+  const { ref: enrollmentTypeRef, ...enrollmentTypeField } = register('enrollmentType' as Path<TFormValues>);
+  const academicLevelValue = watch('academicLevel' as Path<TFormValues>) as string | undefined;
+  const enrollmentTypeValue = watch('enrollmentType' as Path<TFormValues>) as string | undefined;
+
   return (
     <>
       <h5 className="mb-3 mt-4 text-primary">
@@ -44,7 +66,15 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
               id="academicLevel"
               {...academicLevelField}
               innerRef={academicLevelRef}
-              invalid={!!errors.academicLevel && shouldShowError(dirtyFields.academicLevel)}
+              value={academicLevelValue || ''}
+              onChange={(event) => {
+                academicLevelField.onChange(event);
+                setValue('academicLevel' as Path<TFormValues>, event.target.value as never, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+              invalid={!!typedErrors.academicLevel && shouldShowError(typedDirtyFields.academicLevel)}
               disabled={disabled}
             >
               {ACADEMIC_LEVEL_OPTIONS.map(option => (
@@ -53,30 +83,41 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
                 </option>
               ))}
             </Input>
-            {shouldShowError(dirtyFields.academicLevel) && (
-              <FormFeedback>{String(errors.academicLevel?.message || '')}</FormFeedback>
+            {shouldShowError(typedDirtyFields.academicLevel) && (
+              <FormFeedback>{String(typedErrors.academicLevel?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>
         <Col md={6}>
           <FormGroup>
-            <Label for="enrollmentType">Tipo de Inscripción *</Label>
+            <Label for="enrollmentType">Programa *</Label>
             <Input
               type="select"
               id="enrollmentType"
               {...enrollmentTypeField}
               innerRef={enrollmentTypeRef}
-              invalid={!!errors.enrollmentType && shouldShowError(dirtyFields.enrollmentType)}
-              disabled={disabled}
+              value={enrollmentTypeValue || ''}
+              onChange={(event) => {
+                enrollmentTypeField.onChange(event);
+                setValue('enrollmentType' as Path<TFormValues>, event.target.value as never, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+              invalid={!!typedErrors.enrollmentType && shouldShowError(typedDirtyFields.enrollmentType)}
+              disabled={disabled || loadingEnrollmentOptions}
             >
-              {ENROLLMENT_TYPE_OPTIONS.map(option => (
+              <option value="">
+                {loadingEnrollmentOptions ? 'Cargando programas...' : 'Seleccione un programa'}
+              </option>
+              {enrollmentOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </Input>
-            {shouldShowError(dirtyFields.enrollmentType) && (
-              <FormFeedback>{String(errors.enrollmentType?.message || '')}</FormFeedback>
+            {shouldShowError(typedDirtyFields.enrollmentType) && (
+              <FormFeedback>{String(typedErrors.enrollmentType?.message || '')}</FormFeedback>
             )}
           </FormGroup>
         </Col>

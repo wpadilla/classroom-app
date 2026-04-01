@@ -1,6 +1,6 @@
 // Authentication and Session Models
 
-import { UserRole } from './user.model';
+import { UserRole, IUserOnceState } from './user.model';
 import { 
   DocumentType, 
   AcademicLevel, 
@@ -31,6 +31,8 @@ export interface IAuthUser {
   isTeacher: boolean;
   profilePhoto?: string;
   lastLogin: Date;
+  enrollmentType?: EnrollmentType;
+  once?: IUserOnceState;
 }
 
 export interface ISession {

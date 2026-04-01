@@ -32,12 +32,10 @@ import {
 } from '../../constants/registration.constants';
 import {
   INTERNAL_FORMATION_CHURCH,
-  INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME,
 } from '../../constants/onboarding.constants';
 import {
   buildEnrollmentProgramOptions,
   IEnrollmentProgramOption,
-  normalizeEnrollmentTypeValue,
 } from '../../utils/programEnrollment';
 import { isInternalFormationEnrollment } from '../../utils/onboarding';
 import './StudentOnboarding.css';
@@ -60,8 +58,8 @@ interface IOnboardingStep {
 const defaultValues: StudentOnboardingFormData = {
   firstName: '',
   lastName: '',
-  documentType: 'NationalId',
-  documentNumber: '',
+  documentType: undefined,
+  documentNumber: undefined,
   email: '',
   phone: '',
   country: 'DO',
@@ -71,7 +69,7 @@ const defaultValues: StudentOnboardingFormData = {
     phone: '',
   },
   academicLevel: 'HighSchool',
-  enrollmentType: INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME,
+  enrollmentType: '',
   completedInternalClassroomIds: [],
   currentInternalClassroomId: '',
 };
@@ -120,7 +118,6 @@ const StudentOnboarding: React.FC = () => {
 
   const firstName = watch('firstName');
   const lastName = watch('lastName');
-  const documentNumber = watch('documentNumber');
   const phone = watch('phone');
   const country = watch('country');
   const churchName = watch('churchName');
@@ -148,7 +145,6 @@ const StudentOnboarding: React.FC = () => {
   const personalComplete = Boolean(
     firstName?.trim() &&
       lastName?.trim() &&
-      documentNumber?.trim() &&
       phone?.trim() &&
       country?.trim()
   );
@@ -227,13 +223,13 @@ const StudentOnboarding: React.FC = () => {
         {
           id: 'completedHistory' as const,
           label: 'Historial',
-          description: 'Clases ya impartidas pendientes.',
+          description: 'Clases que ya tomaste.',
           isComplete: completedInternalClassroomIds.length > 0 || completedHistoryOptions.length === 0,
         },
         {
           id: 'currentEnrollment' as const,
           label: 'Inscripción',
-          description: 'Clase activa que cursarás.',
+          description: 'Clase que cursarás.',
           isComplete: Boolean(currentInternalClassroomId) || currentEnrollmentOptions.length === 0,
         }
       );
@@ -290,10 +286,11 @@ const StudentOnboarding: React.FC = () => {
         }
 
         const enrollmentPrograms = buildEnrollmentProgramOptions(programs);
-        const normalizedEnrollmentType = normalizeEnrollmentTypeValue(
-          profile.enrollmentType || INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME,
-          enrollmentPrograms
-        );
+        const normalizedEnrollmentType = enrollmentPrograms.some(
+          (option) => option.value === profile.enrollmentType
+        )
+          ? profile.enrollmentType || ''
+          : enrollmentPrograms[0]?.value || '';
         const internalClassroomIds = new Set(catalog.classrooms.map((classroom) => classroom.id));
         const existingHistoryIds = (profile.completedClassrooms || [])
           .filter((entry) => internalClassroomIds.has(entry.classroomId))
@@ -316,8 +313,8 @@ const StudentOnboarding: React.FC = () => {
         reset({
           firstName: profile.firstName || '',
           lastName: profile.lastName || '',
-          documentType: profile.documentType || 'NationalId',
-          documentNumber: profile.documentNumber || '',
+          documentType: profile.documentType || undefined,
+          documentNumber: profile.documentNumber || undefined,
           email: profile.email || '',
           phone: profile.phone || '',
           country: profile.country || 'DO',
@@ -712,21 +709,16 @@ const StudentOnboarding: React.FC = () => {
           <div className="student-onboarding-hero">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="student-onboarding-hero__eyebrow">Onboarding de estudiante</p>
+                <p className="student-onboarding-hero__eyebrow">Ingreso de estudiante</p>
                 <h1 className="student-onboarding-hero__title">Completa lo pendiente y seguimos.</h1>
               </div>
-              <div className="student-onboarding-metric">
+              <div className="student-onboarding-metric white-space-nowrap">
                 <i className="bi bi-signpost-split"></i>
-                <span>
+                <span className="text-nowrap">
                   Paso {currentStepIndex + 1} de {steps.length}
                 </span>
               </div>
             </div>
-
-            <p className="student-onboarding-hero__text mb-0">
-              Terminaremos tu perfil, tu programa y, si aplica, la organización de tus clases dentro
-              de la academia.
-            </p>
           </div>
 
           <div className="student-onboarding-progress">

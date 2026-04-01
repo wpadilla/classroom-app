@@ -6,6 +6,10 @@ import { orderBy } from 'firebase/firestore';
 import { GCloudService } from '../gcloud/gcloud.service';
 
 export class UserService {
+  static normalizePhone(phone: string): string {
+    return phone.replace(/\D/g, '');
+  }
+
   /**
    * Get all users
    */
@@ -83,6 +87,35 @@ export class UserService {
       return await FirebaseService.getDocument<IUser>(COLLECTIONS.USERS, userId);
     } catch (error) {
       console.error(`Error getting user ${userId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get user by phone
+   */
+  static async getUserByPhone(phone: string, excludeUserId?: string): Promise<IUser | null> {
+    try {
+      const normalizedPhone = this.normalizePhone(phone);
+      const candidatePhones = Array.from(new Set([phone.trim(), normalizedPhone].filter(Boolean)));
+
+      for (const candidatePhone of candidatePhones) {
+        const users = await FirebaseService.queryDocuments<IUser>(
+          COLLECTIONS.USERS,
+          'phone',
+          '==',
+          candidatePhone
+        );
+
+        const matchedUser = users.find((user) => user.id !== excludeUserId) || null;
+        if (matchedUser) {
+          return matchedUser;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`Error getting user by phone ${phone}:`, error);
       return null;
     }
   }

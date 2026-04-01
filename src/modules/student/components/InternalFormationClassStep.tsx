@@ -26,14 +26,6 @@ interface InternalFormationClassStepProps {
 
 const EMPTY_SELECTED_CLASSROOM_IDS: string[] = [];
 
-const formatSchedule = (classroom: IClassroom): string => {
-  if (!classroom.schedule?.dayOfWeek || !classroom.schedule?.time) {
-    return 'Horario por confirmar';
-  }
-
-  return `${classroom.schedule.dayOfWeek} · ${classroom.schedule.time}`;
-};
-
 const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
   variant,
   programName,
@@ -77,11 +69,11 @@ const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
       }),
     [options]
   );
-  const resolvedTitle = title || (isHistoryVariant ? 'Clases ya impartidas' : 'Clase para inscripción');
+  const resolvedTitle = title || (isHistoryVariant ? 'Clases que ya tomaste' : 'Inscríbete en una clase');
   const resolvedDescription = description || (
     isHistoryVariant
-      ? `Solo verás clases que aún no están en tu historial ni entre tus inscripciones activas. Ya tienes ${existingHistoryCount} registradas y ${currentEnrollmentCount} activas.`
-      : 'Elige una sola clase activa para dejar lista tu inscripción actual.'
+      ? `Selecciona las clases que ya tomaste en el pasado. Actualmente solo tienes ${existingHistoryCount} registradas y ${currentEnrollmentCount} activas.`
+      : 'Elige una sola clase para dejar lista tu inscripción actual.'
   );
   const resolvedBadgeLabel = badgeLabel || (isHistoryVariant ? 'Selección múltiple' : 'Selección única');
   const resolvedSelectedLabel = selectedLabel || (isHistoryVariant ? 'Se agregará al historial' : 'Inscripción seleccionada');
@@ -146,9 +138,9 @@ const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
                     )}
                   </div>
 
-                  <h6 className="student-onboarding-choice__title">{classroom.name}</h6>
-                  <p className="student-onboarding-choice__subtitle">{classroom.subject}</p>
-                  <p className="student-onboarding-choice__detail">{formatSchedule(classroom)}</p>
+                  <h6 className="student-onboarding-choice__title">{classroom.subject}</h6>
+                  <p className="student-onboarding-choice__subtitle text-truncate text-ellipsis max-w-[250px]">{classroom.description}</p>
+                  {/* <p className="student-onboarding-choice__detail">{formatSchedule(classroom)}</p> */}
                 </button>
               );
             })}

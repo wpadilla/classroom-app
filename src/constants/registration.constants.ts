@@ -155,7 +155,7 @@ export const getEnrollmentFromQueryParam = (param: string | null): EnrollmentTyp
  * Default registration values
  */
 export const DEFAULT_REGISTRATION_VALUES = {
-  documentType: 'NationalId' as DocumentType,
+  documentType: undefined as DocumentType | undefined,
   country: 'DO',
   academicLevel: 'HighSchool' as AcademicLevel,
   enrollmentType: INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME as EnrollmentType,

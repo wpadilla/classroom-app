@@ -1,34 +1,16 @@
-// Mobile-First Student Enrollment Component
-// Can be used by both Teachers and Admins
-
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Badge,
-  Input,
-  InputGroup,
-  InputGroupText,
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Alert,
-  Spinner,
-  ListGroup,
-  ListGroupItem,
-  FormGroup,
-  Label,
-  Form
-} from 'reactstrap';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Spinner } from 'reactstrap';
+import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
+import Dialog from '../../components/common/Dialog';
 import { useOffline } from '../../contexts/OfflineContext';
+import { IClassroom, IUser } from '../../models';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { UserService } from '../../services/user/user.service';
 import { OfflineStorageService } from '../../services/offline/offline-storage.service';
-import { IClassroom, IUser } from '../../models';
-import { toast } from 'react-toastify';
+import StudentEnrollmentStudentDialog, {
+  StudentEnrollmentStudentFormPayload,
+} from './components/StudentEnrollmentStudentDialog';
 
 interface StudentEnrollmentProps {
   classroom: IClassroom;
@@ -37,581 +19,658 @@ interface StudentEnrollmentProps {
 
 const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpdate }) => {
   const { isOffline, pendingOperations } = useOffline();
-  const [students, setStudents] = useState<IUser[]>([]);
   const [allStudents, setAllStudents] = useState<IUser[]>([]);
   const [enrolledStudents, setEnrolledStudents] = useState<IUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [enrollModal, setEnrollModal] = useState(false);
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  
-  // New student form
-  const [newStudentModal, setNewStudentModal] = useState(false);
-  const [newStudentForm, setNewStudentForm] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    password: ''
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [availableSearchQuery, setAvailableSearchQuery] = useState('');
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [studentDialogOpen, setStudentDialogOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<IUser | null>(null);
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Load all students from Firebase (or cache)
+
       let allStudentsList = await UserService.getUsersByRole('student');
-      
-      // If offline, merge with local students
+
       if (isOffline) {
         const localStudents = OfflineStorageService.getLocalStudents();
-        // Merge local students with fetched students, avoiding duplicates
-        const localStudentIds = localStudents.map(s => s.id);
-        const mergedStudents = [
+        const localStudentIds = localStudents.map((student) => student.id);
+        allStudentsList = [
           ...localStudents,
-          ...allStudentsList.filter(s => !localStudentIds.includes(s.id))
+          ...allStudentsList.filter((student) => !localStudentIds.includes(student.id)),
         ];
-        allStudentsList = mergedStudents;
       }
-      
-      setAllStudents(allStudentsList);
-      
-      // Get current classroom student IDs (may include offline changes)
+
       let currentStudentIds = classroom.studentIds || [];
       if (isOffline) {
         const localClassroom = OfflineStorageService.getLocalClassroom(classroom.id);
-        if (localClassroom && localClassroom.studentIds) {
+        if (localClassroom?.studentIds) {
           currentStudentIds = localClassroom.studentIds;
         }
       }
-      
-      // Load enrolled students
-      if (currentStudentIds.length > 0) {
-        const enrolledList = allStudentsList.filter(s => 
-          currentStudentIds.includes(s.id)
-        );
-        setEnrolledStudents(enrolledList);
-      } else {
-        setEnrolledStudents([]);
-      }
-      
-      // Filter available students
-      const availableStudents = allStudentsList.filter(s => 
-        !currentStudentIds.includes(s.id)
-      );
-      setStudents(availableStudents);
+
+      const allStudentsById = new Map(allStudentsList.map((student) => [student.id, student]));
+      const enrolledList = currentStudentIds
+        .map((studentId) => allStudentsById.get(studentId))
+        .filter((student): student is IUser => Boolean(student));
+
+      setAllStudents(allStudentsList);
+      setEnrolledStudents(enrolledList);
     } catch (error) {
       console.error('Error loading students:', error);
-      toast.error('Error al cargar estudiantes');
+      toast.error('Error al cargar estudiantes.');
     } finally {
       setLoading(false);
     }
   }, [classroom.id, classroom.studentIds, isOffline]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
+
+  const enrolledStudentIds = useMemo(
+    () => enrolledStudents.map((student) => student.id),
+    [enrolledStudents]
+  );
+
+  const availableStudents = useMemo(
+    () => allStudents.filter((student) => !enrolledStudentIds.includes(student.id)),
+    [allStudents, enrolledStudentIds]
+  );
+
+  const filteredEnrolledStudents = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return enrolledStudents;
+    }
+
+    return enrolledStudents.filter((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+      return (
+        fullName.includes(normalizedQuery) ||
+        student.phone.toLowerCase().includes(normalizedQuery) ||
+        (student.email || '').toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [enrolledStudents, searchQuery]);
+
+  const filteredAvailableStudents = useMemo(() => {
+    const normalizedQuery = availableSearchQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return availableStudents;
+    }
+
+    return availableStudents.filter((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+      return (
+        fullName.includes(normalizedQuery) ||
+        student.phone.toLowerCase().includes(normalizedQuery) ||
+        (student.email || '').toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [availableSearchQuery, availableStudents]);
+
+  const resetStudentDialog = () => {
+    setStudentDialogOpen(false);
+    setEditingStudent(null);
+  };
+
+  const openCreateStudentDialog = () => {
+    setEditingStudent(null);
+    setStudentDialogOpen(true);
+  };
+
+  const openEditStudentDialog = (student: IUser) => {
+    setEditingStudent(student);
+    setStudentDialogOpen(true);
+  };
+
+  const updateLocalClassroomStudents = (studentIds: string[]) => {
+    OfflineStorageService.updateClassroomStudentsLocally(classroom.id, studentIds);
+    classroom.studentIds = studentIds;
+  };
 
   const handleAddStudents = async () => {
     if (selectedStudents.length === 0) {
-      toast.error('Seleccione al menos un estudiante');
+      toast.error('Selecciona al menos un estudiante.');
       return;
     }
-    
+
     try {
       setSaving(true);
-      
+
       if (isOffline) {
-        // Handle offline: Save to local storage
         const currentStudentIds = classroom.studentIds || [];
+
         for (const studentId of selectedStudents) {
           await OfflineStorageService.saveOperation({
             type: 'addStudentToClassroom',
-            data: { classroomId: classroom.id, studentId }
+            data: { classroomId: classroom.id, studentId },
           });
-          
-          // Update local classroom data
+
           if (!currentStudentIds.includes(studentId)) {
             currentStudentIds.push(studentId);
           }
-          
-          // Save student locally for immediate display
-          const student = allStudents.find(s => s.id === studentId);
+
+          const student = allStudents.find((candidate) => candidate.id === studentId);
           if (student) {
             OfflineStorageService.saveStudentLocally(student);
           }
         }
-        
-        // Update local classroom with new student IDs
-        OfflineStorageService.updateClassroomStudentsLocally(classroom.id, currentStudentIds);
-        
-        // Update local classroom object
-        classroom.studentIds = currentStudentIds;
-        
-        toast.info(`${selectedStudents.length} estudiante(s) agregado(s) localmente. Se sincronizará cuando haya conexión.`);
+
+        updateLocalClassroomStudents(currentStudentIds);
+        toast.info('Los estudiantes fueron agregados localmente. Se sincronizarán al volver la conexión.');
       } else {
-        // Handle online: Add directly to Firebase
         for (const studentId of selectedStudents) {
           await ClassroomService.addStudentToClassroom(classroom.id, studentId);
         }
-        
-        toast.success(`${selectedStudents.length} estudiantes agregados`);
+
+        toast.success(`${selectedStudents.length} estudiante(s) agregado(s) a la clase.`);
       }
-      
-      setEnrollModal(false);
+
+      setPickerOpen(false);
       setSelectedStudents([]);
-      
-      // Force reload to show new students immediately
+      setAvailableSearchQuery('');
       await loadData();
-      if (onUpdate) await onUpdate();
+      await onUpdate?.();
     } catch (error) {
       console.error('Error adding students:', error);
-      toast.error('Error al agregar estudiantes');
+      toast.error('No se pudieron agregar los estudiantes seleccionados.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleRemoveStudent = async (studentId: string) => {
-    if (!window.confirm('¿Está seguro de remover este estudiante de la clase?')) {
+    if (!window.confirm('¿Deseas remover este estudiante de la clase?')) {
       return;
     }
-    
+
     try {
       if (isOffline) {
-        // Handle offline: Save operation
         await OfflineStorageService.saveOperation({
           type: 'removeStudent',
-          data: { classroomId: classroom.id, studentId }
+          data: { classroomId: classroom.id, studentId },
         });
-        
-        // Update local classroom data
-        const currentStudentIds = classroom.studentIds || [];
-        const updatedIds = currentStudentIds.filter(id => id !== studentId);
-        OfflineStorageService.updateClassroomStudentsLocally(classroom.id, updatedIds);
-        
-        // Update local classroom object
-        classroom.studentIds = updatedIds;
-        
-        toast.info('Estudiante removido localmente. Se sincronizará cuando haya conexión.');
+
+        const updatedIds = (classroom.studentIds || []).filter((id) => id !== studentId);
+        updateLocalClassroomStudents(updatedIds);
+        toast.info('El estudiante se removió localmente y se sincronizará cuando haya internet.');
       } else {
-        // Handle online
         await ClassroomService.removeStudentFromClassroom(classroom.id, studentId);
-        toast.success('Estudiante removido de la clase');
+        toast.success('Estudiante removido de la clase.');
       }
-      
-      // Force reload to update lists immediately
+
       await loadData();
-      if (onUpdate) await onUpdate();
+      await onUpdate?.();
     } catch (error) {
       console.error('Error removing student:', error);
-      toast.error('Error al remover estudiante');
+      toast.error('No se pudo remover el estudiante.');
     }
   };
 
-  const handleCreateStudent = async () => {
-    // Validation
-    if (!newStudentForm.firstName || !newStudentForm.lastName || 
-        !newStudentForm.phone || !newStudentForm.password) {
-      toast.error('Complete todos los campos requeridos');
-      return;
+  const buildStudentUpdates = (
+    values: StudentEnrollmentStudentFormPayload['values'],
+    originalStudent?: IUser | null
+  ): Partial<IUser> => {
+    const nextUpdates: Partial<IUser> = {
+      firstName: values.firstName,
+      lastName: values.lastName,
+      phone: values.phone,
+      email: values.email || '',
+    };
+
+    if (values.password) {
+      nextUpdates.password = values.password;
     }
-    
+
+    if (!originalStudent) {
+      return nextUpdates;
+    }
+
+    return Object.entries(nextUpdates).reduce<Partial<IUser>>((updates, [key, value]) => {
+      const currentValue = originalStudent[key as keyof IUser];
+      if ((currentValue || '') !== value) {
+        updates[key as keyof IUser] = value as never;
+      }
+      return updates;
+    }, {});
+  };
+
+  const handleStudentDialogSubmit = async (
+    payload: StudentEnrollmentStudentFormPayload
+  ) => {
     try {
       setSaving(true);
-      
-      const studentData = {
-        ...newStudentForm,
-        role: 'student' as const,
-        isTeacher: false,
-        isActive: true,
-        enrolledClassrooms: [classroom.id],
-        completedClassrooms: [],
-        teachingClassrooms: [],
-        taughtClassrooms: []
-      };
-      
-      if (isOffline) {
-        // Handle offline: Generate temporary ID and save locally
-        const tempStudentId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const tempStudent: IUser = {
-          ...studentData,
-          id: tempStudentId,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        
-        // Save operation for later sync
-        await OfflineStorageService.saveOperation({
-          type: 'createStudent',
-          data: { studentData, classroomId: classroom.id }
-        });
-        
-        // Save student locally
-        OfflineStorageService.saveStudentLocally(tempStudent);
-        
-        // Update local classroom data
-        const currentStudentIds = classroom.studentIds || [];
-        currentStudentIds.push(tempStudentId);
-        OfflineStorageService.updateClassroomStudentsLocally(classroom.id, currentStudentIds);
-        
-        // Update local classroom object
-        classroom.studentIds = currentStudentIds;
-        
-        toast.info('Estudiante creado localmente. Se sincronizará cuando haya conexión.');
-      } else {
-        // Handle online: Create in Firebase
-        const studentId = await UserService.createUser(studentData);
-        
-        // Add to classroom
-        await ClassroomService.addStudentToClassroom(classroom.id, studentId);
-        
-        toast.success('Estudiante creado y agregado a la clase');
+
+      if (!isOffline) {
+        const conflictingUser = await UserService.getUserByPhone(
+          payload.values.phone,
+          payload.studentId
+        );
+
+        if (conflictingUser && payload.action === 'create') {
+          toast.error('Ya existe un estudiante con ese teléfono. Revisa la inscripción existente.');
+          return;
+        }
+
+        if (conflictingUser && payload.action === 'edit') {
+          toast.error('Ese teléfono ya pertenece a otro usuario dentro de la plataforma.');
+          return;
+        }
       }
-      
-      setNewStudentModal(false);
-      setNewStudentForm({
-        firstName: '',
-        lastName: '',
-        phone: '',
-        email: '',
-        password: ''
-      });
-      
-      // Force reload to show new student immediately
+
+      if (payload.action === 'edit') {
+        if (!payload.studentId) {
+          toast.error('No se encontró el estudiante a actualizar.');
+          return;
+        }
+
+        if (isOffline) {
+          toast.error('Para editar datos de un estudiante necesitas conexión a internet.');
+          return;
+        }
+
+        const updates = buildStudentUpdates(payload.values, payload.originalStudent);
+        if (Object.keys(updates).length === 0) {
+          toast.info('No había cambios para guardar.');
+          resetStudentDialog();
+          return;
+        }
+
+        await UserService.updateUser(payload.studentId, updates);
+        toast.success('Datos del estudiante actualizados.');
+      }
+
+      if (payload.action === 'enroll-existing') {
+        if (!payload.studentId) {
+          toast.error('No se encontró el estudiante existente.');
+          return;
+        }
+
+        const updates = buildStudentUpdates(payload.values, payload.originalStudent);
+
+        if (isOffline) {
+          if (Object.keys(updates).length > 0) {
+            toast.error('Sin conexión solo puedes inscribir estudiantes existentes sin modificar sus datos.');
+            return;
+          }
+
+          await OfflineStorageService.saveOperation({
+            type: 'addStudentToClassroom',
+            data: { classroomId: classroom.id, studentId: payload.studentId },
+          });
+
+          const currentStudentIds = classroom.studentIds || [];
+          if (!currentStudentIds.includes(payload.studentId)) {
+            currentStudentIds.push(payload.studentId);
+          }
+          updateLocalClassroomStudents(currentStudentIds);
+          if (payload.originalStudent) {
+            OfflineStorageService.saveStudentLocally(payload.originalStudent);
+          }
+          toast.info('Estudiante inscrito localmente. Se sincronizará cuando vuelva la conexión.');
+        } else {
+          if (Object.keys(updates).length > 0) {
+            await UserService.updateUser(payload.studentId, updates);
+          }
+          await ClassroomService.addStudentToClassroom(classroom.id, payload.studentId);
+          toast.success('Estudiante inscrito en la clase.');
+        }
+      }
+
+      if (payload.action === 'create') {
+        const studentData: Omit<IUser, 'id' | 'createdAt' | 'updatedAt'> = {
+          firstName: payload.values.firstName,
+          lastName: payload.values.lastName,
+          phone: payload.values.phone,
+          email: payload.values.email || '',
+          password: payload.values.password,
+          role: 'student',
+          isTeacher: false,
+          isActive: true,
+          enrolledClassrooms: [classroom.id],
+          completedClassrooms: [],
+          teachingClassrooms: [],
+          taughtClassrooms: [],
+        };
+
+        if (isOffline) {
+          const tempStudentId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+          const tempStudent: IUser = {
+            ...studentData,
+            id: tempStudentId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          await OfflineStorageService.saveOperation({
+            type: 'createStudent',
+            data: { studentData, classroomId: classroom.id },
+          });
+
+          OfflineStorageService.saveStudentLocally(tempStudent);
+          const currentStudentIds = classroom.studentIds || [];
+          currentStudentIds.push(tempStudentId);
+          updateLocalClassroomStudents(currentStudentIds);
+          toast.info('Estudiante creado localmente. Se sincronizará cuando haya conexión.');
+        } else {
+          const studentId = await UserService.createUser(studentData);
+          await ClassroomService.addStudentToClassroom(classroom.id, studentId);
+          toast.success('Estudiante creado y agregado a la clase.');
+        }
+      }
+
+      resetStudentDialog();
       await loadData();
-      if (onUpdate) await onUpdate();
+      await onUpdate?.();
     } catch (error: any) {
-      console.error('Error creating student:', error);
-      toast.error(error.message || 'Error al crear estudiante');
+      console.error('Error saving student from dialog:', error);
+      toast.error(error.message || 'No se pudo guardar el estudiante.');
     } finally {
       setSaving(false);
     }
   };
 
-  const filteredAvailableStudents = students.filter(s => {
-    const query = searchQuery.toLowerCase();
-    const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
-    return fullName.includes(query) || 
-           s.phone.includes(query) || 
-           (s.email || '').toLowerCase().includes(query);
-  });
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudents((current) =>
+      current.includes(studentId)
+        ? current.filter((id) => id !== studentId)
+        : [...current, studentId]
+    );
+  };
 
   if (loading) {
     return (
-      <div className="text-center py-5">
+      <div className="py-10 text-center">
         <Spinner color="primary" />
-        <p className="mt-2">Cargando estudiantes...</p>
+        <p className="mt-3 mb-0 text-sm text-slate-500">Cargando estudiantes...</p>
       </div>
     );
   }
 
   return (
     <>
-      {/* Offline indicator */}
-      {isOffline && pendingOperations > 0 && (
-        <Alert color="warning" className="mb-3">
-          <i className="bi bi-wifi-off me-2"></i>
-          Modo sin conexión. {pendingOperations} operación(es) pendiente(s) de sincronizar.
-        </Alert>
-      )}
+      <div className="px-1 pb-6 -mx-3 -my-3">
+        <div className="rounded-b-[28px] bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-800 px-4 pb-5 pt-4 text-white shadow-lg">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-cyan-200">
+                Gestión de estudiantes
+              </p>
+              <h2 className="mb-2 text-2xl font-bold">Inscripción de la clase</h2>
+              <p className="mb-0 max-w-2xl text-sm leading-6 text-slate-200">
+                Administra quién entra a esta clase, corrige datos rápidamente y aprovecha la búsqueda por teléfono para detectar estudiantes existentes.
+              </p>
+            </div>
 
-      {/* Mobile-First Card Design */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="bg-white border-bottom">
-          <div className="d-flex justify-content-between align-items-center flex-wrap">
-            <h5 className="mb-0">
-              <i className="bi bi-people-fill me-2"></i>
-              Estudiantes ({enrolledStudents.length})
-              {isOffline && <Badge color="warning" className="ms-2">Offline</Badge>}
-            </h5>
-            <div className="btn-group mt-2 mt-sm-0">
-              <Button 
-                color="primary" 
-                size="sm"
-                onClick={() => setEnrollModal(true)}
-              >
-                <i className="bi bi-person-plus-fill me-1"></i>
-                <span className="d-none d-sm-inline">Agregar</span>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <Button color="light" className="rounded-2xl border-0 text-slate-900" onClick={() => setPickerOpen(true)}>
+                <i className="bi bi-person-plus me-2"></i>
+                Inscribir existente
               </Button>
-              <Button 
-                color="success" 
-                size="sm"
-                onClick={() => setNewStudentModal(true)}
-              >
-                <i className="bi bi-person-badge-fill me-1"></i>
-                <span className="d-none d-sm-inline">Nuevo</span>
+              <Button color="primary" className="rounded-2xl border border-white/20 bg-white/10" onClick={openCreateStudentDialog}>
+                <i className="bi bi-person-badge me-2"></i>
+                Nuevo estudiante
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardBody className="p-0">
-          {enrolledStudents.length === 0 ? (
-            <Alert color="info" className="m-3">
-              <i className="bi bi-info-circle me-2"></i>
-              No hay estudiantes inscritos en esta clase
+
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-2xl bg-white/10 px-3 py-3 backdrop-blur">
+              <div className="text-xs uppercase tracking-[0.14em] text-cyan-100">Inscritos</div>
+              <div className="mt-1 text-xl font-bold">{enrolledStudents.length}</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 px-3 py-3 backdrop-blur">
+              <div className="text-xs uppercase tracking-[0.14em] text-cyan-100">Disponibles</div>
+              <div className="mt-1 text-xl font-bold">{availableStudents.length}</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 px-3 py-3 backdrop-blur">
+              <div className="text-xs uppercase tracking-[0.14em] text-cyan-100">Clase</div>
+              <div className="mt-1 truncate text-sm font-semibold">{classroom.name}</div>
+            </div>
+            <div className="rounded-2xl bg-white/10 px-3 py-3 backdrop-blur">
+              <div className="text-xs uppercase tracking-[0.14em] text-cyan-100">Modo</div>
+              <div className="mt-1 text-sm font-semibold">{isOffline ? 'Sin conexión' : 'En línea'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 px-3 pt-4">
+          {isOffline && pendingOperations > 0 && (
+            <Alert color="warning" className="mb-0 rounded-4 border-0 shadow-sm">
+              <i className="bi bi-wifi-off me-2"></i>
+              Hay {pendingOperations} operación(es) pendiente(s) de sincronizar.
             </Alert>
-          ) : (
-            <ListGroup flush>
-              {enrolledStudents.map((student, index) => (
-                <ListGroupItem key={student.id} className="px-3 py-3">
-                  <div className="d-flex align-items-center justify-content-between">
-                    <div className="d-flex align-items-center flex-grow-1">
-                      <div className="position-relative">
+          )}
+
+          <section className="rounded-[26px] bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-500">
+                  Estudiantes inscritos
+                </p>
+                <h3 className="mb-0 text-lg font-semibold text-slate-900">
+                  {filteredEnrolledStudents.length} visible{filteredEnrolledStudents.length === 1 ? '' : 's'}
+                </h3>
+              </div>
+
+              <div className="relative w-full md:max-w-sm">
+                <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Buscar por nombre, teléfono o correo..."
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            {filteredEnrolledStudents.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-500">
+                <i className="bi bi-people text-3xl text-slate-300"></i>
+                <p className="mt-3 mb-0 text-sm">
+                  {enrolledStudents.length === 0
+                    ? 'Todavía no hay estudiantes inscritos en esta clase.'
+                    : 'No encontramos estudiantes con ese criterio de búsqueda.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {filteredEnrolledStudents.map((student, index) => (
+                  <motion.div
+                    key={student.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                    className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         {student.profilePhoto ? (
                           <img
                             src={student.profilePhoto}
-                            alt={student.firstName}
-                            className="rounded-circle"
-                            style={{ 
-                              width: '40px', 
-                              height: '40px', 
-                              objectFit: 'cover' 
-                            }}
+                            alt={`${student.firstName} ${student.lastName}`}
+                            className="h-12 w-12 rounded-2xl object-cover shadow-sm"
                           />
                         ) : (
-                          <div
-                            className="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white"
-                            style={{ width: '40px', height: '40px' }}
-                          >
-                            <span className="fw-bold">
-                              {student.firstName?.[0] || ''}{student.lastName?.[0] || ''}
-                            </span>
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-sm font-bold text-blue-700 shadow-sm">
+                            {student.firstName?.[0] || ''}
+                            {student.lastName?.[0] || ''}
                           </div>
                         )}
-                        <span className="position-absolute top-0 start-0 badge rounded-pill bg-secondary">
-                          {index + 1}
-                        </span>
-                      </div>
-                      
-                      <div className="ms-3">
-                        <div className="fw-bold">
-                          {student.firstName} {student.lastName}
+
+                        <div className="min-w-0">
+                          <h4 className="mb-1 truncate text-sm font-semibold text-slate-900">
+                            {student.firstName} {student.lastName}
+                          </h4>
+                          <div className="space-y-1 text-xs text-slate-500">
+                            <div className="truncate">
+                              <i className="bi bi-phone me-1"></i>
+                              {student.phone}
+                            </div>
+                            <div className="truncate">
+                              <i className="bi bi-envelope me-1"></i>
+                              {student.email || 'Sin correo electrónico'}
+                            </div>
+                          </div>
                         </div>
-                        <small className="text-muted d-block">
+                      </div>
+
+                      <span className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-white px-2 text-xs font-bold text-slate-600 shadow-sm">
+                        {index + 1}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex gap-2">
+                      <Button color="light" className="flex-1 rounded-2xl border border-slate-200 bg-white text-slate-700" onClick={() => openEditStudentDialog(student)}>
+                        <i className="bi bi-pencil-square me-2"></i>
+                        Editar
+                      </Button>
+                      <Button color="danger" outline className="rounded-2xl" onClick={() => void handleRemoveStudent(student.id)}>
+                        <i className="bi bi-trash"></i>
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      <Dialog
+        isOpen={pickerOpen}
+        onClose={() => {
+          setPickerOpen(false);
+          setSelectedStudents([]);
+          setAvailableSearchQuery('');
+        }}
+        title="Inscribir estudiantes existentes"
+        size="lg"
+        fullScreen
+        footer={
+          <div className="flex gap-2">
+            <Button
+              color="secondary"
+              onClick={() => {
+                setPickerOpen(false);
+                setSelectedStudents([]);
+                setAvailableSearchQuery('');
+              }}
+              disabled={saving}
+              className="flex-1"
+            >
+              Cancelar
+            </Button>
+            <Button color="primary" onClick={() => void handleAddStudents()} disabled={saving || selectedStudents.length === 0} className="flex-1">
+              {saving ? (
+                <>
+                  <Spinner size="sm" className="me-2" />
+                  Inscribiendo...
+                </>
+              ) : (
+                `Agregar (${selectedStudents.length})`
+              )}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-[24px] bg-gradient-to-br from-emerald-600 via-emerald-500 to-cyan-500 p-4 text-white">
+            <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-emerald-100">
+              Inscripción rápida
+            </p>
+            <h3 className="mb-2 text-lg font-semibold">Selecciona estudiantes disponibles</h3>
+            <p className="mb-0 text-sm leading-6 text-emerald-50">
+              Marca uno o varios estudiantes que ya existen en la academia para agregarlos inmediatamente a esta clase.
+            </p>
+          </div>
+
+          <div className="relative">
+            <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input
+              type="search"
+              value={availableSearchQuery}
+              onChange={(event) => setAvailableSearchQuery(event.target.value)}
+              placeholder="Buscar estudiantes disponibles..."
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:bg-white"
+            />
+          </div>
+
+          {filteredAvailableStudents.length === 0 ? (
+            <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-slate-500">
+              <i className="bi bi-person-x text-3xl text-slate-300"></i>
+              <p className="mt-3 mb-0 text-sm">
+                No hay estudiantes disponibles para inscribir con ese criterio.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {filteredAvailableStudents.map((student, index) => {
+                const isSelected = selectedStudents.includes(student.id);
+
+                return (
+                  <motion.button
+                    key={student.id}
+                    type="button"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                    onClick={() => toggleStudentSelection(student.id)}
+                    className={`rounded-[24px] border p-4 text-left shadow-sm transition ${
+                      isSelected
+                        ? 'border-cyan-400 bg-cyan-50'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className="mb-1 truncate text-sm font-semibold text-slate-900">
+                          {student.firstName} {student.lastName}
+                        </h4>
+                        <p className="mb-1 text-xs text-slate-500">
                           <i className="bi bi-phone me-1"></i>
                           {student.phone}
-                        </small>
-                        {student.email && (
-                          <small className="text-muted d-block">
-                            <i className="bi bi-envelope me-1"></i>
-                            {student.email}
-                          </small>
-                        )}
+                        </p>
+                        <p className="mb-0 truncate text-xs text-slate-500">
+                          <i className="bi bi-envelope me-1"></i>
+                          {student.email || 'Sin correo electrónico'}
+                        </p>
                       </div>
+
+                      <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${
+                        isSelected
+                          ? 'border-cyan-500 bg-cyan-500 text-white'
+                          : 'border-slate-300 bg-white text-transparent'
+                      }`}>
+                        <i className="bi bi-check-lg"></i>
+                      </span>
                     </div>
-                    
-                    <Button
-                      color="danger"
-                      size="sm"
-                      outline
-                      onClick={() => handleRemoveStudent(student.id)}
-                      className="ms-2"
-                    >
-                      <i className="bi bi-trash"></i>
-                    </Button>
-                  </div>
-                </ListGroupItem>
-              ))}
-            </ListGroup>
+                  </motion.button>
+                );
+              })}
+            </div>
           )}
-        </CardBody>
-      </Card>
+        </div>
+      </Dialog>
 
-      {/* Add Students Modal - Mobile Optimized */}
-      <Modal 
-        isOpen={enrollModal} 
-        toggle={() => setEnrollModal(false)}
-        className="modal-fullscreen-sm-down"
-      >
-        <ModalHeader toggle={() => setEnrollModal(false)}>
-          Agregar Estudiantes Existentes
-        </ModalHeader>
-        <ModalBody>
-          <InputGroup className="mb-3">
-            <InputGroupText>
-              <i className="bi bi-search"></i>
-            </InputGroupText>
-            <Input
-              placeholder="Buscar por nombre o teléfono..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </InputGroup>
-          
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {filteredAvailableStudents.length === 0 ? (
-              <Alert color="warning">
-                No hay estudiantes disponibles para agregar
-              </Alert>
-            ) : (
-              <ListGroup>
-                {filteredAvailableStudents.map(student => (
-                  <ListGroupItem key={student.id} className="p-2">
-                    <FormGroup check className="mb-0">
-                      <Label check className="d-flex align-items-center">
-                        <Input
-                          type="checkbox"
-                          checked={selectedStudents.includes(student.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedStudents([...selectedStudents, student.id]);
-                            } else {
-                              setSelectedStudents(
-                                selectedStudents.filter(id => id !== student.id)
-                              );
-                            }
-                          }}
-                        />
-                        <div className="ms-2">
-                          <strong>{student.firstName} {student.lastName}</strong>
-                          <small className="d-block text-muted">
-                            {student.phone}
-                          </small>
-                        </div>
-                      </Label>
-                    </FormGroup>
-                  </ListGroupItem>
-                ))}
-              </ListGroup>
-            )}
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button 
-            color="secondary" 
-            onClick={() => setEnrollModal(false)}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            color="primary" 
-            onClick={handleAddStudents}
-            disabled={saving || selectedStudents.length === 0}
-          >
-            {saving ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                Agregando...
-              </>
-            ) : (
-              <>Agregar ({selectedStudents.length})</>
-            )}
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Create New Student Modal - Mobile Optimized */}
-      <Modal 
-        isOpen={newStudentModal} 
-        toggle={() => setNewStudentModal(false)}
-        className="modal-fullscreen-sm-down"
-      >
-        <ModalHeader toggle={() => setNewStudentModal(false)}>
-          Crear Nuevo Estudiante
-        </ModalHeader>
-        <ModalBody>
-          <Form>
-            <FormGroup>
-              <Label for="firstName">Nombre *</Label>
-              <Input
-                type="text"
-                id="firstName"
-                value={newStudentForm.firstName}
-                onChange={(e) => setNewStudentForm({
-                  ...newStudentForm,
-                  firstName: e.target.value
-                })}
-                placeholder="Ingrese el nombre"
-              />
-            </FormGroup>
-            
-            <FormGroup>
-              <Label for="lastName">Apellido *</Label>
-              <Input
-                type="text"
-                id="lastName"
-                value={newStudentForm.lastName}
-                onChange={(e) => setNewStudentForm({
-                  ...newStudentForm,
-                  lastName: e.target.value
-                })}
-                placeholder="Ingrese el apellido"
-              />
-            </FormGroup>
-            
-            <FormGroup>
-              <Label for="phone">Teléfono *</Label>
-              <Input
-                type="tel"
-                id="phone"
-                value={newStudentForm.phone}
-                onChange={(e) => setNewStudentForm({
-                  ...newStudentForm,
-                  phone: e.target.value
-                })}
-                placeholder="809-555-0000"
-              />
-            </FormGroup>
-            
-            <FormGroup>
-              <Label for="email">Correo Electrónico</Label>
-              <Input
-                type="email"
-                id="email"
-                value={newStudentForm.email}
-                onChange={(e) => setNewStudentForm({
-                  ...newStudentForm,
-                  email: e.target.value
-                })}
-                placeholder="correo@ejemplo.com (opcional)"
-              />
-            </FormGroup>
-            
-            <FormGroup>
-              <Label for="password">Contraseña *</Label>
-              <Input
-                type="password"
-                id="password"
-                value={newStudentForm.password}
-                onChange={(e) => setNewStudentForm({
-                  ...newStudentForm,
-                  password: e.target.value
-                })}
-                placeholder="Mínimo 6 caracteres"
-              />
-            </FormGroup>
-            
-            <Alert color="info">
-              <i className="bi bi-info-circle me-2"></i>
-              El estudiante será creado y agregado automáticamente a esta clase
-            </Alert>
-          </Form>
-        </ModalBody>
-        <ModalFooter>
-          <Button 
-            color="secondary" 
-            onClick={() => setNewStudentModal(false)}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            color="success" 
-            onClick={handleCreateStudent}
-            disabled={saving}
-          >
-            {saving ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                Creando...
-              </>
-            ) : (
-              'Crear y Agregar'
-            )}
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <StudentEnrollmentStudentDialog
+        isOpen={studentDialogOpen}
+        onClose={resetStudentDialog}
+        onSubmit={handleStudentDialogSubmit}
+        allStudents={allStudents}
+        enrolledStudentIds={enrolledStudentIds}
+        initialStudent={editingStudent}
+        classroomName={classroom.name}
+        isOffline={isOffline}
+        isSubmitting={saving}
+      />
     </>
   );
 };

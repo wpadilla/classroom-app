@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useOffline } from '../../contexts/OfflineContext';
 import AppUpdateBanner from '../common/AppUpdateBanner';
 import OfflineSyncBadge from '../common/OfflineSyncBadge';
+import PWAInstallButton from '../common/PWAInstallButton';
 import StudentOnboardingBanner from '../common/StudentOnboardingBanner';
 import { STUDENT_ONBOARDING_ROUTE } from '../../constants/onboarding.constants';
 import { needsStudentOnboarding } from '../../utils/onboarding';
@@ -100,8 +101,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm safe-top">
         <div className="w-full px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-decoration-none border-0 active:opacity-70 transition-opacity">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm">
-              <i className="bi bi-mortarboard-fill text-sm" />
+            <div className="w-8 h-8 flex items-center justify-center overflow-hidden p-1">
+              <img src="/logo.png" alt="AMOA Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="font-bold text-gray-900 text-sm leading-tight truncate w-40 sm:w-auto">
@@ -125,6 +126,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
                 </span>
               )}
             </div>
+
+            <PWAInstallButton compact />
 
             {/* User menu button */}
             {user && (

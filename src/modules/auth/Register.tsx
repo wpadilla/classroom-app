@@ -241,7 +241,7 @@ const Register: React.FC = () => {
         await WhatsappService.registerStudentToAcademy({
           firstName: data.firstName,
           lastName: data.lastName,
-          documentNumber: data.documentNumber,
+          documentNumber: data.documentNumber || '',
           email: data.email || '',
           phone: data.phone,
           country: getCountryLabel(data.country),

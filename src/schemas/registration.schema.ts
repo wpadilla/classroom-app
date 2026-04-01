@@ -10,6 +10,11 @@ import { VALIDATION_PATTERNS } from '../constants/registration.constants';
 export const documentTypeSchema = z.enum(['NationalId', 'Passport']);
 export type DocumentTypeValue = z.infer<typeof documentTypeSchema>;
 
+const optionalDocumentTypeSchema = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  documentTypeSchema.optional()
+);
+
 /**
  * Academic level enum (Zod v3 compatible)
  */
@@ -67,11 +72,22 @@ const studentProfileSchemaBase = z.object({
     .max(50, 'El apellido no puede exceder 50 caracteres')
     .regex(VALIDATION_PATTERNS.NAME, 'El apellido contiene caracteres inválidos'),
 
-  documentType: documentTypeSchema,
+  documentType: optionalDocumentTypeSchema,
 
-  documentNumber: z
-    .string()
-    .min(6, 'El documento debe tener al menos 6 caracteres'),
+  documentNumber: z.preprocess(
+    (value) => {
+      if (typeof value !== 'string') {
+        return value;
+      }
+
+      const trimmedValue = value.trim();
+      return trimmedValue === '' ? undefined : trimmedValue;
+    },
+    z
+      .string()
+      .min(6, 'El documento debe tener al menos 6 caracteres')
+      .optional()
+  ),
 
   email: optionalEmailSchema,
 
@@ -99,9 +115,13 @@ const studentProfileSchemaBase = z.object({
 });
 
 const validateDocumentNumber = (
-  data: { documentType: DocumentTypeValue; documentNumber: string },
+  data: { documentType?: DocumentTypeValue; documentNumber?: string },
   ctx: z.RefinementCtx
 ) => {
+  if (!data.documentNumber) {
+    return;
+  }
+
   if (data.documentType === 'NationalId') {
     const cleanDoc = data.documentNumber.replaceAll('-', '');
     if (!VALIDATION_PATTERNS.CEDULA.test(data.documentNumber) || cleanDoc.length !== 11) {

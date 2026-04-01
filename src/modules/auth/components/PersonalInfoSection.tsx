@@ -42,6 +42,18 @@ export const PersonalInfoSection = <TFormValues extends StudentProfileFormData =
   const typedDirtyFields = dirtyFields as FieldNamesMarkedBoolean<StudentProfileFormData>;
   const documentType = watch('documentType' as Path<TFormValues>);
   const shouldShowError = (fieldDirty?: boolean) => isSubmitted || fieldDirty;
+  const documentPlaceholder =
+    documentType === 'NationalId'
+      ? '001-1234567-8'
+      : documentType === 'Passport'
+        ? 'AB1234567'
+        : 'Documento (opcional)';
+  const documentLabel =
+    documentType === 'NationalId'
+      ? 'Cédula (Opcional)'
+      : documentType === 'Passport'
+        ? 'Pasaporte (Opcional)'
+        : 'Número de Documento (Opcional)';
   const { ref: firstNameRef, ...firstNameField } = register('firstName' as Path<TFormValues>);
   const { ref: lastNameRef, ...lastNameField } = register('lastName' as Path<TFormValues>);
   const { ref: documentTypeRef, ...documentTypeField } = register('documentType' as Path<TFormValues>);
@@ -158,55 +170,6 @@ export const PersonalInfoSection = <TFormValues extends StudentProfileFormData =
           </FormGroup>
         </Col>
       </Row>
-
-      {/* Document fields */}
-      <Row>
-        <Col md={4}>
-          <FormGroup>
-            <Label for="documentType">Tipo de Documento *</Label>
-            <Input
-              type="select"
-              id="documentType"
-              {...documentTypeField}
-              innerRef={documentTypeRef}
-              invalid={!!typedErrors.documentType && shouldShowError(typedDirtyFields.documentType)}
-              disabled={disabled}
-            >
-              {DOCUMENT_TYPE_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Input>
-            {shouldShowError(typedDirtyFields.documentType) && (
-              <FormFeedback>{String(typedErrors.documentType?.message || '')}</FormFeedback>
-            )}
-          </FormGroup>
-        </Col>
-        <Col md={8}>
-          <FormGroup>
-            <Label for="documentNumber">
-              {documentType === 'NationalId' ? 'Cédula *' : 'Pasaporte *'}
-            </Label>
-            <Input
-              type="text"
-              id="documentNumber"
-              placeholder={documentType === 'NationalId' ? '001-1234567-8' : 'AB1234567'}
-              {...documentNumberField}
-              innerRef={documentNumberRef}
-              invalid={!!typedErrors.documentNumber && shouldShowError(typedDirtyFields.documentNumber)}
-              disabled={disabled}
-            />
-            {shouldShowError(typedDirtyFields.documentNumber) && (
-              <FormFeedback>{String(typedErrors.documentNumber?.message || '')}</FormFeedback>
-            )}
-            {documentType === 'NationalId' && (
-              <small className="text-muted">Formato: XXX-XXXXXXX-X</small>
-            )}
-          </FormGroup>
-        </Col>
-      </Row>
-
       {/* Contact fields */}
       <Row>
         <Col md={6}>
@@ -249,6 +212,54 @@ export const PersonalInfoSection = <TFormValues extends StudentProfileFormData =
           </FormGroup>
         </Col>
       </Row>
+
+      {/* Document fields */}
+      <Row>
+        <Col md={4}>
+          <FormGroup>
+            <Label for="documentType">Tipo de Documento (Opcional)</Label>
+            <Input
+              type="select"
+              id="documentType"
+              {...documentTypeField}
+              innerRef={documentTypeRef}
+              invalid={!!typedErrors.documentType && shouldShowError(typedDirtyFields.documentType)}
+              disabled={disabled}
+            >
+              <option value="">Seleccionar después</option>
+              {DOCUMENT_TYPE_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Input>
+            {shouldShowError(typedDirtyFields.documentType) && (
+              <FormFeedback>{String(typedErrors.documentType?.message || '')}</FormFeedback>
+            )}
+          </FormGroup>
+        </Col>
+        <Col md={8}>
+          <FormGroup>
+            <Label for="documentNumber">{documentLabel}</Label>
+            <Input
+              type="text"
+              id="documentNumber"
+              placeholder={documentPlaceholder}
+              {...documentNumberField}
+              innerRef={documentNumberRef}
+              invalid={!!typedErrors.documentNumber && shouldShowError(typedDirtyFields.documentNumber)}
+              disabled={disabled}
+            />
+            {shouldShowError(typedDirtyFields.documentNumber) && (
+              <FormFeedback>{String(typedErrors.documentNumber?.message || '')}</FormFeedback>
+            )}
+            {documentType === 'NationalId' && (
+              <small className="text-muted">Formato: XXX-XXXXXXX-X</small>
+            )}
+          </FormGroup>
+        </Col>
+      </Row>
+
 
       {/* Email */}
       <FormGroup>

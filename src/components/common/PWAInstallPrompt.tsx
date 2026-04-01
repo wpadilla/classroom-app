@@ -1,58 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, ModalHeader, ModalBody, ModalFooter, Button } from 'reactstrap';
+import { usePwaInstall } from '../../contexts/PwaInstallContext';
 
 const PWAInstallPrompt: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { canInstall, isInstalled, promptInstall } = usePwaInstall();
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
-      setDeferredPrompt(e);
-
-      checkShowPrompt();
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        // Already installed
-        return;
+    if (!canInstall || isInstalled) {
+      setModalOpen(false);
+      return;
     }
 
-    // Development simulation
-    if (process.env.NODE_ENV === 'development') {
-      const timer = setTimeout(() => {
-        console.log('Simulating beforeinstallprompt for development');
-        const mockEvent = {
-          preventDefault: () => {},
-          prompt: () => {
-            const accepted = window.confirm("Development Mode: Install this app?\n\nClick OK to simulate 'accepted', Cancel for 'dismissed'.");
-            (mockEvent as any)._userOutcome = accepted ? 'accepted' : 'dismissed';
-          },
-          userChoice: {
-            then: (resolve: any) => {
-              const outcome = (mockEvent as any)._userOutcome || 'dismissed';
-              resolve({ outcome });
-            }
-          }
-        };
-        handleBeforeInstallPrompt(mockEvent as unknown as Event);
-      }, 2000); // Wait 2 seconds to simulate loading
-
-      return () => {
-        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        clearTimeout(timer);
-      };
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
+    checkShowPrompt();
+  }, [canInstall, isInstalled]);
 
   const checkShowPrompt = () => {
       const lastShownDate = localStorage.getItem('pwaPromptLastShown');
@@ -74,13 +35,7 @@ const PWAInstallPrompt: React.FC = () => {
   };
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    // Show the install prompt
-    deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
+    const outcome = await promptInstall();
 
     if (outcome === 'accepted') {
       // User accepted the install prompt
@@ -88,8 +43,6 @@ const PWAInstallPrompt: React.FC = () => {
       // User dismissed the install prompt
     }
 
-    // We no longer need the prompt. Clear it to avoid multiple clicks.
-    setDeferredPrompt(null);
     setModalOpen(false);
 
     // If they dismiss, we record the date so we don't show it for another X days.
@@ -103,7 +56,7 @@ const PWAInstallPrompt: React.FC = () => {
       localStorage.setItem('pwaPromptLastShown', new Date().toISOString());
   };
 
-  if (!modalOpen || !deferredPrompt) return null;
+  if (!modalOpen || !canInstall || isInstalled) return null;
 
   return (
     <Modal isOpen={modalOpen} toggle={handleClose} centered backdrop="static">

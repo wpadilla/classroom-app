@@ -7,6 +7,7 @@ import reportWebVitals from './reportWebVitals';
 
 import { AppUpdateProvider } from './contexts/AppUpdateContext';
 import { OfflineProvider } from './contexts/OfflineContext';
+import { PwaInstallProvider } from './contexts/PwaInstallContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -15,11 +16,13 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <OfflineProvider>
-      <AppUpdateProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </AppUpdateProvider>
+      <PwaInstallProvider>
+        <AppUpdateProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </AppUpdateProvider>
+      </PwaInstallProvider>
     </OfflineProvider>
   </React.StrictMode>
 );

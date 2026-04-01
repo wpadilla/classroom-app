@@ -50,6 +50,23 @@ export const AcademicInfoSection = <TFormValues extends StudentProfileFormData =
   const academicLevelValue = watch('academicLevel' as Path<TFormValues>) as string | undefined;
   const enrollmentTypeValue = watch('enrollmentType' as Path<TFormValues>) as string | undefined;
 
+  React.useEffect(() => {
+    if (loadingEnrollmentOptions || disabled || enrollmentOptions.length === 0) {
+      return;
+    }
+
+    const hasMatchingOption = enrollmentOptions.some((option) => option.value === enrollmentTypeValue);
+    if (hasMatchingOption) {
+      return;
+    }
+
+    setValue('enrollmentType' as Path<TFormValues>, enrollmentOptions[0].value as never, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: true,
+    });
+  }, [disabled, enrollmentOptions, enrollmentTypeValue, loadingEnrollmentOptions, setValue]);
+
   return (
     <>
       <h5 className="mb-3 mt-4 text-primary">

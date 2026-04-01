@@ -439,7 +439,7 @@ const UserProfile: React.FC = () => {
   }
 
   return (
-    <div className="pb-6 -mx-3 -my-3">
+    <div className="pb-6 -mx-3 -my-6">
       {/* Profile Hero */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

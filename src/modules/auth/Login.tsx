@@ -1,19 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  CardBody,
-  Form,
-  FormGroup,
-  Label,
-  Input,
-  Button,
-  Alert,
-  Spinner,
-} from 'reactstrap';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import { IAuthCredentials, IAuthUser, IRegistrationData } from '../../models';
@@ -154,7 +141,7 @@ const Login: React.FC<LoginProps> = ({ mode = 'login' }) => {
 
   const handleCreateAccountSubmit = async () => {
     if (!credentials.identifier.trim()) {
-      setError('Ingresa tu Teléfono/Whatsapp.');
+      setError('Ingresa tu Teléfono/WhatsApp.');
       return;
     }
 
@@ -218,144 +205,166 @@ const Login: React.FC<LoginProps> = ({ mode = 'login' }) => {
     : 'Ej: 8091234567 o correo@ejemplo.com';
   const heading = isCreateMode ? 'Crear cuenta' : 'Iniciar sesión';
   const helperText = isCreateMode
-    ? 'Crea tu acceso con tu teléfono y tu contraseña. Después completarás el resto de tus datos en el onboarding.'
-    : 'Escribe tu teléfono o correo. Si también es tu contraseña, podrás entrar de inmediato.';
+    ? 'Crea tu acceso y completa el resto de tus datos en el onboarding.'
+    : 'Escribe tu teléfono o correo. Si también es tu contraseña, entrarás de inmediato.';
   const isBusy = loading || submitting;
 
   return (
-    <Container className="min-vh-100 d-flex align-items-center justify-content-center py-5">
-      <Row className="w-100">
-        <Col md={6} lg={5} xl={4} className="mx-auto">
-          <Card className="shadow-lg border-0 rounded-4 overflow-hidden">
-            <CardBody className="p-4 p-md-5">
-              <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary">Academia de Ministros Oasis de Amor</h2>
-                <p className="text-muted mb-0">Sistema de Gestión Académica</p>
-              </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-0 py-12">
+      <div className="w-full max-w-md mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-[32px] shadow-xl shadow-blue-900/5 p-6 sm:p-6 border border-gray-100"
+        >
+          {/* Header & Logo */}
+          <div className="flex flex-col items-center text-center">
+            <div className="w-24 h-24 flex items-center justify-center overflow-hidden p-2">
+              <img src="/logo.png" alt="Logo AMOA" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-blue-900 leading-tight tracking-tight mb-1">
+              Academia de Ministros<br />Oasis de Amor
+            </h1>
+            <p className="text-sm font-medium text-blue-400">Sistema de Gestión Académica</p>
+          </div>
 
-              <div className="mb-4 text-center">
-                <h4 className="mb-2">{heading}</h4>
-                <p className="text-muted mb-0 small">{helperText}</p>
-              </div>
+          <div className="mb-6 text-center">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{heading}</h3>
+            <p className="text-sm text-gray-500 m-0 leading-relaxed px-2">{helperText}</p>
+          </div>
 
-              {error && (
-                <Alert color="danger" className="mb-3">
-                  {error}
-                </Alert>
-              )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-4"
+              >
+                <div className="bg-red-50 text-red-700 p-3 rounded-xl text-sm font-medium border border-red-100 flex items-start gap-2">
+                  <i className="bi bi-exclamation-circle-fill mt-0.5 text-red-500" />
+                  <p className="m-0 flex-1">{error}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              <Form onSubmit={handleSubmit}>
-                <FormGroup>
-                  <Label for="identifier">{identifierLabel}</Label>
-                  <Input
-                    type={isCreateMode ? 'tel' : 'text'}
-                    name="identifier"
-                    id="identifier"
-                    placeholder={identifierPlaceholder}
-                    value={credentials.identifier}
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="identifier" className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-1.5 ml-1">
+                {identifierLabel}
+              </label>
+              <input
+                type={isCreateMode ? 'tel' : 'text'}
+                name="identifier"
+                id="identifier"
+                placeholder={identifierPlaceholder}
+                value={credentials.identifier}
+                onChange={handleChange}
+                required
+                disabled={isBusy}
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+              />
+            </div>
+
+            {(showPassword || isCreateMode) ? (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="overflow-hidden"
+              >
+                <label htmlFor="password" className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-1.5 ml-1">
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    id="password"
+                    placeholder={isCreateMode ? 'Crea tu contraseña' : 'Ingresa tu contraseña'}
+                    value={credentials.password}
                     onChange={handleChange}
                     required
                     disabled={isBusy}
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 pr-20"
                   />
-                </FormGroup>
-
-                {(showPassword || isCreateMode) ? (
-                  <FormGroup>
-                    <Label for="password">Contraseña</Label>
-                    <div className="position-relative">
-                      <Input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        id="password"
-                        placeholder={isCreateMode ? 'Crea tu contraseña' : 'Ingresa tu contraseña'}
-                        value={credentials.password}
-                        onChange={handleChange}
-                        required
-                        disabled={isBusy}
-                      />
-                      <Button
-                        type="button"
-                        color="link"
-                        size="sm"
-                        className="position-absolute end-0 top-50 translate-middle-y text-decoration-none"
-                        onClick={() => setShowPassword((previous) => !previous)}
-                        style={{ zIndex: 10 }}
-                        disabled={isBusy}
-                      >
-                        {showPassword ? 'Ocultar' : 'Mostrar'}
-                      </Button>
-                    </div>
-                  </FormGroup>
-                ) : (
-                  <Alert color="light" className="border small text-muted py-2 px-3">
-                    Si no entra automáticamente, te pediremos la contraseña en el siguiente paso.
-                  </Alert>
-                )}
-
-                <Button
-                  type="submit"
-                  color="primary"
-                  block
-                  size="lg"
-                  disabled={isBusy}
-                  className="mt-4"
-                >
-                  {submitting ? (
-                    <>
-                      <Spinner size="sm" className="me-2" />
-                      {isCreateMode ? 'Creando cuenta...' : 'Ingresando...'}
-                    </>
-                  ) : isCreateMode ? (
-                    'Crear cuenta'
-                  ) : (
-                    'Iniciar sesión'
-                  )}
-                </Button>
-              </Form>
-
-              <hr className="my-4" />
-
-              <div className="d-grid gap-2 text-center">
-                {isCreateMode ? (
-                  <Link to="/login" className="btn btn-outline-primary">
-                    Ya tengo cuenta
-                  </Link>
-                ) : (
-                  <Link to="/register" className="btn btn-outline-primary">
-                    Crear cuenta
-                  </Link>
-                )}
-
-                {!isCreateMode && (
-                  <Link to="/forgot-password" className="text-decoration-none text-muted small">
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isBusy}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors uppercase tracking-wider bg-transparent border-0 disabled:opacity-50"
+                  >
+                    {showPassword ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-center">
+                <span className="text-xs text-blue-700 font-medium">
+                  Si no entra automáticamente, te pediremos la contraseña en el siguiente paso.
+                </span>
               </div>
+            )}
 
-              <div className="text-center mt-4">
-                <small className="text-muted">
-                  Al continuar, aceptas nuestros{' '}
-                  <Link to="/terms" className="text-decoration-none">
-                    Términos de Servicio
-                  </Link>{' '}
-                  y{' '}
-                  <Link to="/privacy" className="text-decoration-none">
-                    Política de Privacidad
-                  </Link>
-                </small>
-              </div>
-            </CardBody>
-          </Card>
+            <button
+              type="submit"
+              disabled={isBusy}
+              className="w-full bg-blue-600 text-white rounded-xl py-3.5 font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:shadow-blue-600/40 active:scale-[0.98] transition-all disabled:opacity-70 disabled:active:scale-100 disabled:cursor-not-allowed mt-2 border-0 flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <i className="bi bi-arrow-repeat animate-spin text-lg" />
+                  {isCreateMode ? 'Procesando...' : 'Autenticando...'}
+                </>
+              ) : isCreateMode ? (
+                'Crear cuenta'
+              ) : (
+                'Iniciar sesión'
+              )}
+            </button>
+          </form>
 
-          <div className="text-center mt-3">
-            <small className="text-muted">
-              © 2024 Academia de Ministros Oasis de Amor. Todos los derechos reservados.
-            </small>
+          {/* Separator */}
+          <div className="relative flex py-6 items-center">
+            <div className="flex-grow border-t border-gray-100"></div>
+            <span className="shrink-0 mx-4 text-xs font-semibold text-gray-400 uppercase tracking-widest">O</span>
+            <div className="flex-grow border-t border-gray-100"></div>
           </div>
-        </Col>
-      </Row>
-    </Container>
+
+          {/* Links */}
+          <div className="flex flex-col gap-3 text-center">
+            {isCreateMode ? (
+              <Link to="/login" className="w-full py-3 rounded-xl border-2 border-gray-100 text-gray-700 font-bold hover:bg-gray-50 active:bg-gray-100 transition-colors no-underline">
+                Ya tengo cuenta
+              </Link>
+            ) : (
+              <Link to="/register" className="w-full py-3 rounded-xl border-2 border-gray-100 text-gray-700 font-bold hover:bg-gray-50 active:bg-gray-100 transition-colors no-underline">
+                Crear cuenta nueva
+              </Link>
+            )}
+
+            {!isCreateMode && (
+              <Link to="/forgot-password" className="text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors mt-2 no-underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center px-4">
+          <p className="text-xs text-gray-400 font-medium leading-relaxed">
+            Al continuar, aceptas nuestros{' '}
+            <Link to="/terms" className="text-blue-500 hover:underline">Términos de Servicio</Link> y{' '}
+            <Link to="/privacy" className="text-blue-500 hover:underline">Política de Privacidad</Link>
+          </p>
+          <div className="mt-6 text-[10px] uppercase tracking-widest font-bold text-gray-300">
+            © {new Date().getFullYear()} AMOA. Todos los derechos reservados.
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

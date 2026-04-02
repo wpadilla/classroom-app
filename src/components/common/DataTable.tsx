@@ -102,6 +102,16 @@ export interface DataTableProps<T> {
   /** Number of skeleton rows to show */
   loadingRows?: number;
   
+  // Pagination
+  /** Enable pagination */
+  pagination?: boolean;
+  
+  /** Default rows per page */
+  defaultPageSize?: number;
+  
+  /** Available page size options */
+  pageSizeOptions?: number[];
+
   // Events
   /** Callback when row is clicked */
   onRowClick?: (row: T, index: number) => void;
@@ -170,6 +180,9 @@ export function DataTable<T extends Record<string, any>>({
   emptyState,
   loading = false,
   loadingRows = 5,
+  pagination = false,
+  defaultPageSize = 10,
+  pageSizeOptions = [10, 20, 50, 100],
   onRowClick,
   className = '',
   striped = false,
@@ -179,6 +192,8 @@ export function DataTable<T extends Record<string, any>>({
   const isMobile = useIsMobile();
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   
   // Use external or internal search query
   const searchQuery = externalSearchQuery ?? internalSearchQuery;
@@ -188,6 +203,7 @@ export function DataTable<T extends Record<string, any>>({
   
   // Handle search change
   const handleSearchChange = useCallback((query: string) => {
+    setCurrentPage(1); // Reset page on search
     if (onSearchChange) {
       onSearchChange(query);
     } else {
@@ -290,6 +306,22 @@ export function DataTable<T extends Record<string, any>>({
     return count;
   }, [columns.length, selectable, actions]);
   
+  // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  
+  // Ensure current page is valid when data changes
+  React.useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredData.length, totalPages, currentPage]);
+
+  const paginatedData = useMemo(() => {
+    if (!pagination) return filteredData;
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, pagination, currentPage, pageSize]);
+
   // Show loading skeleton
   if (loading) {
     return (
@@ -409,7 +441,8 @@ export function DataTable<T extends Record<string, any>>({
           </thead>
           
           <tbody>
-            {filteredData.map((row, index) => {
+            {paginatedData.map((row, idx) => {
+              const index = pagination ? ((currentPage - 1) * pageSize) + idx : idx;
               const rowKey = keyExtractor(row, index);
               const isSelected = selectedIds.has(rowKey);
               const isExpanded = expandedIds.has(rowKey);
@@ -523,6 +556,94 @@ export function DataTable<T extends Record<string, any>>({
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && filteredData.length > 0 && (
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-center px-4 py-3 bg-white border border-top-0 rounded-bottom">
+          <div className="text-muted small mb-3 mb-md-0 d-flex align-items-center">
+            <span className="me-2">Mostrando</span>
+            <Input
+              type="select"
+              bsSize="sm"
+              className="w-auto d-inline-block form-select-sm"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+            >
+              {pageSizeOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </Input>
+            <span className="ms-2">
+              de {filteredData.length} registros
+            </span>
+          </div>
+
+          <div className="d-flex align-items-center gap-2">
+            <button
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center bg-white"
+              style={{ width: '32px', height: '32px' }}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <i className="bi bi-chevron-left"></i>
+            </button>
+
+            {isMobile ? (
+              <span className="small text-muted fw-semibold">
+                Pág. {currentPage} de {totalPages}
+              </span>
+            ) : (
+              <div className="d-flex gap-1">
+                {[...Array(totalPages)].map((_, i) => {
+                  const page = i + 1;
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        className={`btn btn-sm ${
+                          currentPage === page ? 'btn-primary' : 'bg-white text-secondary'
+                        } d-flex align-items-center justify-content-center`}
+                        style={{ width: '32px', height: '32px', border: currentPage === page ? '' : '1px solid #dee2e6' }}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return (
+                      <span key={page} className="px-1 text-muted align-self-end">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+
+            <button
+              className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center bg-white"
+              style={{ width: '32px', height: '32px' }}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <i className="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

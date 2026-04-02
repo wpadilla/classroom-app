@@ -31,6 +31,7 @@ import { IUser, IClassroom, IStudentEvaluation, IClassroomHistory, UserRole, ICl
 import { userSelfEditSchema, UserSelfEditFormData } from '../../schemas/user.schema';
 import { toast } from 'react-toastify';
 import ProgramsProgressTab from './components/ProgramsProgressTab';
+import { useProgramProgress } from '../../hooks/useProgramProgress';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
 import UserDocumentsSection from '../../components/user-documents/UserDocumentsSection';
 import ClassroomRunDetailsModal from '../../components/classroom-runs/ClassroomRunDetailsModal';
@@ -388,13 +389,21 @@ const UserProfile: React.FC = () => {
     return 'danger';
   };
 
+  const { overallStats: hookStats, calculateProgress } = useProgramProgress();
+
+  useEffect(() => {
+    if (profile) {
+      calculateProgress(profile);
+    }
+  }, [profile, calculateProgress]);
+
   // Share card stats
   const shareStats = useMemo(
     () => ({
       averageGrade: calculateOverallGrade(),
       totalClasses:
         (profile?.completedClassrooms?.length || 0) + enrolledClassrooms.length,
-      completedPrograms: 0, // Will be calculated by ProgramsProgressTab
+      completedPrograms: hookStats.completedPrograms, // Obtenido desde useProgramProgress (100% de progreso)
       currentEnrollments: enrolledClassrooms.length,
       attendanceRate: (() => {
         let present = 0,

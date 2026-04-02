@@ -40,6 +40,12 @@ import UserDetailModal from './components/UserDetailModal';
 import StudentImporter from './components/StudentImporter';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
 import StudentEnrollmentManagerModal from '../../components/enrollment/StudentEnrollmentManagerModal';
+import DataTable, { Column } from '../../components/common/DataTable';
+import UserFiltersModal, { UserFilters, defaultUserFilters } from './components/UserFiltersModal';
+import { UserListPdfDocument } from '../../components/pdf/UserListPdfDocument';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 const UserManagement: React.FC = () => {
   // State
@@ -48,9 +54,10 @@ const UserManagement: React.FC = () => {
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
   const [programs, setPrograms] = useState<IProgram[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<UserRole | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [programFilter, setProgramFilter] = useState<string>('');
+  const [filters, setFilters] = useState<UserFilters>(defaultUserFilters);
+  const [filtersModalOpen, setFiltersModalOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -98,26 +105,56 @@ const UserManagement: React.FC = () => {
   const filterUsers = useCallback(() => {
     let filtered = [...users];
 
-    // Filter by role/tab
-    if (activeTab !== 'all') {
-      if (activeTab === 'teacher') {
+    // General Filters
+    if (filters.role !== 'all') {
+      if (filters.role === 'teacher') {
         filtered = filtered.filter(u => u.isTeacher);
       } else {
-        filtered = filtered.filter(u => u.role === activeTab);
+        filtered = filtered.filter(u => u.role === filters.role);
       }
     }
 
-    // Filter by program (users enrolled in at least one classroom of that program)
-    if (programFilter) {
+    if (filters.isActive !== 'all') {
+      filtered = filtered.filter(u => u.isActive === (filters.isActive === 'true'));
+    }
+
+    if (filters.enrollmentType !== 'all') {
+      filtered = filtered.filter(u => u.enrollmentType === filters.enrollmentType);
+    }
+
+    if (filters.historyStatus !== 'all') {
+      if (filters.historyStatus === 'no-history') {
+        filtered = filtered.filter(u => 
+          (!u.completedClassrooms || u.completedClassrooms.length === 0) &&
+          (!u.enrolledClassrooms || u.enrolledClassrooms.length === 0)
+        );
+      } else if (filters.historyStatus === 'has-history') {
+        filtered = filtered.filter(u => 
+          (u.completedClassrooms && u.completedClassrooms.length > 0) ||
+          (u.enrolledClassrooms && u.enrolledClassrooms.length > 0)
+        );
+      }
+    }
+
+    if (filters.activeEnrollments !== 'all') {
+      if (filters.activeEnrollments === 'zero') {
+        filtered = filtered.filter(u => !u.enrolledClassrooms || u.enrolledClassrooms.length === 0);
+      } else if (filters.activeEnrollments === 'one-or-more') {
+        filtered = filtered.filter(u => u.enrolledClassrooms && u.enrolledClassrooms.length > 0);
+      }
+    }
+
+    // Program filter
+    if (filters.programId !== '') {
       const programClassroomIds = classrooms
-        .filter(c => c.programId === programFilter)
+        .filter(c => c.programId === filters.programId)
         .map(c => c.id);
       filtered = filtered.filter(u => 
         (u.enrolledClassrooms || []).some(cId => programClassroomIds.includes(cId))
       );
     }
 
-    // Filter by search
+    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(u => {
@@ -129,7 +166,139 @@ const UserManagement: React.FC = () => {
     }
 
     setFilteredUsers(filtered);
-  }, [activeTab, classrooms, programFilter, searchQuery, users]);
+  }, [filters, classrooms, searchQuery, users]);
+
+  const handleExportCSV = () => {
+    try {
+      setExporting(true);
+      const dataToExport = filteredUsers.map(u => ({
+        ID: u.id,
+        Nombres: u.firstName,
+        Apellidos: u.lastName,
+        Teléfono: u.phone,
+        Correo: u.email || 'N/A',
+        Rol: u.isTeacher ? 'Profesor' : (u.role === 'admin' ? 'Admin' : 'Estudiante'),
+        Estado: u.isActive ? 'Activo' : 'Inactivo',
+        Tipo_Ingreso: u.enrollmentType || 'N/A',
+        Inscripciones_Activas: u.enrolledClassrooms?.length || 0,
+        Clases_Dadas: u.teachingClassrooms?.length || 0
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Usuarios');
+      
+      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'usuarios_amoa.xlsx');
+      toast.success('Excel exportado correctamente');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al exportar a Excel');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      toast.info('Generando PDF, por favor espere...', { autoClose: 2000 });
+      
+      const blob = await pdf(<UserListPdfDocument users={filteredUsers} />).toBlob();
+      saveAs(blob, 'reporte_usuarios_amoa.pdf');
+      
+      toast.success('PDF exportado correctamente');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al exportar PDF');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const columns: Column<IUser>[] = [
+    {
+      header: 'Foto',
+      width: '60px',
+      render: (_, user) => (
+        <div style={{ cursor: 'pointer' }} onClick={() => handleOpenDetailModal(user)}>
+          {user.profilePhoto ? (
+            <img
+              src={user.profilePhoto}
+              alt={user.firstName}
+              className="rounded-circle"
+              style={{ width: '40px', height: '40px', objectFit: 'cover' }}
+            />
+          ) : (
+            <div
+              className="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center"
+              style={{ width: '40px', height: '40px' }}
+            >
+              <i className="bi bi-person-fill text-white"></i>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      header: 'Nombre',
+      accessor: 'firstName',
+      render: (_, user) => (
+        <div style={{ cursor: 'pointer' }} onClick={() => handleOpenDetailModal(user)}>
+          <span className="text-primary fw-semibold">{user.firstName} {user.lastName}</span>
+        </div>
+      )
+    },
+    { header: 'Teléfono', accessor: 'phone' },
+    { header: 'Correo', accessor: 'email', mobileHidden: true, render: (v) => v || '-' },
+    {
+      header: 'Rol',
+      render: (_, user) => (
+        <div>
+          {user.role === 'admin' && <Badge color="warning" className="me-1">Admin</Badge>}
+          {user.isTeacher && <Badge color="info" className="me-1">Profesor</Badge>}
+          {user.role === 'student' && !user.isTeacher && <Badge color="primary">Estudiante</Badge>}
+        </div>
+      )
+    },
+    {
+      header: 'Estado',
+      render: (_, user) => (
+        <Badge color={user.isActive ? 'success' : 'danger'}>
+          {user.isActive ? 'Activo' : 'Inactivo'}
+        </Badge>
+      )
+    },
+    {
+      header: 'Clases',
+      mobileHidden: true,
+      render: (_, user) => (
+        <div>
+          {user.role === 'student' && (
+            <Badge color="secondary" className="me-1">
+              {user.enrolledClassrooms?.length || 0} inscritas
+            </Badge>
+          )}
+          {user.isTeacher && (
+            <Badge color="secondary">
+              {user.teachingClassrooms?.length || 0} enseñando
+            </Badge>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.role !== 'all') count++;
+    if (filters.isActive !== 'all') count++;
+    if (filters.enrollmentType !== 'all') count++;
+    if (filters.historyStatus !== 'all') count++;
+    if (filters.activeEnrollments !== 'all') count++;
+    if (filters.programId !== '') count++;
+    return count;
+  };
 
   useEffect(() => {
     loadData();
@@ -331,10 +500,24 @@ const UserManagement: React.FC = () => {
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <h2>Gestión de Usuarios</h2>
-            <div>
+            <div className="d-flex flex-wrap gap-2 justify-content-end">
+              <UncontrolledDropdown>
+                <DropdownToggle color="light" caret disabled={exporting}>
+                  {exporting ? <Spinner size="sm" className="me-2" /> : <i className="bi bi-download me-2"></i>}
+                  Exportar
+                </DropdownToggle>
+                <DropdownMenu end>
+                  <DropdownItem onClick={handleExportCSV}>
+                    <i className="bi bi-file-earmark-excel text-success me-2"></i> Documento CSV / Excel
+                  </DropdownItem>
+                  <DropdownItem onClick={handleExportPDF}>
+                    <i className="bi bi-file-earmark-pdf text-danger me-2"></i> Documento PDF
+                  </DropdownItem>
+                </DropdownMenu>
+              </UncontrolledDropdown>
               <Button 
                 color="info" 
-                className="me-2 text-white"
+                className="text-white"
                 onClick={() => setShowImporter(true)}
               >
                 <i className="bi bi-upload me-2"></i>
@@ -401,33 +584,45 @@ const UserManagement: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Search Bar */}
       <Row className="mb-3">
-        <Col md={5}>
+        <Col md={8}>
           <InputGroup>
-            <InputGroupText>
-              <i className="bi bi-search"></i>
+            <InputGroupText className="bg-white">
+              <i className="bi bi-search text-muted"></i>
             </InputGroupText>
             <Input
               placeholder="Buscar por nombre, teléfono o correo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              className="border-start-0"
             />
           </InputGroup>
         </Col>
-        <Col md={3}>
-          <Input
-            type="select"
-            value={programFilter}
-            onChange={(e) => setProgramFilter(e.target.value)}
+        <Col md={4} className="mt-3 mt-md-0 d-flex justify-content-end">
+          <Button 
+            color="light" 
+            className="w-100 d-flex justify-content-center align-items-center position-relative border"
+            onClick={() => setFiltersModalOpen(true)}
           >
-            <option value="">Todos los programas</option>
-            {programs.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </Input>
+            <i className="bi bi-funnel me-2"></i>
+            Filtros Avanzados
+            {getActiveFilterCount() > 0 && (
+              <Badge color="primary" pill className="position-absolute" style={{ top: '-8px', right: '-8px' }}>
+                {getActiveFilterCount()}
+              </Badge>
+            )}
+          </Button>
         </Col>
       </Row>
+
+      {/* Filters Modal */}
+      <UserFiltersModal 
+        isOpen={filtersModalOpen} 
+        onClose={() => setFiltersModalOpen(false)} 
+        filters={filters} 
+        onFiltersChange={setFilters} 
+        programs={programs} 
+      />
 
       {/* Bulk Operations Toolbar */}
       <BulkOperationsToolbar
@@ -439,198 +634,80 @@ const UserManagement: React.FC = () => {
         onRefresh={loadData}
       />
 
-      {/* Tabs */}
-      <Nav tabs className="mb-3">
-        <NavItem>
-          <NavLink
-            className={activeTab === 'all' ? 'active' : ''}
-            onClick={() => setActiveTab('all')}
-            style={{ cursor: 'pointer' }}
-          >
-            Todos ({stats.total})
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'student' ? 'active' : ''}
-            onClick={() => setActiveTab('student')}
-            style={{ cursor: 'pointer' }}
-          >
-            Estudiantes ({stats.students})
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'teacher' ? 'active' : ''}
-            onClick={() => setActiveTab('teacher')}
-            style={{ cursor: 'pointer' }}
-          >
-            Profesores ({stats.teachers})
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'admin' ? 'active' : ''}
-            onClick={() => setActiveTab('admin')}
-            style={{ cursor: 'pointer' }}
-          >
-            Administradores ({stats.admins})
-          </NavLink>
-        </NavItem>
-      </Nav>
+      {/* Users DataTable */}
+      <DataTable
+        data={filteredUsers}
+        columns={columns}
+        keyExtractor={(u: IUser) => u.id}
+        searchable={false} /* Search is handled externaly above */
+        selectable={true}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        pagination={true}
+        defaultPageSize={10}
+        emptyState={
+          <Alert color="info" className="mb-0">
+            <i className="bi bi-info-circle me-2"></i>
+            No se encontraron usuarios que coincidan con los filtros.
+          </Alert>
+        }
+        actions={(user: IUser) => (
+          <div className="text-center">
+            <UncontrolledDropdown>
+              <DropdownToggle color="link" className="text-dark p-0">
+                <i className="bi bi-three-dots-vertical"></i>
+              </DropdownToggle>
+              <DropdownMenu end>
+                <DropdownItem onClick={() => handleOpenDetailModal(user)}>
+                  <i className="bi bi-eye me-2"></i>
+                  Ver Detalles
+                </DropdownItem>
 
-      {/* Users Table */}
-      <Card>
-        <CardBody>
-          {filteredUsers.length === 0 ? (
-            <Alert color="info">
-              <i className="bi bi-info-circle me-2"></i>
-              No se encontraron usuarios
-            </Alert>
-          ) : (
-            <Table responsive hover>
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}></th>
-                  <th>#</th>
-                  <th>Foto</th>
-                  <th>Nombre</th>
-                  <th>Teléfono</th>
-                  <th>Correo</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                  <th>Clases</th>
-                  <th className="text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user, index) => (
-                  <tr key={user.id}>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Input
-                        type="checkbox"
-                        checked={selectedIds.has(user.id)}
-                        onChange={() => handleToggleSelection(user.id)}
-                      />
-                    </td>
-                    <td>{index + 1}</td>
-                    <td 
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handleOpenDetailModal(user)}
-                    >
-                      {user.profilePhoto ? (
-                        <img
-                          src={user.profilePhoto}
-                          alt={user.firstName}
-                          className="rounded-circle"
-                          style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div
-                          className="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center"
-                          style={{ width: '40px', height: '40px' }}
-                        >
-                          <i className="bi bi-person-fill text-white"></i>
-                        </div>
-                      )}
-                    </td>
-                    <td 
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => handleOpenDetailModal(user)}
-                    >
-                      <span className="text-primary">{user.firstName} {user.lastName}</span>
-                    </td>
-                    <td>{user.phone}</td>
-                    <td>{user.email || '-'}</td>
-                    <td>
-                      {user.role === 'admin' && (
-                        <Badge color="warning">Admin</Badge>
-                      )}
-                      {user.isTeacher && (
-                        <Badge color="info" className="me-1">Profesor</Badge>
-                      )}
-                      {user.role === 'student' && !user.isTeacher && (
-                        <Badge color="primary">Estudiante</Badge>
-                      )}
-                    </td>
-                    <td>
-                      <Badge color={user.isActive ? 'success' : 'danger'}>
-                        {user.isActive ? 'Activo' : 'Inactivo'}
-                      </Badge>
-                    </td>
-                    <td>
-                      {user.role === 'student' && (
-                        <Badge color="secondary">
-                          {user.enrolledClassrooms?.length || 0} inscritas
-                        </Badge>
-                      )}
-                      {user.isTeacher && (
-                        <Badge color="secondary">
-                          {user.teachingClassrooms?.length || 0} enseñando
-                        </Badge>
-                      )}
-                    </td>
-                    <td>
-                      <UncontrolledDropdown>
-                        <DropdownToggle color="link" className="text-dark p-0">
-                          <i className="bi bi-three-dots-vertical"></i>
-                        </DropdownToggle>
-                        <DropdownMenu end>
-                          <DropdownItem onClick={() => handleOpenDetailModal(user)}>
-                            <i className="bi bi-eye me-2"></i>
-                            Ver Detalles
-                          </DropdownItem>
+                <DropdownItem onClick={() => handleOpenModal(user)}>
+                  <i className="bi bi-pencil me-2"></i>
+                  Editar
+                </DropdownItem>
 
-                          <DropdownItem onClick={() => handleOpenModal(user)}>
-                            <i className="bi bi-pencil me-2"></i>
-                            Editar
-                          </DropdownItem>
+                {user.role === 'student' && (
+                  <DropdownItem onClick={() => handleOpenEnrollModal(user)}>
+                    <i className="bi bi-book me-2"></i>
+                    Gestionar Clases
+                  </DropdownItem>
+                )}
 
-                          {user.role === 'student' && (
-                            <DropdownItem onClick={() => handleOpenEnrollModal(user)}>
-                              <i className="bi bi-book me-2"></i>
-                              Gestionar Clases
-                            </DropdownItem>
-                          )}
+                <DropdownItem onClick={() => handleToggleTeacherStatus(user)}>
+                  <i className="bi bi-mortarboard me-2"></i>
+                  {user.isTeacher ? 'Quitar Profesor' : 'Hacer Profesor'}
+                </DropdownItem>
 
-                          <DropdownItem onClick={() => handleToggleTeacherStatus(user)}>
-                            <i className="bi bi-mortarboard me-2"></i>
-                            {user.isTeacher ? 'Quitar Profesor' : 'Hacer Profesor'}
-                          </DropdownItem>
+                <DropdownItem onClick={() => handleToggleUserStatus(user)}>
+                  <i className={`bi bi-${user.isActive ? 'x-circle' : 'check-circle'} me-2`}></i>
+                  {user.isActive ? 'Desactivar' : 'Activar'}
+                </DropdownItem>
 
-                          <DropdownItem onClick={() => handleToggleUserStatus(user)}>
-                            <i className={`bi bi-${user.isActive ? 'x-circle' : 'check-circle'} me-2`}></i>
-                            {user.isActive ? 'Desactivar' : 'Activar'}
-                          </DropdownItem>
+                <DropdownItem>
+                  <UserProfilePdfDownloadButton user={user}>
+                    <span><i className="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</span>
+                  </UserProfilePdfDownloadButton>
+                </DropdownItem>
 
-                          <DropdownItem>
-                            <UserProfilePdfDownloadButton user={user}>
-                              <span><i className="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</span>
-                            </UserProfilePdfDownloadButton>
-                          </DropdownItem>
+                <DropdownItem divider />
 
-                          <DropdownItem divider />
-
-                          <DropdownItem
-                            className="text-danger"
-                            onClick={() => {
-                              setUserToDelete(user);
-                              setDeleteModal(true);
-                            }}
-                          >
-                            <i className="bi bi-trash me-2"></i>
-                            Eliminar
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </UncontrolledDropdown>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          )}
-        </CardBody>
-      </Card>
+                <DropdownItem
+                  className="text-danger"
+                  onClick={() => {
+                    setUserToDelete(user);
+                    setDeleteModal(true);
+                  }}
+                >
+                  <i className="bi bi-trash me-2"></i>
+                  Eliminar
+                </DropdownItem>
+              </DropdownMenu>
+            </UncontrolledDropdown>
+          </div>
+        )}
+      />
 
       {/* User Modal */}
       <Modal isOpen={userModal} toggle={() => setUserModal(false)} size="lg">

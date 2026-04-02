@@ -81,7 +81,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                       return (
                         <optgroup key={program.id} label={program.name}>
                           {availableClassrooms.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
+                            <option key={c.id} value={c.id}>{c.subject}</option>
                           ))}
                         </optgroup>
                       );

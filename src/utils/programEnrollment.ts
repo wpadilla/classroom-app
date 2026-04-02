@@ -10,6 +10,7 @@ export interface IEnrollmentProgramOption {
   value: string;
   label: string;
   isInternalFormation: boolean;
+  isEnrollmentActive: boolean;
 }
 
 const normalizeProgramName = (value?: string | null): string =>
@@ -44,6 +45,7 @@ export const buildEnrollmentProgramOptions = (
         value: INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME,
         label: INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME,
         isInternalFormation: true,
+        isEnrollmentActive: true,
       },
     ];
   }
@@ -53,6 +55,7 @@ export const buildEnrollmentProgramOptions = (
     value: program.name,
     label: program.name,
     isInternalFormation: program.id === INTERNAL_FORMATION_PROGRAM_ID,
+    isEnrollmentActive: isProgramEnrollmentActive(program),
   }));
 };
 
@@ -81,4 +84,21 @@ export const normalizeEnrollmentTypeValue = (
   }
 
   return enrollmentType;
+};
+
+export const isProgramEnrollmentActive = (program?: IProgram): boolean => {
+  if (!program || !program.isActive) return false;
+
+  const now = new Date();
+  let isActive = true;
+
+  if (program.startDate) {
+    isActive = isActive && now >= new Date(program.startDate);
+  }
+
+  if (program.endDate) {
+    isActive = isActive && now <= new Date(program.endDate);
+  }
+
+  return isActive;
 };

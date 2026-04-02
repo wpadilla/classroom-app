@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import { IClassroom } from '../../models';
+import { ClassroomService } from '../../services/classroom/classroom.service';
 import { AuthService } from '../../services/auth/auth.service';
 import { UserService } from '../../services/user/user.service';
 import { ProgramService } from '../../services/program/program.service';
@@ -92,6 +93,7 @@ const StudentOnboarding: React.FC = () => {
   const [existingInternalHistoryClassroomIds, setExistingInternalHistoryClassroomIds] = useState<string[]>([]);
   const [existingInternalEnrollmentClassroomIds, setExistingInternalEnrollmentClassroomIds] = useState<string[]>([]);
   const [programOptions, setProgramOptions] = useState<IEnrollmentProgramOption[]>([]);
+  const [allClassroomsList, setAllClassroomsList] = useState<IClassroom[]>([]);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -133,6 +135,11 @@ const StudentOnboarding: React.FC = () => {
   );
 
   const isInternalProgram = isInternalFormationEnrollment(enrollmentType);
+  const selectedProgramOption = useMemo(
+    () => programOptions.find((opt) => opt.value === enrollmentType),
+    [programOptions, enrollmentType]
+  );
+  const isEnrollmentActive = selectedProgramOption?.isEnrollmentActive ?? false;
   const reviewChurchName = isInternalProgram
     ? INTERNAL_FORMATION_CHURCH.churchName
     : churchName;
@@ -167,13 +174,21 @@ const StudentOnboarding: React.FC = () => {
     ]
   );
 
+  const currentEnrollmentClassrooms = useMemo(() => {
+    if (isInternalProgram) {
+      return internalClassrooms;
+    }
+    if (!selectedProgramOption) return [];
+    return allClassroomsList.filter(c => c.programId === selectedProgramOption.id);
+  }, [isInternalProgram, internalClassrooms, allClassroomsList, selectedProgramOption]);
+
   const currentEnrollmentOptions = useMemo(() => {
     const blockedClassroomIds = new Set([
       ...existingInternalHistoryClassroomIds,
       ...completedInternalClassroomIds,
     ]);
 
-    return internalClassrooms.filter(
+    return currentEnrollmentClassrooms.filter(
       (classroom) =>
         (classroom.isActive || classroom.id === currentInternalClassroomId) &&
         (!blockedClassroomIds.has(classroom.id) || classroom.id === currentInternalClassroomId)
@@ -182,7 +197,7 @@ const StudentOnboarding: React.FC = () => {
     completedInternalClassroomIds,
     currentInternalClassroomId,
     existingInternalHistoryClassroomIds,
-    internalClassrooms,
+    currentEnrollmentClassrooms,
   ]);
 
   const steps = useMemo<IOnboardingStep[]>(() => {
@@ -219,20 +234,21 @@ const StudentOnboarding: React.FC = () => {
     const dynamicSteps = [...prioritizedCoreSteps];
 
     if (isInternalProgram) {
-      dynamicSteps.push(
-        {
-          id: 'completedHistory' as const,
-          label: 'Historial',
-          description: 'Clases que ya tomaste.',
-          isComplete: completedInternalClassroomIds.length > 0 || completedHistoryOptions.length === 0,
-        },
-        {
-          id: 'currentEnrollment' as const,
-          label: 'Inscripción',
-          description: 'Clase que cursarás.',
-          isComplete: Boolean(currentInternalClassroomId) || currentEnrollmentOptions.length === 0,
-        }
-      );
+      dynamicSteps.push({
+        id: 'completedHistory' as const,
+        label: 'Historial',
+        description: 'Clases que ya tomaste.',
+        isComplete: completedInternalClassroomIds.length > 0 || completedHistoryOptions.length === 0,
+      });
+    }
+
+    if (isEnrollmentActive) {
+      dynamicSteps.push({
+        id: 'currentEnrollment' as const,
+        label: 'Inscripción',
+        description: 'Clase que cursarás.',
+        isComplete: Boolean(currentInternalClassroomId) || currentEnrollmentOptions.length === 0,
+      });
     }
 
     dynamicSteps.push({
@@ -250,7 +266,7 @@ const StudentOnboarding: React.FC = () => {
     completedInternalClassroomIds.length,
     currentEnrollmentOptions.length,
     currentInternalClassroomId,
-    isInternalProgram,
+    isEnrollmentActive,
     personalComplete,
   ]);
 
@@ -262,7 +278,7 @@ const StudentOnboarding: React.FC = () => {
   const progressValue = ((currentStepIndex + 1) / steps.length) * 100;
 
   const getClassroomLabel = (classroomId?: string) =>
-    internalClassrooms.find((classroom) => classroom.id === classroomId)?.name || 'Sin clase seleccionada';
+    allClassroomsList.find((classroom) => classroom.id === classroomId)?.name || 'Sin clase seleccionada';
 
   useEffect(() => {
     if (!user?.id) {
@@ -273,10 +289,11 @@ const StudentOnboarding: React.FC = () => {
       try {
         setLoading(true);
         setLoadingPrograms(true);
-        const [profile, catalog, programs] = await Promise.all([
+        const [profile, catalog, programs, allClassrooms] = await Promise.all([
           UserService.getUserById(user.id),
           StudentOnboardingService.getInternalFormationCatalog(),
           ProgramService.getAllPrograms(),
+          ClassroomService.getAllClassrooms(),
         ]);
 
         if (!profile) {
@@ -291,17 +308,25 @@ const StudentOnboarding: React.FC = () => {
         )
           ? profile.enrollmentType || ''
           : enrollmentPrograms[0]?.value || '';
+
+        const selectedOpt = enrollmentPrograms.find((opt) => opt.value === normalizedEnrollmentType);
+        const targetClassrooms = selectedOpt?.isInternalFormation 
+          ? catalog.classrooms 
+          : allClassrooms.filter(c => c.programId === selectedOpt?.id);
+        const targetClassroomIds = new Set(targetClassrooms.map(c => c.id));
+        
         const internalClassroomIds = new Set(catalog.classrooms.map((classroom) => classroom.id));
         const existingHistoryIds = (profile.completedClassrooms || [])
           .filter((entry) => internalClassroomIds.has(entry.classroomId))
           .map((entry) => entry.classroomId);
-        const activeInternalEnrollment =
-          (profile.enrolledClassrooms || []).find((classroomId) => internalClassroomIds.has(classroomId)) || '';
+          
+        const activeEnrollment = (profile.enrolledClassrooms || []).find(id => targetClassroomIds.has(id)) || '';
         const activeInternalEnrollments = (profile.enrolledClassrooms || []).filter((classroomId) =>
           internalClassroomIds.has(classroomId)
         );
 
         setProgramOptions(enrollmentPrograms);
+        setAllClassroomsList(allClassrooms);
         setInternalProgramName(catalog.program?.name || 'Formación Interna');
         setInternalClassrooms(catalog.classrooms);
         setExistingInternalHistoryClassroomIds(existingHistoryIds);
@@ -326,7 +351,7 @@ const StudentOnboarding: React.FC = () => {
           academicLevel: profile.academicLevel || 'HighSchool',
           enrollmentType: normalizedEnrollmentType,
           completedInternalClassroomIds: [],
-          currentInternalClassroomId: activeInternalEnrollment,
+          currentInternalClassroomId: activeEnrollment,
         });
       } catch (error) {
         console.error('Error loading onboarding:', error);
@@ -456,7 +481,7 @@ const StudentOnboarding: React.FC = () => {
   }, []);
 
   const validateCurrentEnrollmentStep = (): boolean => {
-    if (!isInternalProgram) {
+    if (!isEnrollmentActive) {
       clearErrors('currentInternalClassroomId');
       return true;
     }
@@ -627,7 +652,7 @@ const StudentOnboarding: React.FC = () => {
         return (
           <InternalFormationClassStep
             variant="current"
-            programName={internalProgramName}
+            programName={selectedProgramOption?.label || internalProgramName}
             options={currentEnrollmentOptions}
             selectedClassroomId={currentInternalClassroomId}
             errorMessage={errors.currentInternalClassroomId?.message}
@@ -665,15 +690,20 @@ const StudentOnboarding: React.FC = () => {
               </p>
             </div>
 
-            {isInternalProgram && (
+            {isEnrollmentActive && (
               <div className="student-onboarding-review-card">
                 <h6 className="student-onboarding-review-card__title">Clases</h6>
                 <p className="student-onboarding-review-card__content">
-                  Historial nuevo:{' '}
-                  {completedInternalClassroomIds.length > 0
-                    ? completedInternalClassroomIds.map((classroomId) => getClassroomLabel(classroomId)).join(', ')
-                    : 'Ninguna'}
-                  {'\n'}Inscripción actual: {getClassroomLabel(currentInternalClassroomId)}
+                  {isInternalProgram && (
+                    <>
+                      Historial nuevo:{' '}
+                      {completedInternalClassroomIds.length > 0
+                        ? completedInternalClassroomIds.map((classroomId) => getClassroomLabel(classroomId)).join(', ')
+                        : 'Ninguna'}
+                      {'\n'}
+                    </>
+                  )}
+                  Inscripción actual: {getClassroomLabel(currentInternalClassroomId)}
                 </p>
               </div>
             )}

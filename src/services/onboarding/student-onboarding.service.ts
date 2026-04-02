@@ -44,14 +44,22 @@ export class StudentOnboardingService {
       throw new Error('Usuario no encontrado');
     }
 
-    const { program, classrooms } = await this.getInternalFormationCatalog();
+    const programs = await ProgramService.getAllPrograms();
+    const allClassrooms = await ClassroomService.getAllClassrooms();
+    const selectedProgram = programs.find(p => p.name === formData.enrollmentType);
+    const managedClassrooms = selectedProgram
+      ? allClassrooms.filter(c => c.programId === selectedProgram.id)
+      : [];
+
+    const { program: internalProgram, classrooms: internalClassrooms } = await this.getInternalFormationCatalog();
+    
     const completedClassrooms =
       isInternalFormationEnrollment(formData.enrollmentType)
         ? StudentClassroomManagementService.mergeCompletedHistorySelection({
             user: currentUser,
             classroomIds: formData.completedInternalClassroomIds,
-            classrooms,
-            programs: program ? [program] : [],
+            classrooms: internalClassrooms,
+            programs: internalProgram ? [internalProgram] : [],
             completionDate: new Date(),
             finalGrade: 100,
             status: 'completed',
@@ -82,11 +90,10 @@ export class StudentOnboardingService {
 
     await StudentClassroomManagementService.syncStudentEnrollments({
       userId,
-      desiredClassroomIds:
-        isInternalFormationEnrollment(formData.enrollmentType) && formData.currentInternalClassroomId
+      desiredClassroomIds: formData.currentInternalClassroomId
           ? [formData.currentInternalClassroomId]
           : [],
-      managedClassroomIds: classrooms.map((classroom) => classroom.id),
+      managedClassroomIds: managedClassrooms.map((classroom) => classroom.id),
     });
 
     const refreshedUser = await UserService.getUserById(userId);

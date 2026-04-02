@@ -3,10 +3,10 @@ import { Badge } from 'reactstrap';
 import { IClassroom } from '../../../models';
 import '../StudentOnboarding.css';
 
-type InternalFormationClassStepVariant = 'history' | 'current' | 'enrollment';
+type StudentInscriptionsHandlerStepVariant = 'history' | 'current' | 'enrollment';
 
-interface InternalFormationClassStepProps {
-  variant: InternalFormationClassStepVariant;
+interface StudentInscriptionsHandlerStepProps {
+  variant: StudentInscriptionsHandlerStepVariant;
   programName: string;
   options: IClassroom[];
   title?: string;
@@ -19,6 +19,7 @@ interface InternalFormationClassStepProps {
   currentEnrollmentCount?: number;
   selectedClassroomIds?: string[];
   selectedClassroomId?: string;
+  initialEnrolledClassroomId?: string;
   errorMessage?: string;
   onToggleClassroom?: (classroomId: string) => void;
   onSelectClassroom?: (classroomId: string) => void;
@@ -26,7 +27,7 @@ interface InternalFormationClassStepProps {
 
 const EMPTY_SELECTED_CLASSROOM_IDS: string[] = [];
 
-const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
+const StudentInscriptionsHandlerStep: React.FC<StudentInscriptionsHandlerStepProps> = ({
   variant,
   programName,
   options,
@@ -40,6 +41,7 @@ const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
   currentEnrollmentCount = 0,
   selectedClassroomIds = EMPTY_SELECTED_CLASSROOM_IDS,
   selectedClassroomId,
+  initialEnrolledClassroomId,
   errorMessage,
   onToggleClassroom,
   onSelectClassroom,
@@ -53,6 +55,15 @@ const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
 
         if (positionA !== positionB) {
           return positionA - positionB;
+        }
+
+        if (!isHistoryVariant && initialEnrolledClassroomId) {
+          const isSelectedA = classroomA.id === initialEnrolledClassroomId;
+          const isSelectedB = classroomB.id === initialEnrolledClassroomId;
+          if (isSelectedA || isSelectedB) {
+            if (isSelectedA && !isSelectedB) return -1;
+            if (isSelectedB && !isSelectedA) return 1;
+          }
         }
 
         const startDateA = classroomA.startDate ? new Date(classroomA.startDate).getTime() : 0;
@@ -158,4 +169,4 @@ const InternalFormationClassStep: React.FC<InternalFormationClassStepProps> = ({
   );
 };
 
-export default InternalFormationClassStep;
+export default StudentInscriptionsHandlerStep;

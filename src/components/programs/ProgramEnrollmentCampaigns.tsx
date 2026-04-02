@@ -3,7 +3,7 @@ import { Button, Spinner } from 'reactstrap';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Dialog from '../common/Dialog';
-import InternalFormationClassStep from '../../modules/student/components/InternalFormationClassStep';
+import StudentInscriptionsHandlerStep from '../../modules/student/components/StudentInscriptionsHandlerStep';
 import { IProgramEnrollmentCampaign, ProgramEnrollmentService } from '../../services/program/program-enrollment.service';
 import { formatProgramEnrollmentRange } from '../../utils/programPeriods';
 import { useAuth } from '../../contexts/AuthContext';
@@ -205,7 +205,7 @@ const ProgramEnrollmentCampaigns: React.FC<ProgramEnrollmentCampaignsProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
             >
-              <InternalFormationClassStep
+              <StudentInscriptionsHandlerStep
                 variant="enrollment"
                 programName={activeCampaign.program.name}
                 options={activeCampaign.classrooms}

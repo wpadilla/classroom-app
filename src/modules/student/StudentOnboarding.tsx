@@ -26,7 +26,7 @@ import {
 import { PersonalInfoSection } from '../auth/components/PersonalInfoSection';
 import { ChurchInfoSection } from '../auth/components/ChurchInfoSection';
 import { AcademicInfoSection } from '../auth/components/AcademicInfoSection';
-import InternalFormationClassStep from './components/InternalFormationClassStep';
+import StudentInscriptionsHandlerStep from './components/StudentInscriptionsHandlerStep';
 import {
   getAcademicLevelLabel,
   getEnrollmentTypeLabel,
@@ -94,6 +94,7 @@ const StudentOnboarding: React.FC = () => {
   const [existingInternalEnrollmentClassroomIds, setExistingInternalEnrollmentClassroomIds] = useState<string[]>([]);
   const [programOptions, setProgramOptions] = useState<IEnrollmentProgramOption[]>([]);
   const [allClassroomsList, setAllClassroomsList] = useState<IClassroom[]>([]);
+  const [initialEnrolledClassroomId, setInitialEnrolledClassroomId] = useState('');
   const [loadingPrograms, setLoadingPrograms] = useState(true);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -327,6 +328,7 @@ const StudentOnboarding: React.FC = () => {
 
         setProgramOptions(enrollmentPrograms);
         setAllClassroomsList(allClassrooms);
+        setInitialEnrolledClassroomId(activeEnrollment);
         setInternalProgramName(catalog.program?.name || 'Formación Interna');
         setInternalClassrooms(catalog.classrooms);
         setExistingInternalHistoryClassroomIds(existingHistoryIds);
@@ -638,7 +640,7 @@ const StudentOnboarding: React.FC = () => {
         );
       case 'completedHistory':
         return (
-          <InternalFormationClassStep
+          <StudentInscriptionsHandlerStep
             variant="history"
             programName={internalProgramName}
             options={completedHistoryOptions}
@@ -650,10 +652,11 @@ const StudentOnboarding: React.FC = () => {
         );
       case 'currentEnrollment':
         return (
-          <InternalFormationClassStep
+          <StudentInscriptionsHandlerStep
             variant="current"
             programName={selectedProgramOption?.label || internalProgramName}
             options={currentEnrollmentOptions}
+            initialEnrolledClassroomId={initialEnrolledClassroomId}
             selectedClassroomId={currentInternalClassroomId}
             errorMessage={errors.currentInternalClassroomId?.message}
             onSelectClassroom={handleSelectCurrentClassroom}

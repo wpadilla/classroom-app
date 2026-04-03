@@ -19,6 +19,7 @@ import { AuthService } from '../../services/auth/auth.service';
 import { UserService } from '../../services/user/user.service';
 import { ProgramService } from '../../services/program/program.service';
 import { StudentOnboardingService } from '../../services/onboarding/student-onboarding.service';
+import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
 import {
   studentOnboardingSchema,
   StudentOnboardingFormData,
@@ -29,6 +30,7 @@ import { AcademicInfoSection } from '../auth/components/AcademicInfoSection';
 import StudentInscriptionsHandlerStep from './components/StudentInscriptionsHandlerStep';
 import {
   getAcademicLevelLabel,
+  getCountryLabel,
   getEnrollmentTypeLabel,
 } from '../../constants/registration.constants';
 import {
@@ -552,7 +554,6 @@ const StudentOnboarding: React.FC = () => {
   };
 
   const onSubmit = async (data: StudentOnboardingFormData) => {
-    console.log('user submitted data:', data, user, validateCurrentEnrollmentStep()); // Debug log for submitted form data
     if (!user?.id) {
       return;
     }
@@ -564,6 +565,24 @@ const StudentOnboarding: React.FC = () => {
     try {
       setSaving(true);
       const updatedUser = await StudentOnboardingService.completeOnboarding(user.id, data);
+
+      try {
+        await WhatsappService.registerStudentToAcademy({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          documentNumber: data.documentNumber || '',
+          email: data.email || '',
+          phone: data.phone,
+          country: getCountryLabel(data.country),
+          churchName: data.churchName,
+          pastorName: data.pastor.fullName,
+          pastorContact: data.pastor.phone || '',
+          academicLevel: getAcademicLevelLabel(data.academicLevel),
+          enrollmentType: getEnrollmentTypeLabel(data.enrollmentType),
+        });
+      } catch (whatsappError) {
+        console.error('WhatsApp registration error:', whatsappError);
+      }
 
       let userToCache = updatedUser;
       if (profilePhoto) {

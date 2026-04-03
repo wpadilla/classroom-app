@@ -12,7 +12,10 @@ const INTERNAL_FORMATION_ALIASES = new Set([
   normalizeEnrollmentName('InternalFormation'),
   normalizeEnrollmentName(INTERNAL_FORMATION_PROGRAM_FALLBACK_NAME),
   normalizeEnrollmentName('Formacion Oasis de Amor'),
-  normalizeEnrollmentName('Formacion Interna'),
+  normalizeEnrollmentName('Formacion Ministerial'),
+  normalizeEnrollmentName('Formación Ministerial'),
+  normalizeEnrollmentName('Formacion'),
+  normalizeEnrollmentName('Formación'),
 ]);
 
 export const needsStudentOnboarding = (

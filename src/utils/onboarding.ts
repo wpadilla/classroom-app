@@ -20,7 +20,7 @@ const INTERNAL_FORMATION_ALIASES = new Set([
 
 export const needsStudentOnboarding = (
   user?: Pick<IAuthUser, 'role' | 'once'> | null
-): boolean => user?.role === 'student' && user.once?.onboarding !== true;
+): boolean => user?.role === 'student' && user.once?.onboarding !== false;
 
 export const isInternalFormationEnrollment = (
   enrollmentType?: EnrollmentType

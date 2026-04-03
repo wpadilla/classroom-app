@@ -565,6 +565,9 @@ const StudentOnboarding: React.FC = () => {
     try {
       setSaving(true);
       const updatedUser = await StudentOnboardingService.completeOnboarding(user.id, data);
+      const selectedEnrollmentClassroom = allClassroomsList.find(
+        (classroom) => classroom.id === data.currentInternalClassroomId
+      );
 
       try {
         await WhatsappService.registerStudentToAcademy({
@@ -579,6 +582,7 @@ const StudentOnboarding: React.FC = () => {
           pastorContact: data.pastor.phone || '',
           academicLevel: getAcademicLevelLabel(data.academicLevel),
           enrollmentType: getEnrollmentTypeLabel(data.enrollmentType),
+          classroomWhatsappGroupId: selectedEnrollmentClassroom?.whatsappGroup?.id,
         });
       } catch (whatsappError) {
         console.error('WhatsApp registration error:', whatsappError);

@@ -189,6 +189,7 @@ const InfoTab: React.FC<InfoTabProps> = ({
                 <Label>Email</Label>
                 <Input
                   {...fields.emailField}
+                  autoComplete='new-password'
                   innerRef={fields.emailRef}
                   invalid={!!errors.email}
                   disabled={!editMode}
@@ -351,6 +352,7 @@ const InfoTab: React.FC<InfoTabProps> = ({
                       innerRef={fields.passwordRef}
                       invalid={!!errors.password}
                       placeholder="••••••"
+                      autoComplete='new-password'
                     />
                     <FormFeedback>{String(errors.password?.message || '')}</FormFeedback>
                   </FormGroup>

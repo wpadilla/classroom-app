@@ -415,6 +415,7 @@ export class WhatsappService {
     pastorContact: string;
     academicLevel: string;
     enrollmentType: string;
+    classroomWhatsappGroupId?: string;
   }): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
       const payload = {
@@ -429,6 +430,7 @@ export class WhatsappService {
         pastorContact: data.pastorContact,
         academyLevel: data.academicLevel,
         enrollment: data.enrollmentType,
+        classroomWhatsappGroupId: data.classroomWhatsappGroupId,
       };
 
       await axios.post(

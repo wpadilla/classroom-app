@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Spinner } from 'reactstrap';
-import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Dialog from '../../components/common/Dialog';
 import { useOffline } from '../../contexts/OfflineContext';
@@ -481,63 +480,62 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
                 </p>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-3 ">
-                {filteredEnrolledStudents.map((student, index) => (
-                  <motion.div
-                    key={student.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.04 }}
-                    className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm w-[300px]"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        {student.profilePhoto ? (
-                          <img
-                            src={student.profilePhoto}
-                            alt={`${student.firstName} ${student.lastName}`}
-                            className="h-12 w-12 rounded-2xl object-cover shadow-sm"
-                          />
-                        ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-sm font-bold text-blue-700 shadow-sm">
-                            {student.firstName?.[0] || ''}
-                            {student.lastName?.[0] || ''}
-                          </div>
-                        )}
-
-                        <div className="min-w-0">
-                          <h4 className="mb-1 truncate text-sm font-semibold text-slate-900">
-                            {student.firstName} {student.lastName}
-                          </h4>
-                          <div className="space-y-1 text-xs text-slate-500">
-                            <div className="truncate">
-                              <i className="bi bi-phone me-1"></i>
-                              {student.phone}
+              <div className="max-h-[min(68vh,44rem)] overflow-y-auto pr-1">
+                <div className="flex flex-wrap gap-3">
+                  {filteredEnrolledStudents.map((student, index) => (
+                    <div
+                      key={student.id}
+                      className="w-[300px] rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          {student.profilePhoto ? (
+                            <img
+                              src={student.profilePhoto}
+                              alt={`${student.firstName} ${student.lastName}`}
+                              className="h-12 w-12 rounded-2xl object-cover shadow-sm"
+                            />
+                          ) : (
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-sm font-bold text-blue-700 shadow-sm">
+                              {student.firstName?.[0] || ''}
+                              {student.lastName?.[0] || ''}
                             </div>
-                            <div className="truncate">
-                              <i className="bi bi-envelope me-1"></i>
-                              {student.email || 'Sin correo electrónico'}
+                          )}
+
+                          <div className="min-w-0">
+                            <h4 className="mb-1 truncate text-sm font-semibold text-slate-900">
+                              {student.firstName} {student.lastName}
+                            </h4>
+                            <div className="space-y-1 text-xs text-slate-500">
+                              <div className="truncate">
+                                <i className="bi bi-phone me-1"></i>
+                                {student.phone}
+                              </div>
+                              <div className="truncate">
+                                <i className="bi bi-envelope me-1"></i>
+                                {student.email || 'Sin correo electrónico'}
+                              </div>
                             </div>
                           </div>
                         </div>
+
+                        <span className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-white px-2 text-xs font-bold text-slate-600 shadow-sm">
+                          {index + 1}
+                        </span>
                       </div>
 
-                      <span className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-white px-2 text-xs font-bold text-slate-600 shadow-sm">
-                        {index + 1}
-                      </span>
+                      <div className="mt-4 flex gap-2">
+                        <Button color="light" className="flex-1 rounded-2xl border border-slate-200 bg-white text-slate-700" onClick={() => openEditStudentDialog(student)}>
+                          <i className="bi bi-pencil-square me-2"></i>
+                          Editar
+                        </Button>
+                        <Button color="danger" outline className="rounded-2xl" onClick={() => void handleRemoveStudent(student.id)}>
+                          <i className="bi bi-trash"></i>
+                        </Button>
+                      </div>
                     </div>
-
-                    <div className="mt-4 flex gap-2">
-                      <Button color="light" className="flex-1 rounded-2xl border border-slate-200 bg-white text-slate-700" onClick={() => openEditStudentDialog(student)}>
-                        <i className="bi bi-pencil-square me-2"></i>
-                        Editar
-                      </Button>
-                      <Button color="danger" outline className="rounded-2xl" onClick={() => void handleRemoveStudent(student.id)}>
-                        <i className="bi bi-trash"></i>
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </section>
@@ -551,7 +549,7 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
           setSelectedStudents([]);
           setAvailableSearchQuery('');
         }}
-        title="Inscribir estudiantes existentes"
+        title="Inscribir estudiantes existentes!"
         size="lg"
         fullScreen
         footer={
@@ -611,50 +609,49 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
               </p>
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {filteredAvailableStudents.map((student, index) => {
-                const isSelected = selectedStudents.includes(student.id);
+            <div className="max-h-[min(52vh,30rem)] overflow-y-auto pr-1">
+              <div className="grid gap-3 md:grid-cols-2">
+                {filteredAvailableStudents.map((student) => {
+                  const isSelected = selectedStudents.includes(student.id);
 
-                return (
-                  <motion.button
-                    key={student.id}
-                    type="button"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.04 }}
-                    onClick={() => toggleStudentSelection(student.id)}
-                    className={`rounded-[24px] border p-4 text-left shadow-sm transition ${
-                      isSelected
-                        ? 'border-cyan-400 bg-cyan-50'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h4 className="mb-1 truncate text-sm font-semibold text-slate-900">
-                          {student.firstName} {student.lastName}
-                        </h4>
-                        <p className="mb-1 text-xs text-slate-500">
-                          <i className="bi bi-phone me-1"></i>
-                          {student.phone}
-                        </p>
-                        <p className="mb-0 truncate text-xs text-slate-500">
-                          <i className="bi bi-envelope me-1"></i>
-                          {student.email || 'Sin correo electrónico'}
-                        </p>
-                      </div>
-
-                      <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${
+                  return (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => toggleStudentSelection(student.id)}
+                      className={`rounded-[24px] border p-4 text-left shadow-sm transition ${
                         isSelected
-                          ? 'border-cyan-500 bg-cyan-500 text-white'
-                          : 'border-slate-300 bg-white text-transparent'
-                      }`}>
-                        <i className="bi bi-check-lg"></i>
-                      </span>
-                    </div>
-                  </motion.button>
-                );
-              })}
+                          ? 'border-cyan-400 bg-cyan-50'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="mb-1 truncate text-sm font-semibold text-slate-900">
+                            {student.firstName} {student.lastName}
+                          </h4>
+                          <p className="mb-1 text-xs text-slate-500">
+                            <i className="bi bi-phone me-1"></i>
+                            {student.phone}
+                          </p>
+                          <p className="mb-0 truncate text-xs text-slate-500">
+                            <i className="bi bi-envelope me-1"></i>
+                            {student.email || 'Sin correo electrónico'}
+                          </p>
+                        </div>
+
+                        <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${
+                          isSelected
+                            ? 'border-cyan-500 bg-cyan-500 text-white'
+                            : 'border-slate-300 bg-white text-transparent'
+                        }`}>
+                          <i className="bi bi-check-lg"></i>
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

@@ -1300,18 +1300,6 @@ const ClassroomManagement: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="px-1 py-4">
-        <div className="animate-pulse space-y-4">
-          <div className="h-40 rounded-[28px] bg-slate-200" />
-          <div className="h-28 rounded-[28px] bg-slate-100" />
-          <div className="h-64 rounded-[28px] bg-slate-100" />
-          <div className="h-64 rounded-[28px] bg-slate-100" />
-        </div>
-      </div>
-    );
-  }
 
   if (!classroom) {
     return (

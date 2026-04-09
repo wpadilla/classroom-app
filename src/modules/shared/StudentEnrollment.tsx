@@ -448,7 +448,7 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
             </Alert>
           )}
 
-          <section className="rounded-[26px] bg-white p-4 shadow-sm">
+          <section className="">
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-500">
@@ -481,14 +481,14 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="flex flex-wrap gap-3 ">
                 {filteredEnrolledStudents.map((student, index) => (
                   <motion.div
                     key={student.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.04 }}
-                    className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm"
+                    className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 shadow-sm w-[300px]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">

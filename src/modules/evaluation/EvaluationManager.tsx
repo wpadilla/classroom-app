@@ -1,36 +1,7 @@
 // Complete Evaluation Manager for Teachers
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Badge,
-  Input,
-  FormGroup,
-  Label,
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Alert,
-  Spinner,
-  Progress,
-  Nav,
-  NavItem,
-  NavLink,
-  TabContent,
-  TabPane,
-  InputGroup,
-  Form,
-  Table
-} from 'reactstrap';
 import { useParams, useNavigate } from 'react-router-dom';
-import { pdf } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClassroomService } from '../../services/classroom/classroom.service';
@@ -39,10 +10,8 @@ import { UserService } from '../../services/user/user.service';
 import { IClassroom, IStudentEvaluation, IUser, IEvaluationCriteria, ICustomCriterion } from '../../models';
 import { toast } from 'react-toastify';
 import ClassroomFinalizationModal from '../shared/ClassroomFinalizationModal';
-import { EmptyState } from '../../components/mobile';
-import { DataTable, Dialog, Column } from '../../components/common';
+import { MobileInfoBanner } from '../../components/common';
 import { useSelection } from '../../hooks';
-import CertificatesPdfDocument from './certificates/CertificatesPdfDocument';
 import { generateCertificateBlob, generateCertificateDataUrl } from './certificates/certificate.canvas';
 import {
   buildBulkCertificateFileName,
@@ -50,16 +19,15 @@ import {
   buildCertificateFileName,
   isStudentEligibleForCertificate,
 } from './certificates/certificate.utils';
-
-interface EvaluationFormData {
-  questionnaires: number;
-  finalExam: number;
-  customScores: { criterionId: string; score: number }[];
-}
-
-type StudentWithEvaluation = IUser & {
-  evaluation: IStudentEvaluation;
-};
+import EvaluationHero from './components/EvaluationHero';
+import EvaluationStudentsSection, { StudentWithEvaluation } from './components/EvaluationStudentsSection';
+import EvaluationSummarySection from './components/EvaluationSummarySection';
+import {
+  BulkEvaluationDialog,
+  EvaluationCriteriaDialog,
+  EvaluationFormData,
+  StudentEvaluationDialog,
+} from './components/EvaluationDialogs';
 
 const EvaluationManager: React.FC = () => {
   const { classroomId } = useParams<{ classroomId: string }>();
@@ -73,7 +41,6 @@ const EvaluationManager: React.FC = () => {
   const [evaluations, setEvaluations] = useState<Map<string, IStudentEvaluation>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('final');
   const [certificateLoadingId, setCertificateLoadingId] = useState<string | null>(null);
   const [bulkCertificateLoading, setBulkCertificateLoading] = useState(false);
   
@@ -114,9 +81,13 @@ const EvaluationManager: React.FC = () => {
     
     try {
       setLoading(true);
-      
-      // Load classroom
-      const classroomData = await ClassroomService.getClassroomById(classroomId);
+
+      const [classroomData, finalized, classroomEvaluations] = await Promise.all([
+        ClassroomService.getClassroomById(classroomId),
+        ClassroomService.isFinalized(classroomId),
+        EvaluationService.getClassroomEvaluations(classroomId),
+      ]);
+
       if (!classroomData) {
         toast.error('Clase no encontrada');
         navigate('/teacher/dashboard');
@@ -129,87 +100,78 @@ const EvaluationManager: React.FC = () => {
         navigate('/teacher/dashboard');
         return;
       }
-      
+
       setClassroom(classroomData);
-      const teacherData = classroomData.teacherId === user.id
-        ? user
-        : await UserService.getUserById(classroomData.teacherId);
-      setTeacher(teacherData || null);
-      
-      // Check if finalized
-      const finalized = await ClassroomService.isFinalized(classroomId);
       setIsFinalized(finalized);
-      
-      // Set criteria from classroom
+
       if (classroomData.evaluationCriteria) {
         setCriteriaForm({
           ...classroomData.evaluationCriteria,
           customCriteria: classroomData.evaluationCriteria.customCriteria || [],
-          participationPointsPerModule: classroomData.evaluationCriteria.participationPointsPerModule || 1
+          participationPointsPerModule: classroomData.evaluationCriteria.participationPointsPerModule || 1,
         });
       }
-      
-      // Load students
-      if (classroomData.studentIds && classroomData.studentIds.length > 0) {
-        const studentPromises = classroomData.studentIds.map(id => 
-          UserService.getUserById(id)
-        );
-        const studentResults = await Promise.all(studentPromises);
-        const validStudents = studentResults.filter(s => s !== null) as IUser[];
-        setStudents(validStudents);
-        
-        // Load evaluations
-        const evaluationPromises = validStudents.map(student =>
-          EvaluationService.getStudentClassroomEvaluation(student.id, classroomId)
-        );
-        const evaluationResults = await Promise.all(evaluationPromises);
-        
-        const evaluationMap = new Map<string, IStudentEvaluation>();
-        const totalModules = classroomData.modules?.length || 8;
-        
-        validStudents.forEach((student, index) => {
-          const evaluation = evaluationResults[index];
-          if (evaluation) {
-            // Recalculate scores to ensure they're up to date
-            if (classroomData.evaluationCriteria) {
-              const recalculated = EvaluationService.calculateFinalGrade(
-                evaluation,
+
+      const [teacherData, validStudents] = await Promise.all([
+        classroomData.teacherId === user.id
+          ? Promise.resolve(user)
+          : UserService.getUserById(classroomData.teacherId),
+        classroomData.studentIds?.length
+          ? UserService.getUsersByIds(classroomData.studentIds)
+          : Promise.resolve([]),
+      ]);
+
+      setTeacher(teacherData || null);
+      setStudents(validStudents);
+
+      const evaluationLookup = new Map<string, IStudentEvaluation>();
+      classroomEvaluations.forEach((evaluation) => evaluationLookup.set(evaluation.studentId, evaluation));
+
+      const totalModules = classroomData.modules?.length || 8;
+      const evaluationMap = new Map<string, IStudentEvaluation>();
+
+      validStudents.forEach((student) => {
+        const existingEvaluation = evaluationLookup.get(student.id);
+        if (existingEvaluation) {
+          if (classroomData.evaluationCriteria) {
+            evaluationMap.set(
+              student.id,
+              EvaluationService.calculateFinalGrade(
+                existingEvaluation,
                 classroomData.evaluationCriteria,
                 totalModules
-              );
-              evaluationMap.set(student.id, recalculated);
-            } else {
-              evaluationMap.set(student.id, evaluation);
-            }
+              )
+            );
           } else {
-            // Create initial evaluation
-            const newEvaluation: IStudentEvaluation = {
-              id: `${classroomId}_${student.id}`,
-              studentId: student.id,
-              classroomId: classroomId,
-              moduleId: '', // Will be set when evaluation is done
-              participationRecords: [],
-              scores: {
-                questionnaires: 0,
-                attendance: 0,
-                participation: 0,
-                finalExam: 0,
-                customScores: []
-              },
-              attendanceRecords: [],
-              participationPoints: 0,
-              totalScore: 0,
-              percentage: 0,
-              status: 'in-progress',
-              createdAt: new Date(),
-              updatedAt: new Date()
-            };
-            evaluationMap.set(student.id, newEvaluation);
+            evaluationMap.set(student.id, existingEvaluation);
           }
+          return;
+        }
+
+        evaluationMap.set(student.id, {
+          id: `${classroomId}_${student.id}`,
+          studentId: student.id,
+          classroomId,
+          moduleId: '',
+          participationRecords: [],
+          scores: {
+            questionnaires: 0,
+            attendance: 0,
+            participation: 0,
+            finalExam: 0,
+            customScores: [],
+          },
+          attendanceRecords: [],
+          participationPoints: 0,
+          totalScore: 0,
+          percentage: 0,
+          status: 'in-progress',
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
-        
-        setEvaluations(evaluationMap);
-      }
+      });
+
+      setEvaluations(evaluationMap);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar los datos');
@@ -254,8 +216,7 @@ const EvaluationManager: React.FC = () => {
       toast.success('Criterios de evaluación actualizados');
       setCriteriaModal(false);
       
-      // Recalculate all evaluations
-      await recalculateAllEvaluations();
+      await recalculateAllEvaluations(criteriaForm);
     } catch (error) {
       console.error('Error saving criteria:', error);
       toast.error('Error al guardar los criterios');
@@ -264,8 +225,8 @@ const EvaluationManager: React.FC = () => {
     }
   };
 
-  const recalculateAllEvaluations = async () => {
-    if (!classroom?.evaluationCriteria) return;
+  const recalculateAllEvaluations = async (criteria: IEvaluationCriteria | undefined = classroom?.evaluationCriteria) => {
+    if (!criteria || !classroom) return;
     
     const updatedEvaluations = new Map<string, IStudentEvaluation>();
     const totalModules = classroom.modules?.length || 8;
@@ -273,7 +234,7 @@ const EvaluationManager: React.FC = () => {
     for (const [studentId, evaluation] of Array.from(evaluations.entries())) {
       const updated = EvaluationService.calculateFinalGrade(
         evaluation,
-        classroom.evaluationCriteria,
+        criteria,
         totalModules
       );
       updatedEvaluations.set(studentId, updated);
@@ -371,6 +332,19 @@ const EvaluationManager: React.FC = () => {
     }
   };
 
+  const handleSetAllEvaluationMax = useCallback(() => {
+    if (!classroom?.evaluationCriteria) return;
+
+    setEvaluationForm({
+      questionnaires: classroom.evaluationCriteria.questionnaires,
+      finalExam: classroom.evaluationCriteria.finalExam,
+      customScores: (classroom.evaluationCriteria.customCriteria || []).map((criterion) => ({
+        criterionId: criterion.id,
+        score: criterion.points,
+      })),
+    });
+  }, [classroom?.evaluationCriteria]);
+
   // Bulk evaluation handler
   const handleBulkEvaluation = async () => {
     if (!classroom?.evaluationCriteria || evaluationSelection.selectedIds.size === 0) return;
@@ -428,6 +402,29 @@ const EvaluationManager: React.FC = () => {
     }
   };
 
+  const handleOpenBulkEvaluationModal = useCallback(() => {
+    setBulkEvaluationForm({
+      questionnaires: 0,
+      finalExam: 0,
+      customScores: classroom?.evaluationCriteria?.customCriteria?.map((criterion) => ({
+        criterionId: criterion.id,
+        score: 0,
+      })) || [],
+    });
+    setBulkEvaluationModal(true);
+  }, [classroom?.evaluationCriteria?.customCriteria]);
+
+  const handleSetAllBulkEvaluationMax = useCallback(() => {
+    setBulkEvaluationForm({
+      questionnaires: classroom?.evaluationCriteria?.questionnaires || 0,
+      finalExam: classroom?.evaluationCriteria?.finalExam || 0,
+      customScores: classroom?.evaluationCriteria?.customCriteria?.map((criterion) => ({
+        criterionId: criterion.id,
+        score: criterion.points,
+      })) || [],
+    });
+  }, [classroom?.evaluationCriteria]);
+
   const handleMarkAllAsEvaluated = async () => {
     if (!classroom?.evaluationCriteria) return;
     
@@ -463,38 +460,38 @@ const EvaluationManager: React.FC = () => {
     }
   };
 
-  const getClassAverage = (): number => {
+  const classAverage = useMemo(() => {
     let total = 0;
     let count = 0;
-    
-    evaluations.forEach(evaluation => {
+
+    evaluations.forEach((evaluation) => {
       if (evaluation.percentage) {
         total += evaluation.percentage;
         count++;
       }
     });
-    
-    return count > 0 ? total / count : 0;
-  };
 
-  const getGradeDistribution = () => {
-    const distribution = {
-      excellent: 0, // 90-100
-      good: 0,      // 80-89
-      regular: 0,   // 70-79
-      poor: 0       // <70
+    return count > 0 ? total / count : 0;
+  }, [evaluations]);
+
+  const distribution = useMemo(() => {
+    const nextDistribution = {
+      excellent: 0,
+      good: 0,
+      regular: 0,
+      poor: 0,
     };
-    
-    evaluations.forEach(evaluation => {
+
+    evaluations.forEach((evaluation) => {
       const percentage = evaluation.percentage || 0;
-      if (percentage >= 90) distribution.excellent++;
-      else if (percentage >= 80) distribution.good++;
-      else if (percentage >= 70) distribution.regular++;
-      else distribution.poor++;
+      if (percentage >= 90) nextDistribution.excellent++;
+      else if (percentage >= 80) nextDistribution.good++;
+      else if (percentage >= 70) nextDistribution.regular++;
+      else nextDistribution.poor++;
     });
-    
-    return distribution;
-  };
+
+    return nextDistribution;
+  }, [evaluations]);
 
   // Students with evaluation data for DataTable - must be before conditional returns
   const studentsWithEvaluation = useMemo(() => {
@@ -581,6 +578,11 @@ const EvaluationManager: React.FC = () => {
         });
       }
 
+      const [{ pdf }, { default: CertificatesPdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('./certificates/CertificatesPdfDocument'),
+      ]);
+
       const blob = await pdf(<CertificatesPdfDocument certificates={pages} />).toBlob();
       saveAs(blob, buildBulkCertificateFileName(classroom));
 
@@ -600,783 +602,104 @@ const EvaluationManager: React.FC = () => {
     }
   };
 
-  // Evaluation table columns - must be before conditional returns
-  const evaluationColumns = useMemo(() => {
-    const cols: Column<StudentWithEvaluation>[] = [
-      {
-        header: 'Estudiante',
-        accessor: (row) => `${row.firstName} ${row.lastName}`,
-        render: (_, row) => (
-          <strong>{row.firstName} {row.lastName}</strong>
-        )
-      },
-      {
-        header: 'Cuestionarios',
-        align: 'center' as const,
-        mobileHidden: true,
-        render: (_, row) => (
-          <span>{row.evaluation.scores.questionnaires}/{classroom?.evaluationCriteria?.questionnaires || 0}</span>
-        )
-      },
-      {
-        header: 'Asistencia',
-        align: 'center' as const,
-        mobileHidden: true,
-        render: (_, row) => (
-          <span>{row.evaluation.scores.attendance.toFixed(1)}/{classroom?.evaluationCriteria?.attendance || 0}</span>
-        )
-      },
-      {
-        header: 'Participación',
-        align: 'center' as const,
-        mobileHidden: true,
-        render: (_, row) => (
-          <span>{row.evaluation.scores.participation.toFixed(1)}/{classroom?.evaluationCriteria?.participation || 0}</span>
-        )
-      },
-      {
-        header: 'Examen Final',
-        align: 'center' as const,
-        mobileHidden: true,
-        render: (_, row) => (
-          <span>{row.evaluation.scores.finalExam}/{classroom?.evaluationCriteria?.finalExam || 0}</span>
-        )
-      },
-      // Custom criteria columns
-      ...(classroom?.evaluationCriteria?.customCriteria?.map((criterion: ICustomCriterion) => ({
-        header: criterion.name,
-        align: 'center' as const,
-        mobileHidden: true,
-        render: (_: any, row: StudentWithEvaluation) => (
-          <span>
-            {row.evaluation.scores.customScores.find(cs => cs.criterionId === criterion.id)?.score || 0}/{criterion.points}
-          </span>
-        )
-      })) || []),
-      {
-        header: 'Total',
-        align: 'center' as const,
-        render: (_, row) => (
-          <Badge color={row.evaluation.percentage && row.evaluation.percentage >= 70 ? 'success' : 'danger'}>
-            {row.evaluation.percentage?.toFixed(1)}%
-          </Badge>
-        )
-      },
-      {
-        header: 'Estado',
-        align: 'center' as const,
-        mobileHidden: true,
-        render: (_, row) => (
-          isStudentEligibleForCertificate(row.evaluation) ? (
-            <div className="d-flex flex-column align-items-center gap-1">
-              <Badge color="success">Evaluado</Badge>
-              <Badge color="info" pill>Certificable</Badge>
-            </div>
-          ) : row.evaluation.status === 'evaluated' ? (
-            <Badge color="success">Evaluado</Badge>
-          ) : (
-            <Badge color="warning">En Progreso</Badge>
-          )
-        )
-      }
-    ];
-    return cols;
-  }, [classroom?.evaluationCriteria]);
-
-  const distribution = getGradeDistribution();
-
   if (loading) {
     return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="primary" />
-        <p className="mt-3">Cargando evaluaciones...</p>
-      </Container>
+      <div className="px-1 py-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-40 rounded-[28px] bg-slate-200" />
+          <div className="h-72 rounded-[28px] bg-slate-100" />
+          <div className="h-72 rounded-[28px] bg-slate-100" />
+        </div>
+      </div>
     );
   }
 
   if (!classroom) {
     return (
-      <Container className="py-4">
-        <Alert color="danger">Clase no encontrada</Alert>
-      </Container>
+      <div className="px-1 py-4">
+        <MobileInfoBanner
+          icon="bi-exclamation-octagon"
+          title="Clase no encontrada"
+          description="No pudimos cargar el gestor de evaluaciones para esta clase."
+          tone="danger"
+        />
+      </div>
     );
   }
 
   return (
-    <Container className="py-4">
-      {/* Header */}
-      <Row className="mb-4">
-        <Col>
-          <Button
-            color="link"
-            className="p-0 mb-3 text-decoration-none"
-            onClick={() => navigate(`/teacher/classroom/${classroomId}`)}
-          >
-            <i className="bi bi-arrow-left me-2"></i>
-            Volver a la Clase
-          </Button>
-          
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <h2>
-                Evaluaciones - {classroom.subject}
-                {isFinalized && (
-                  <Badge color="warning" className="ms-2">
-                    <i className="bi bi-flag-fill me-1"></i>
-                    Finalizada
-                  </Badge>
-                )}
-              </h2>
-              <p className="text-muted">{classroom.name}</p>
-            </div>
-            <div className="d-flex gap-2 flex-wrap">
-              <Button
-                color="info"
-                onClick={() => setCriteriaModal(true)}
-                disabled={isFinalized}
-              >
-                <i className="bi bi-gear me-2"></i>
-                Configurar Criterios
-              </Button>
-              <Button
-                color="success"
-                onClick={handleMarkAllAsEvaluated}
-                disabled={saving || isFinalized}
-              >
-                <i className="bi bi-check-all me-2"></i>
-                Finalizar Todas
-              </Button>
-              <Button
-                color={isFinalized ? 'warning' : 'danger'}
-                onClick={() => setFinalizationModal(true)}
-              >
-                <i className={`bi bi-${isFinalized ? 'arrow-counterclockwise' : 'flag-fill'} me-2`}></i>
-                {isFinalized ? 'Revertir' : 'Finalizar'} Clase
-              </Button>
-            </div>
-          </div>
-        </Col>
-      </Row>
+    <div className="space-y-4 px-1 pb-8 -mx-3 -my-3">
+      <EvaluationHero
+        classroom={classroom}
+        studentCount={students.length}
+        classAverage={classAverage}
+        approvedCount={distribution.excellent + distribution.good + distribution.regular}
+        failedCount={distribution.poor}
+        isFinalized={isFinalized}
+        saving={saving}
+        onBack={() => navigate(`/teacher/classroom/${classroomId}`)}
+        onOpenCriteria={() => setCriteriaModal(true)}
+        onMarkAllAsEvaluated={handleMarkAllAsEvaluated}
+        onOpenFinalization={() => setFinalizationModal(true)}
+      />
 
-      {/* Finalized Alert */}
       {isFinalized && (
-        <Row className="mb-3">
-          <Col>
-            <Alert color="warning">
-              <i className="bi bi-exclamation-triangle me-2"></i>
-              <strong>Clase Finalizada:</strong> Esta clase ha sido finalizada y los estudiantes han sido movidos al historial.
-              Para realizar cambios, debes revertir la finalización.
-            </Alert>
-          </Col>
-        </Row>
+        <MobileInfoBanner
+          icon="bi-flag"
+          title="Clase finalizada"
+          description="Los estudiantes fueron movidos al historial. Revierta la finalización si necesita editar notas o criterios."
+          tone="warning"
+        />
       )}
 
-      {/* Statistics - Horizontal Scroll on Mobile */}
-      <div className="mb-4">
-        <div className="d-flex gap-3 overflow-auto pb-2" style={{ scrollbarWidth: 'thin' }}>
-          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
-            <CardBody>
-              <h4 className="mb-0">{students.length}</h4>
-              <small className="text-muted">Estudiantes</small>
-            </CardBody>
-          </Card>
-          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
-            <CardBody>
-              <h4 className="mb-0">{getClassAverage().toFixed(1)}%</h4>
-              <small className="text-muted">Promedio</small>
-            </CardBody>
-          </Card>
-          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
-            <CardBody>
-              <h4 className="mb-0 text-success">{distribution.excellent + distribution.good}</h4>
-              <small className="text-muted">Aprobados</small>
-            </CardBody>
-          </Card>
-          <Card className="text-center flex-shrink-0" style={{ minWidth: '150px' }}>
-            <CardBody>
-              <h4 className="mb-0 text-danger">{distribution.poor}</h4>
-              <small className="text-muted">Reprobados</small>
-            </CardBody>
-          </Card>
-        </div>
-      </div>
+      <EvaluationStudentsSection
+        classroom={classroom}
+        students={studentsWithEvaluation}
+        selectedIds={evaluationSelection.selectedIds}
+        isFinalized={isFinalized}
+        certificateLoadingId={certificateLoadingId}
+        bulkCertificateLoading={bulkCertificateLoading}
+        onSelectionChange={evaluationSelection.setSelectedIds}
+        onDownloadCertificate={handleDownloadCertificate}
+        onOpenEvaluationModal={handleOpenEvaluationModal}
+        onBulkDownloadCertificates={handleBulkCertificateDownload}
+        onOpenBulkEvaluation={handleOpenBulkEvaluationModal}
+        onClearSelection={evaluationSelection.clear}
+      />
 
-      {/* Tabs */}
-      <Nav tabs className="mb-3">
-        <NavItem>
-          <NavLink
-            className={activeTab === 'final' ? 'active' : ''}
-            onClick={() => setActiveTab('final')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-clipboard-check me-2"></i>
-            Evaluación Final
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            className={activeTab === 'summary' ? 'active' : ''}
-            onClick={() => setActiveTab('summary')}
-            style={{ cursor: 'pointer' }}
-          >
-            <i className="bi bi-graph-up me-2"></i>
-            Resumen
-          </NavLink>
-        </NavItem>
-      </Nav>
+      <EvaluationSummarySection
+        classroom={classroom}
+        students={students}
+        evaluations={evaluations}
+        classAverage={classAverage}
+        distribution={distribution}
+      />
 
-      <TabContent activeTab={activeTab}>
-        {/* Final Evaluation Tab */}
-        <TabPane tabId="final">
-          <Card>
-            <CardBody>
-              <DataTable
-                data={studentsWithEvaluation}
-                columns={evaluationColumns}
-                keyExtractor={(row) => row.id}
-                searchable
-                searchFields={['firstName', 'lastName', 'phone']}
-                searchPlaceholder="Buscar estudiante por nombre..."
-                selectable
-                selectedIds={evaluationSelection.selectedIds}
-                onSelectionChange={(ids) => {
-                  evaluationSelection.setSelectedIds(ids);
-                }}
-                actions={(row) => (
-                  <div className="d-flex gap-1">
-                    <Button
-                      color="secondary"
-                      size="sm"
-                      outline
-                      onClick={() => handleDownloadCertificate(row)}
-                      disabled={!isStudentEligibleForCertificate(row.evaluation) || bulkCertificateLoading}
-                      title={
-                        isStudentEligibleForCertificate(row.evaluation)
-                          ? 'Descargar certificado'
-                          : 'Disponible solo para estudiantes evaluados y aprobados'
-                      }
-                    >
-                      {certificateLoadingId === row.id ? (
-                        <Spinner size="sm" />
-                      ) : (
-                        <i className="bi bi-award"></i>
-                      )}
-                    </Button>
-                    <Button
-                      color="primary"
-                      size="sm"
-                      onClick={() => handleOpenEvaluationModal(row)}
-                      disabled={isFinalized}
-                      title={isFinalized ? 'Revierte la finalización para editar' : 'Editar evaluación'}
-                    >
-                      <i className="bi bi-pencil"></i>
-                    </Button>
-                  </div>
-                )}
-                bulkActions={
-                  evaluationSelection.selectedIds.size > 0 && (
-                    <div className="d-flex gap-2 align-items-center">
-                      <Button
-                        color="secondary"
-                        size="sm"
-                        onClick={handleBulkCertificateDownload}
-                        disabled={bulkCertificateLoading || selectedEligibleCertificateStudents.length === 0}
-                        title={
-                          selectedEligibleCertificateStudents.length > 0
-                            ? 'Generar certificados en PDF'
-                            : 'Selecciona estudiantes evaluados y aprobados'
-                        }
-                      >
-                        {bulkCertificateLoading ? (
-                          <>
-                            <Spinner size="sm" className="me-2" />
-                            Generando PDF...
-                          </>
-                        ) : (
-                          <>
-                            <i className="bi bi-file-earmark-pdf me-2"></i>
-                            Generar Certificados
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        color="primary"
-                        size="sm"
-                        onClick={() => {
-                          // Initialize bulk form with criteria
-                          setBulkEvaluationForm({
-                            questionnaires: 0,
-                            finalExam: 0,
-                            customScores: classroom?.evaluationCriteria?.customCriteria?.map(c => ({
-                              criterionId: c.id,
-                              score: 0
-                            })) || []
-                          });
-                          setBulkEvaluationModal(true);
-                        }}
-                        disabled={isFinalized}
-                      >
-                        <i className="bi bi-pencil-square me-2"></i>
-                        Evaluar Seleccionados
-                      </Button>
-                      <Button
-                        color="secondary"
-                        size="sm"
-                        onClick={() => evaluationSelection.clear()}
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  )
-                }
-                emptyState={
-                  <EmptyState
-                    icon="bi-people"
-                    heading="Sin estudiantes inscritos"
-                    description="Inscribe estudiantes en la clase para comenzar a evaluar."
-                  />
-                }
-                hover
-              />
-            </CardBody>
-          </Card>
-        </TabPane>
+      <EvaluationCriteriaDialog
+        isOpen={criteriaModal}
+        saving={saving}
+        classroom={classroom}
+        criteriaForm={criteriaForm}
+        onClose={() => setCriteriaModal(false)}
+        onSave={handleSaveCriteria}
+        onChange={setCriteriaForm}
+        onAddCustomCriterion={handleAddCustomCriterion}
+        onRemoveCustomCriterion={handleRemoveCustomCriterion}
+        onUpdateCustomCriterion={handleUpdateCustomCriterion}
+      />
 
-        {/* Summary Tab */}
-        <TabPane tabId="summary">
-          <Row>
-            <Col md={6}>
-              <Card>
-                <CardHeader>
-                  <h5 className="mb-0">Distribución de Calificaciones</h5>
-                </CardHeader>
-                <CardBody>
-                  <div className="mb-3">
-                    <div className="d-flex justify-content-between mb-1">
-                      <span>Excelente (90-100)</span>
-                      <Badge color="success">{distribution.excellent}</Badge>
-                    </div>
-                    <Progress value={(distribution.excellent / students.length) * 100} color="success" />
-                  </div>
-                  <div className="mb-3">
-                    <div className="d-flex justify-content-between mb-1">
-                      <span>Bueno (80-89)</span>
-                      <Badge color="info">{distribution.good}</Badge>
-                    </div>
-                    <Progress value={(distribution.good / students.length) * 100} color="info" />
-                  </div>
-                  <div className="mb-3">
-                    <div className="d-flex justify-content-between mb-1">
-                      <span>Regular (70-79)</span>
-                      <Badge color="warning">{distribution.regular}</Badge>
-                    </div>
-                    <Progress value={(distribution.regular / students.length) * 100} color="warning" />
-                  </div>
-                  <div className="mb-3">
-                    <div className="d-flex justify-content-between mb-1">
-                      <span>Deficiente (70)</span>
-                      <Badge color="danger">{distribution.poor}</Badge>
-                    </div>
-                    <Progress value={(distribution.poor / students.length) * 100} color="danger" />
-                  </div>
-                </CardBody>
-              </Card>
-            </Col>
-            
-            <Col md={6}>
-              <Card>
-                <CardHeader>
-                  <h5 className="mb-0">Top Estudiantes</h5>
-                </CardHeader>
-                <CardBody>
-                  <Table>
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Estudiante</th>
-                        <th>Calificación</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Array.from(evaluations.entries())
-                        .sort((a, b) => (b[1].percentage || 0) - (a[1].percentage || 0))
-                        .slice(0, 5)
-                        .map(([studentId, evaluation], index) => {
-                          const student = students.find(s => s.id === studentId);
-                          return (
-                            <tr key={studentId}>
-                              <td>{index + 1}</td>
-                              <td>{student?.firstName} {student?.lastName}</td>
-                              <td>
-                                <Badge color="success">
-                                  {evaluation.percentage?.toFixed(1)}%
-                                </Badge>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </Table>
-                </CardBody>
-              </Card>
-            </Col>
-          </Row>
-        </TabPane>
-      </TabContent>
+      <StudentEvaluationDialog
+        isOpen={evaluationModal}
+        classroom={classroom}
+        selectedStudent={selectedStudent}
+        evaluationForm={evaluationForm}
+        saving={saving}
+        onClose={() => setEvaluationModal(false)}
+        onSave={handleSaveEvaluation}
+        onChange={setEvaluationForm}
+        onSetAllMax={handleSetAllEvaluationMax}
+      />
 
-      {/* Criteria Configuration Modal */}
-      <Modal isOpen={criteriaModal} toggle={() => setCriteriaModal(false)} size="lg">
-        <ModalHeader toggle={() => setCriteriaModal(false)}>
-          Configurar Criterios de Evaluación
-        </ModalHeader>
-        <ModalBody>
-          <Alert color="info">
-            <i className="bi bi-info-circle me-2"></i>
-            Los puntos deben sumar exactamente 100
-          </Alert>
-          
-          <Form>
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="questionnaires">Cuestionarios (Libro)</Label>
-                  <Input
-                    type="number"
-                    id="questionnaires"
-                    value={criteriaForm.questionnaires}
-                    onChange={(e) => setCriteriaForm({
-                      ...criteriaForm,
-                      questionnaires: parseInt(e.target.value) || 0
-                    })}
-                    min="0"
-                    max="100"
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="attendance">Asistencia</Label>
-                  <Input
-                    type="number"
-                    id="attendance"
-                    value={criteriaForm.attendance}
-                    onChange={(e) => setCriteriaForm({
-                      ...criteriaForm,
-                      attendance: parseInt(e.target.value) || 0
-                    })}
-                    min="0"
-                    max="100"
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="participation">Participación (Puntos del Criterio)</Label>
-                  <Input
-                    type="number"
-                    id="participation"
-                    value={criteriaForm.participation}
-                    onChange={(e) => setCriteriaForm({
-                      ...criteriaForm,
-                      participation: parseInt(e.target.value) || 0
-                    })}
-                    min="0"
-                    max="100"
-                  />
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="participationPointsPerModule">
-                    Puntos por Participación por Clase
-                    <small className="text-muted d-block">
-                      Puntos requeridos por módulo (1-3)
-                    </small>
-                  </Label>
-                  <Input
-                    type="number"
-                    id="participationPointsPerModule"
-                    value={criteriaForm.participationPointsPerModule}
-                    onChange={(e) => setCriteriaForm({
-                      ...criteriaForm,
-                      participationPointsPerModule: Math.min(Math.max(parseInt(e.target.value) || 1, 1), 3)
-                    })}
-                    min="1"
-                    max="3"
-                  />
-                  <small className="text-muted">
-                    Con {criteriaForm.participationPointsPerModule} punto(s) por clase, 
-                    se requieren {(classroom?.modules?.length || 8) * criteriaForm.participationPointsPerModule} puntos 
-                    para obtener el 100% de participación
-                  </small>
-                </FormGroup>
-              </Col>
-            </Row>
-            
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="finalExam">Examen Final / Práctica</Label>
-                  <Input
-                    type="number"
-                    id="finalExam"
-                    value={criteriaForm.finalExam}
-                    onChange={(e) => setCriteriaForm({
-                      ...criteriaForm,
-                      finalExam: parseInt(e.target.value) || 0
-                    })}
-                    min="0"
-                    max="100"
-                  />
-                </FormGroup>
-              </Col>
-            </Row>
-            
-            <hr />
-            
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5>Criterios Personalizados</h5>
-              <Button color="primary" size="sm" onClick={handleAddCustomCriterion}>
-                <i className="bi bi-plus-circle me-2"></i>
-                Agregar Criterio
-              </Button>
-            </div>
-            
-            {criteriaForm.customCriteria?.map((criterion: ICustomCriterion, index: number) => (
-              <Row key={criterion.id} className="mb-2">
-                <Col md={6}>
-                  <Input
-                    type="text"
-                    placeholder="Nombre del criterio"
-                    value={criterion.name}
-                    onChange={(e) => handleUpdateCustomCriterion(criterion.id, 'name', e.target.value)}
-                  />
-                </Col>
-                <Col md={4}>
-                  <Input
-                    type="number"
-                    placeholder="Puntos"
-                    value={criterion.points}
-                    onChange={(e) => handleUpdateCustomCriterion(
-                      criterion.id, 
-                      'points', 
-                      parseInt(e.target.value) || 0
-                    )}
-                    min="0"
-                    max="100"
-                  />
-                </Col>
-                <Col md={2}>
-                  <Button
-                    color="danger"
-                    onClick={() => handleRemoveCustomCriterion(criterion.id)}
-                  >
-                    <i className="bi bi-trash"></i>
-                  </Button>
-                </Col>
-              </Row>
-            ))}
-            
-            <hr />
-            
-            <div className="text-center">
-              <h4>
-                Total: {' '}
-                <Badge color={
-                  criteriaForm.questionnaires + 
-                  criteriaForm.attendance + 
-                  criteriaForm.participation + 
-                  criteriaForm.finalExam +
-                  (criteriaForm.customCriteria?.reduce((sum: number, c: ICustomCriterion) => sum + c.points, 0) || 0) === 100
-                    ? 'success' 
-                    : 'danger'
-                }>
-                  {criteriaForm.questionnaires + 
-                   criteriaForm.attendance + 
-                   criteriaForm.participation + 
-                   criteriaForm.finalExam +
-                   (criteriaForm.customCriteria?.reduce((sum: number, c: ICustomCriterion) => sum + c.points, 0) || 0)} / 100
-                </Badge>
-              </h4>
-            </div>
-          </Form>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setCriteriaModal(false)}>
-            Cancelar
-          </Button>
-          <Button color="primary" onClick={handleSaveCriteria} disabled={saving}>
-            {saving ? 'Guardando...' : 'Guardar Criterios'}
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Student Evaluation Modal */}
-      <Modal isOpen={evaluationModal} toggle={() => setEvaluationModal(false)} size="lg">
-        <ModalHeader toggle={() => setEvaluationModal(false)}>
-          Evaluar - {selectedStudent?.firstName} {selectedStudent?.lastName}
-        </ModalHeader>
-        <ModalBody>
-          {/* Max All Button */}
-          <div className="mb-3 d-flex justify-content-end">
-            <Button
-              color="warning"
-              size="sm"
-              onClick={() => {
-                if (!classroom.evaluationCriteria) return;
-                
-                // Set all scores to max
-                const maxCustomScores = (classroom.evaluationCriteria.customCriteria || []).map(criterion => ({
-                  criterionId: criterion.id,
-                  score: criterion.points
-                }));
-                
-                setEvaluationForm({
-                  questionnaires: classroom.evaluationCriteria.questionnaires,
-                  finalExam: classroom.evaluationCriteria.finalExam,
-                  customScores: maxCustomScores
-                });
-              }}
-            >
-              <i className="bi bi-lightning-fill me-1"></i>
-              Máxima en Todas
-            </Button>
-          </div>
-
-          <Form>
-            <Row>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="eval-questionnaires">
-                    Cuestionarios (Libro) - Máx: {classroom.evaluationCriteria?.questionnaires}
-                  </Label>
-                  <InputGroup>
-                    <Input
-                      type="number"
-                      id="eval-questionnaires"
-                      value={evaluationForm.questionnaires}
-                      onChange={(e) => setEvaluationForm({
-                        ...evaluationForm,
-                        questionnaires: parseFloat(e.target.value) || 0
-                      })}
-                      min="0"
-                      max={classroom.evaluationCriteria?.questionnaires}
-                      step="0.1"
-                    />
-                    <Button
-                      color="warning"
-                      outline
-                      onClick={() => setEvaluationForm({
-                        ...evaluationForm,
-                        questionnaires: classroom.evaluationCriteria?.questionnaires || 0
-                      })}
-                      disabled={evaluationForm.questionnaires === classroom.evaluationCriteria?.questionnaires}
-                    >
-                      Máx
-                    </Button>
-                  </InputGroup>
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label for="eval-finalExam">
-                    Examen Final - Máx: {classroom.evaluationCriteria?.finalExam}
-                  </Label>
-                  <InputGroup>
-                    <Input
-                      type="number"
-                      id="eval-finalExam"
-                      value={evaluationForm.finalExam}
-                      onChange={(e) => setEvaluationForm({
-                        ...evaluationForm,
-                        finalExam: parseFloat(e.target.value) || 0
-                      })}
-                      min="0"
-                      max={classroom.evaluationCriteria?.finalExam}
-                      step="0.1"
-                    />
-                    <Button
-                      color="warning"
-                      outline
-                      onClick={() => setEvaluationForm({
-                        ...evaluationForm,
-                        finalExam: classroom.evaluationCriteria?.finalExam || 0
-                      })}
-                      disabled={evaluationForm.finalExam === classroom.evaluationCriteria?.finalExam}
-                    >
-                      Máx
-                    </Button>
-                  </InputGroup>
-                </FormGroup>
-              </Col>
-            </Row>
-            
-            {classroom.evaluationCriteria?.customCriteria?.map((criterion: ICustomCriterion) => {
-              const currentScore = evaluationForm.customScores.find(cs => cs.criterionId === criterion.id);
-              return (
-                <Row key={criterion.id}>
-                  <Col>
-                    <FormGroup>
-                      <Label for={`eval-custom-${criterion.id}`}>
-                        {criterion.name} - Máx: {criterion.points}
-                      </Label>
-                      <InputGroup>
-                        <Input
-                          type="number"
-                          id={`eval-custom-${criterion.id}`}
-                          value={currentScore?.score || 0}
-                          onChange={(e) => {
-                            const newScore = parseFloat(e.target.value) || 0;
-                            const updatedScores = evaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
-                            updatedScores.push({ criterionId: criterion.id, score: newScore });
-                            setEvaluationForm({
-                              ...evaluationForm,
-                              customScores: updatedScores
-                            });
-                          }}
-                          min="0"
-                          max={criterion.points}
-                          step="0.1"
-                        />
-                        <Button
-                          color="warning"
-                          outline
-                          onClick={() => {
-                            const updatedScores = evaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
-                            updatedScores.push({ criterionId: criterion.id, score: criterion.points });
-                            setEvaluationForm({
-                              ...evaluationForm,
-                              customScores: updatedScores
-                            });
-                          }}
-                          disabled={(currentScore?.score || 0) === criterion.points}
-                        >
-                          Máx
-                        </Button>
-                      </InputGroup>
-                    </FormGroup>
-                  </Col>
-                </Row>
-              );
-            })}
-            
-            <Alert color="info">
-              <i className="bi bi-info-circle me-2"></i>
-              La asistencia y participación se calculan automáticamente basándose en los registros de cada módulo
-            </Alert>
-          </Form>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={() => setEvaluationModal(false)}>
-            Cancelar
-          </Button>
-          <Button color="primary" onClick={handleSaveEvaluation} disabled={saving}>
-            {saving ? 'Guardando...' : 'Guardar Evaluación'}
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Classroom Finalization Modal */}
       <ClassroomFinalizationModal
         isOpen={finalizationModal}
         onClose={() => setFinalizationModal(false)}
@@ -1384,171 +707,18 @@ const EvaluationManager: React.FC = () => {
         onSuccess={loadData}
       />
 
-      {/* Bulk Evaluation Dialog */}
-      <Dialog
+      <BulkEvaluationDialog
         isOpen={bulkEvaluationModal}
+        classroom={classroom}
+        selectedCount={evaluationSelection.selectedIds.size}
+        bulkEvaluationForm={bulkEvaluationForm}
+        saving={saving}
         onClose={() => setBulkEvaluationModal(false)}
-        title={`Evaluar ${evaluationSelection.selectedIds.size} Estudiantes`}
-        size="lg"
-      >
-        <Form>
-          <div className="mb-4">
-            <Alert color="info" className="mb-3">
-              <i className="bi bi-info-circle me-2"></i>
-              Aplicando puntuaciones a {evaluationSelection.selectedIds.size} estudiantes seleccionados.
-              La asistencia y participación se mantienen según sus registros individuales.
-            </Alert>
-            
-            <Row className="mb-3">
-              <Col md={6}>
-                <FormGroup>
-                  <Label>Cuestionarios - Máx: {classroom?.evaluationCriteria?.questionnaires || 0}</Label>
-                  <InputGroup>
-                    <Input
-                      type="number"
-                      value={bulkEvaluationForm.questionnaires}
-                      onChange={(e) => setBulkEvaluationForm({
-                        ...bulkEvaluationForm,
-                        questionnaires: parseFloat(e.target.value) || 0
-                      })}
-                      min="0"
-                      max={classroom?.evaluationCriteria?.questionnaires || 0}
-                      step="0.5"
-                    />
-                    <Button
-                      color="warning"
-                      outline
-                      onClick={() => setBulkEvaluationForm({
-                        ...bulkEvaluationForm,
-                        questionnaires: classroom?.evaluationCriteria?.questionnaires || 0
-                      })}
-                    >
-                      Máx
-                    </Button>
-                  </InputGroup>
-                </FormGroup>
-              </Col>
-              <Col md={6}>
-                <FormGroup>
-                  <Label>Examen Final - Máx: {classroom?.evaluationCriteria?.finalExam || 0}</Label>
-                  <InputGroup>
-                    <Input
-                      type="number"
-                      value={bulkEvaluationForm.finalExam}
-                      onChange={(e) => setBulkEvaluationForm({
-                        ...bulkEvaluationForm,
-                        finalExam: parseFloat(e.target.value) || 0
-                      })}
-                      min="0"
-                      max={classroom?.evaluationCriteria?.finalExam || 0}
-                      step="0.5"
-                    />
-                    <Button
-                      color="warning"
-                      outline
-                      onClick={() => setBulkEvaluationForm({
-                        ...bulkEvaluationForm,
-                        finalExam: classroom?.evaluationCriteria?.finalExam || 0
-                      })}
-                    >
-                      Máx
-                    </Button>
-                  </InputGroup>
-                </FormGroup>
-              </Col>
-            </Row>
-
-            {classroom?.evaluationCriteria?.customCriteria?.map((criterion: ICustomCriterion) => {
-              const currentScore = bulkEvaluationForm.customScores.find(cs => cs.criterionId === criterion.id);
-              return (
-                <Row key={criterion.id} className="mb-3">
-                  <Col>
-                    <FormGroup>
-                      <Label>{criterion.name} - Máx: {criterion.points}</Label>
-                      <InputGroup>
-                        <Input
-                          type="number"
-                          value={currentScore?.score || 0}
-                          onChange={(e) => {
-                            const newScore = parseFloat(e.target.value) || 0;
-                            const updatedScores = bulkEvaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
-                            updatedScores.push({ criterionId: criterion.id, score: newScore });
-                            setBulkEvaluationForm({
-                              ...bulkEvaluationForm,
-                              customScores: updatedScores
-                            });
-                          }}
-                          min="0"
-                          max={criterion.points}
-                          step="0.1"
-                        />
-                        <Button
-                          color="warning"
-                          outline
-                          onClick={() => {
-                            const updatedScores = bulkEvaluationForm.customScores.filter(cs => cs.criterionId !== criterion.id);
-                            updatedScores.push({ criterionId: criterion.id, score: criterion.points });
-                            setBulkEvaluationForm({
-                              ...bulkEvaluationForm,
-                              customScores: updatedScores
-                            });
-                          }}
-                        >
-                          Máx
-                        </Button>
-                      </InputGroup>
-                    </FormGroup>
-                  </Col>
-                </Row>
-              );
-            })}
-
-            <div className="d-flex justify-content-end gap-2 pt-3 border-top">
-              <Button
-                color="outline-warning"
-                onClick={() => {
-                  // Set all to max
-                  setBulkEvaluationForm({
-                    questionnaires: classroom?.evaluationCriteria?.questionnaires || 0,
-                    finalExam: classroom?.evaluationCriteria?.finalExam || 0,
-                    customScores: classroom?.evaluationCriteria?.customCriteria?.map(c => ({
-                      criterionId: c.id,
-                      score: c.points
-                    })) || []
-                  });
-                }}
-              >
-                <i className="bi bi-star me-2"></i>
-                Máxima en Todas
-              </Button>
-              <Button
-                color="secondary"
-                onClick={() => setBulkEvaluationModal(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                color="primary"
-                onClick={handleBulkEvaluation}
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <Spinner size="sm" className="me-2" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-check-lg me-2"></i>
-                    Guardar Evaluaciones
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </Form>
-      </Dialog>
-    </Container>
+        onSave={handleBulkEvaluation}
+        onChange={setBulkEvaluationForm}
+        onSetAllMax={handleSetAllBulkEvaluationMax}
+      />
+    </div>
   );
 };
 

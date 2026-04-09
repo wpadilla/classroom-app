@@ -11,6 +11,39 @@ import {
 import { where } from 'firebase/firestore';
 
 export class EvaluationService {
+  private static createDefaultScores() {
+    return {
+      questionnaires: 0,
+      attendance: 0,
+      participation: 0,
+      finalExam: 0,
+      customScores: [] as { criterionId: string; score: number }[],
+    };
+  }
+
+  private static createBaseEvaluation(
+    studentId: string,
+    classroomId: string,
+    overrides: Partial<IEvaluationCreate> = {}
+  ): IEvaluationCreate {
+    return {
+      studentId,
+      classroomId,
+      moduleId: overrides.moduleId ?? '',
+      participationRecords: overrides.participationRecords ?? [],
+      scores: overrides.scores ?? this.createDefaultScores(),
+      attendanceRecords: overrides.attendanceRecords ?? [],
+      participationPoints: overrides.participationPoints ?? 0,
+      totalScore: overrides.totalScore ?? 0,
+      percentage: overrides.percentage ?? 0,
+      status: overrides.status ?? 'in-progress',
+      isActive: overrides.isActive,
+      evaluatedBy: overrides.evaluatedBy,
+      evaluatedAt: overrides.evaluatedAt,
+      comments: overrides.comments,
+    };
+  }
+
   /**
    * Create evaluation criteria for a classroom
    */
@@ -129,6 +162,134 @@ export class EvaluationService {
   }
 
   /**
+   * Persist the latest attendance state for a specific module.
+   * Accepts an optional in-memory evaluation snapshot so callers can avoid
+   * read-modify-write races when they already have the latest optimistic state.
+   */
+  static async saveAttendanceState(
+    studentId: string,
+    classroomId: string,
+    moduleId: string,
+    isPresent: boolean,
+    teacherId: string,
+    currentEvaluation?: IStudentEvaluation | null
+  ): Promise<IStudentEvaluation> {
+    try {
+      const now = new Date();
+      const evaluation =
+        currentEvaluation?.id
+          ? currentEvaluation
+          : await this.getStudentClassroomEvaluation(studentId, classroomId);
+
+      const attendanceRecords = [...(evaluation?.attendanceRecords || [])];
+      const existingIndex = attendanceRecords.findIndex(
+        (record) => record.moduleId === moduleId
+      );
+
+      const newRecord: IAttendanceRecord = {
+        moduleId,
+        studentId,
+        isPresent,
+        date: now,
+        markedBy: teacherId,
+        markedAt: now,
+      };
+
+      if (existingIndex >= 0) {
+        attendanceRecords[existingIndex] = newRecord;
+      } else {
+        attendanceRecords.push(newRecord);
+      }
+
+      const attendanceScore = this.calculateAttendanceScore(attendanceRecords);
+
+      if (evaluation) {
+        const nextEvaluation: IStudentEvaluation = {
+          ...evaluation,
+          moduleId: evaluation.moduleId || moduleId,
+          attendanceRecords,
+          scores: {
+            ...evaluation.scores,
+            attendance: attendanceScore,
+          },
+          updatedAt: now,
+        };
+
+        await this.saveEvaluation(nextEvaluation);
+        return nextEvaluation;
+      }
+
+      const nextEvaluation = this.createBaseEvaluation(studentId, classroomId, {
+        moduleId,
+        attendanceRecords,
+        scores: {
+          ...this.createDefaultScores(),
+          attendance: attendanceScore,
+        },
+      });
+
+      const savedId = await this.saveEvaluation(nextEvaluation);
+
+      return {
+        ...nextEvaluation,
+        id: savedId,
+        createdAt: now,
+        updatedAt: now,
+      };
+    } catch (error) {
+      console.error('Error saving attendance state:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Persist the latest participation total as an absolute value.
+   * This is safe to use with optimistic UI and queued writes.
+   */
+  static async saveParticipationPoints(
+    studentId: string,
+    classroomId: string,
+    participationPoints: number,
+    currentEvaluation?: IStudentEvaluation | null
+  ): Promise<IStudentEvaluation> {
+    try {
+      const now = new Date();
+      const normalizedPoints = Math.max(0, participationPoints);
+      const evaluation =
+        currentEvaluation?.id
+          ? currentEvaluation
+          : await this.getStudentClassroomEvaluation(studentId, classroomId);
+
+      if (evaluation) {
+        const nextEvaluation: IStudentEvaluation = {
+          ...evaluation,
+          participationPoints: normalizedPoints,
+          updatedAt: now,
+        };
+
+        await this.saveEvaluation(nextEvaluation);
+        return nextEvaluation;
+      }
+
+      const nextEvaluation = this.createBaseEvaluation(studentId, classroomId, {
+        participationPoints: normalizedPoints,
+      });
+
+      const savedId = await this.saveEvaluation(nextEvaluation);
+
+      return {
+        ...nextEvaluation,
+        id: savedId,
+        createdAt: now,
+        updatedAt: now,
+      };
+    } catch (error) {
+      console.error('Error saving participation points:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Record attendance for a module
    */
   static async recordAttendance(
@@ -139,74 +300,13 @@ export class EvaluationService {
     teacherId: string
   ): Promise<void> {
     try {
-      const evaluation = await this.getStudentClassroomEvaluation(studentId, classroomId);
-      
-      if (!evaluation) {
-        // Create new evaluation if doesn't exist
-        const newEvaluation: IEvaluationCreate = {
-          studentId,
-          classroomId,
-          moduleId,
-          participationRecords: [],
-          scores: {
-            questionnaires: 0,
-            attendance: 0,
-            participation: 0,
-            finalExam: 0,
-            customScores: []
-          },
-          attendanceRecords: [{
-            moduleId,
-            studentId,
-            isPresent,
-            date: new Date(),
-            markedBy: teacherId,
-            markedAt: new Date()
-          }],
-          participationPoints: 0,
-          totalScore: 0,
-          percentage: 0,
-          status: 'in-progress'
-        };
-        
-        await this.saveEvaluation(newEvaluation);
-      } else {
-        // Update existing evaluation
-        const attendanceRecords = evaluation.attendanceRecords || [];
-        
-        // Check if attendance for this module already exists
-        const existingIndex = attendanceRecords.findIndex(
-          record => record.moduleId === moduleId
-        );
-        
-        const newRecord: IAttendanceRecord = {
-          moduleId,
-          studentId,
-          isPresent,
-          date: new Date(),
-          markedBy: teacherId,
-          markedAt: new Date()
-        };
-        
-        if (existingIndex >= 0) {
-          attendanceRecords[existingIndex] = newRecord;
-        } else {
-          attendanceRecords.push(newRecord);
-        }
-        
-        // Recalculate attendance score
-        const attendanceScore = this.calculateAttendanceScore(attendanceRecords);
-        
-        await FirebaseService.updateDocument(
-          COLLECTIONS.EVALUATIONS,
-          evaluation.id,
-          {
-            attendanceRecords,
-            'scores.attendance': attendanceScore,
-            updatedAt: new Date()
-          }
-        );
-      }
+      await this.saveAttendanceState(
+        studentId,
+        classroomId,
+        moduleId,
+        isPresent,
+        teacherId
+      );
     } catch (error) {
       console.error('Error recording attendance:', error);
       throw error;
@@ -226,45 +326,17 @@ export class EvaluationService {
   ): Promise<void> {
     try {
       const evaluation = await this.getStudentClassroomEvaluation(studentId, classroomId);
-      
-      if (!evaluation) {
-        // Create new evaluation if doesn't exist
-        const newEvaluation: IEvaluationCreate = {
-          studentId,
-          classroomId,
-          moduleId: '',
-          participationRecords: [],
-          scores: {
-            questionnaires: 0,
-            attendance: 0,
-            participation: 0,
-            finalExam: 0,
-            customScores: []
-          },
-          attendanceRecords: [],
-          participationPoints: points,
-          totalScore: 0,
-          percentage: 0,
-          status: 'in-progress'
-        };
-        
-        await this.saveEvaluation(newEvaluation);
-      } else {
-        // Calculate new points and save explicitly (avoids FieldValue caching issues)
-        const currentPoints = typeof evaluation.participationPoints === 'number' 
-          ? evaluation.participationPoints 
+      const currentPoints =
+        typeof evaluation?.participationPoints === 'number'
+          ? evaluation.participationPoints
           : 0;
-        const newPoints = Math.max(0, currentPoints + points);
-        
-        await FirebaseService.updateDocument(
-          COLLECTIONS.EVALUATIONS,
-          evaluation.id,
-          {
-            participationPoints: newPoints,
-            updatedAt: new Date()
-          }
-        );
-      }
+
+      await this.saveParticipationPoints(
+        studentId,
+        classroomId,
+        currentPoints + points,
+        evaluation
+      );
     } catch (error) {
       console.error('Error recording participation:', error);
       throw error;

@@ -363,7 +363,7 @@ export function DataTable<T extends Record<string, any>>({
     <div>
       {/* Search Input */}
       {searchable && (
-        <div className="mb-3">
+        <div className="mb-3 px-3">
           <SearchInput
             placeholder={searchPlaceholder}
             onSearch={handleSearchChange}

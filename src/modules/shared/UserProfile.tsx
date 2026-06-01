@@ -3,7 +3,6 @@
 
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
-  Container,
   Button,
   Form,
   FormGroup,
@@ -20,22 +19,22 @@ import {
 } from 'reactstrap';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { ClassroomRestartService } from '../../services/classroom/classroom-restart.service';
-import { IUser, IClassroom, IStudentEvaluation, IClassroomHistory, UserRole, IClassroomRun } from '../../models';
+import { IUser, IClassroom, IStudentEvaluation, UserRole, IClassroomRun } from '../../models';
 import { userSelfEditSchema, UserSelfEditFormData } from '../../schemas/user.schema';
 import { toast } from 'react-toastify';
 import ProgramsProgressTab from './components/ProgramsProgressTab';
 import { useProgramProgress } from '../../hooks/useProgramProgress';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
-import UserDocumentsSection from '../../components/user-documents/UserDocumentsSection';
 import ClassroomRunDetailsModal from '../../components/classroom-runs/ClassroomRunDetailsModal';
 import ProfileShareCard from '../../components/student/ProfileShareCard';
+import HistoryCertificateActions from '../../components/student/HistoryCertificateActions';
 import SectionHeader from '../../components/student/SectionHeader';
 import GradeRing from '../../components/student/GradeRing';
 import { BottomDrawer } from '../../components/mobile/BottomDrawer';
@@ -60,7 +59,6 @@ const UserProfile: React.FC = () => {
   const [teacherRuns, setTeacherRuns] = useState<IClassroomRun[]>([]);
   const [selectedRun, setSelectedRun] = useState<IClassroomRun | null>(null);
   const [runDetailsModal, setRunDetailsModal] = useState(false);
-  const [editMode, setEditMode] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [sharingProfile, setSharingProfile] = useState(false);
 
@@ -572,7 +570,6 @@ const UserProfile: React.FC = () => {
           <button
             onClick={() => {
               setEditDrawer(true);
-              setEditMode(true);
             }}
             className="flex flex-col items-center gap-1 bg-transparent border-0 active:opacity-70"
           >
@@ -829,31 +826,36 @@ const UserProfile: React.FC = () => {
                           : 'bg-red-500 border-red-500'
                       }`}
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {history.classroomName}
-                        </span>
-                        <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                            history.role === 'teacher'
-                              ? 'bg-blue-50 text-blue-600'
-                              : 'bg-indigo-50 text-indigo-600'
-                          }`}
-                        >
-                          {history.role === 'teacher' ? 'Prof.' : 'Est.'}
-                        </span>
+                    <div className="flex flex-1 items-start justify-between gap-3 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {history.classroomName}
+                          </span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                              history.role === 'teacher'
+                                ? 'bg-blue-50 text-blue-600'
+                                : 'bg-indigo-50 text-indigo-600'
+                            }`}
+                          >
+                            {history.role === 'teacher' ? 'Prof.' : 'Est.'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {history.programName} ·{' '}
+                          {new Date(history.completionDate).toLocaleDateString('es-ES', {
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        {history.programName} ·{' '}
-                        {new Date(history.completionDate).toLocaleDateString('es-ES', {
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </div>
-                      {history.role === 'student' && history.finalGrade !== undefined && (
-                        <div className="mt-1">
-                          <GradeRing value={history.finalGrade} size={28} strokeWidth={2.5} />
+                      {history.role === 'student' && (
+                        <div className="flex shrink-0 items-center gap-2">
+                          <HistoryCertificateActions history={history} student={profile} />
+                          {history.finalGrade !== undefined && (
+                            <GradeRing value={history.finalGrade} size={28} strokeWidth={2.5} />
+                          )}
                         </div>
                       )}
                     </div>
@@ -864,10 +866,6 @@ const UserProfile: React.FC = () => {
           })()}
         </SectionHeader>
 
-        {/* Documents */}
-        <SectionHeader icon="bi-folder2-open" title="Documentos" defaultOpen={false}>
-          <UserDocumentsSection documents={profile.documents || []} canManage={false} />
-        </SectionHeader>
 
         {/* Programs Progress */}
         <SectionHeader icon="bi-graph-up" title="Progreso en Programas" defaultOpen={false}>

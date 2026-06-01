@@ -18,7 +18,9 @@ import {
   buildCertificateData,
   buildCertificateFileName,
   isStudentEligibleForCertificate,
+  isStudentOutstandingForCertificate,
 } from './certificates/certificate.utils';
+import { CertificateVariant } from './certificates/certificate.types';
 import EvaluationHero from './components/EvaluationHero';
 import EvaluationStudentsSection, { StudentWithEvaluation } from './components/EvaluationStudentsSection';
 import EvaluationSummarySection from './components/EvaluationSummarySection';
@@ -41,8 +43,9 @@ const EvaluationManager: React.FC = () => {
   const [evaluations, setEvaluations] = useState<Map<string, IStudentEvaluation>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [certificateLoadingId, setCertificateLoadingId] = useState<string | null>(null);
+  const [certificateLoadingKey, setCertificateLoadingKey] = useState<string | null>(null);
   const [bulkCertificateLoading, setBulkCertificateLoading] = useState(false);
+  const [includeOutstandingCertificatesInBulk, setIncludeOutstandingCertificatesInBulk] = useState(false);
   
   // Modal states
   const [criteriaModal, setCriteriaModal] = useState(false);
@@ -511,33 +514,61 @@ const EvaluationManager: React.FC = () => {
     return selectedStudentsWithEvaluation.filter((student) => isStudentEligibleForCertificate(student.evaluation));
   }, [selectedStudentsWithEvaluation]);
 
-  const handleDownloadCertificate = async (student: StudentWithEvaluation) => {
+  const selectedOutstandingCertificateStudents = useMemo(() => {
+    return selectedEligibleCertificateStudents.filter((student) => isStudentOutstandingForCertificate(student.evaluation));
+  }, [selectedEligibleCertificateStudents]);
+
+  useEffect(() => {
+    if (selectedOutstandingCertificateStudents.length === 0 && includeOutstandingCertificatesInBulk) {
+      setIncludeOutstandingCertificatesInBulk(false);
+    }
+  }, [selectedOutstandingCertificateStudents.length, includeOutstandingCertificatesInBulk]);
+
+  const handleDownloadCertificate = async (
+    student: StudentWithEvaluation,
+    variant: CertificateVariant = 'regular'
+  ) => {
     if (!classroom) {
       return;
     }
 
-    if (!isStudentEligibleForCertificate(student.evaluation)) {
-      toast.info('Solo puedes generar certificados para estudiantes evaluados y aprobados');
+    const isOutstandingCertificate = variant === 'outstanding';
+    const canDownload = isOutstandingCertificate
+      ? isStudentOutstandingForCertificate(student.evaluation)
+      : isStudentEligibleForCertificate(student.evaluation);
+
+    if (!canDownload) {
+      toast.info(
+        isOutstandingCertificate
+          ? 'Solo puedes generar certificados de meritorio para estudiantes evaluados con 90 o más'
+          : 'Solo puedes generar certificados para estudiantes evaluados y aprobados'
+      );
       return;
     }
 
     try {
-      setCertificateLoadingId(student.id);
+      setCertificateLoadingKey(`${student.id}:${variant}`);
 
       const certificate = buildCertificateData({
         classroom,
         student,
         teacher,
+        variant,
       });
 
       const blob = await generateCertificateBlob(certificate, { format: 'png' });
-      saveAs(blob, buildCertificateFileName(certificate.studentName, certificate.subjectName, 'png'));
-      toast.success(`Certificado generado para ${certificate.studentName}`);
+      saveAs(
+        blob,
+        buildCertificateFileName(certificate.studentName, certificate.subjectName, 'png', variant)
+      );
+      toast.success(
+        `${isOutstandingCertificate ? 'Certificado de meritorio' : 'Certificado'} generado para ${certificate.studentName}`
+      );
     } catch (error) {
       console.error('Error generating certificate:', error);
       toast.error('No se pudo generar el certificado');
     } finally {
-      setCertificateLoadingId(null);
+      setCertificateLoadingKey(null);
     }
   };
 
@@ -560,22 +591,43 @@ const EvaluationManager: React.FC = () => {
       setBulkCertificateLoading(true);
 
       const pages = [];
+      let outstandingCertificatesGenerated = 0;
       for (const student of selectedEligibleCertificateStudents) {
-        const certificate = buildCertificateData({
+        const regularCertificate = buildCertificateData({
           classroom,
           student,
           teacher,
         });
 
-        const imageSrc = await generateCertificateDataUrl(certificate, {
+        const regularImageSrc = await generateCertificateDataUrl(regularCertificate, {
           format: 'jpeg',
           quality: 0.92,
         });
 
         pages.push({
-          id: certificate.id,
-          imageSrc,
+          id: regularCertificate.id,
+          imageSrc: regularImageSrc,
         });
+
+        if (includeOutstandingCertificatesInBulk && isStudentOutstandingForCertificate(student.evaluation)) {
+          const outstandingCertificate = buildCertificateData({
+            classroom,
+            student,
+            teacher,
+            variant: 'outstanding',
+          });
+
+          const outstandingImageSrc = await generateCertificateDataUrl(outstandingCertificate, {
+            format: 'jpeg',
+            quality: 0.92,
+          });
+
+          pages.push({
+            id: outstandingCertificate.id,
+            imageSrc: outstandingImageSrc,
+          });
+          outstandingCertificatesGenerated += 1;
+        }
       }
 
       const [{ pdf }, { default: CertificatesPdfDocument }] = await Promise.all([
@@ -584,15 +636,20 @@ const EvaluationManager: React.FC = () => {
       ]);
 
       const blob = await pdf(<CertificatesPdfDocument certificates={pages} />).toBlob();
-      saveAs(blob, buildBulkCertificateFileName(classroom));
+      saveAs(blob, buildBulkCertificateFileName(classroom, outstandingCertificatesGenerated > 0));
+
+      const totalCertificatesGenerated = selectedEligibleCertificateStudents.length + outstandingCertificatesGenerated;
+      const generatedSummary = outstandingCertificatesGenerated > 0
+        ? `${totalCertificatesGenerated} certificados en PDF (${selectedEligibleCertificateStudents.length} regulares y ${outstandingCertificatesGenerated} meritorios)`
+        : `${selectedEligibleCertificateStudents.length} certificados en PDF`;
 
       if (selectedEligibleCertificateStudents.length < selectedStudentsWithEvaluation.length) {
         toast.info(
-          `Se generaron ${selectedEligibleCertificateStudents.length} certificados. ` +
+          `Se generaron ${generatedSummary}. ` +
           `${selectedStudentsWithEvaluation.length - selectedEligibleCertificateStudents.length} estudiantes no cumplen los requisitos.`
         );
       } else {
-        toast.success(`Se generaron ${selectedEligibleCertificateStudents.length} certificados en PDF`);
+        toast.success(`Se generaron ${generatedSummary}`);
       }
     } catch (error) {
       console.error('Error generating bulk certificates:', error);
@@ -657,10 +714,14 @@ const EvaluationManager: React.FC = () => {
         students={studentsWithEvaluation}
         selectedIds={evaluationSelection.selectedIds}
         isFinalized={isFinalized}
-        certificateLoadingId={certificateLoadingId}
+        certificateLoadingKey={certificateLoadingKey}
         bulkCertificateLoading={bulkCertificateLoading}
+        includeOutstandingCertificatesInBulk={includeOutstandingCertificatesInBulk}
+        selectedOutstandingCount={selectedOutstandingCertificateStudents.length}
         onSelectionChange={evaluationSelection.setSelectedIds}
-        onDownloadCertificate={handleDownloadCertificate}
+        onIncludeOutstandingCertificatesInBulkChange={setIncludeOutstandingCertificatesInBulk}
+        onDownloadCertificate={(student) => handleDownloadCertificate(student, 'regular')}
+        onDownloadOutstandingCertificate={(student) => handleDownloadCertificate(student, 'outstanding')}
         onOpenEvaluationModal={handleOpenEvaluationModal}
         onBulkDownloadCertificates={handleBulkCertificateDownload}
         onOpenBulkEvaluation={handleOpenBulkEvaluationModal}

@@ -3,16 +3,17 @@ import {
   CERTIFICATE_GREAT_VIBES_PATH,
   CERTIFICATE_HEIGHT,
   CERTIFICATE_TEMPLATE_PATH,
+  CERTIFICATE_TEMPLATE_OUTSTANDING_PATH,
   CERTIFICATE_TEXT_LAYOUT,
   CERTIFICATE_WIDTH,
   CERTIFICATE_PLAY_FAIR_PATH
 } from './certificate.constants';
-import { CertificateData, CertificateRenderOptions } from './certificate.types';
+import { CertificateData, CertificateRenderOptions, CertificateVariant } from './certificate.types';
 
 type CertificateFontFamily = 'Alegreya Certificate' | 'Great Vibes' | 'Playfair Display';
 
 interface LoadedCertificateResources {
-  templateImage: HTMLImageElement;
+  templateImages: Record<CertificateVariant, HTMLImageElement>;
 }
 
 interface CertificateTextSpec {
@@ -159,14 +160,20 @@ const getCertificateResources = async (): Promise<LoadedCertificateResources> =>
       await ensureFontLoaded('Great Vibes', CERTIFICATE_GREAT_VIBES_PATH, 'Sahira Reyes');
       await ensureFontLoaded('Playfair Display', CERTIFICATE_PLAY_FAIR_PATH, 'SEAN NIVEL 6');
 
-      const templateImage = await loadImage(getAssetUrl(CERTIFICATE_TEMPLATE_PATH));
+      const [regularTemplateImage, outstandingTemplateImage] = await Promise.all([
+        loadImage(getAssetUrl(CERTIFICATE_TEMPLATE_PATH)),
+        loadImage(getAssetUrl(CERTIFICATE_TEMPLATE_OUTSTANDING_PATH)),
+      ]);
 
       if (typeof document !== 'undefined' && document.fonts) {
         await document.fonts.ready;
       }
 
       return {
-        templateImage,
+        templateImages: {
+          regular: regularTemplateImage,
+          outstanding: outstandingTemplateImage,
+        },
       };
     })();
   }
@@ -235,7 +242,7 @@ const drawCenteredText = (
 };
 
 const renderCertificate = async (certificate: CertificateData): Promise<HTMLCanvasElement> => {
-  const { templateImage } = await getCertificateResources();
+  const { templateImages } = await getCertificateResources();
   const canvas = document.createElement('canvas');
   canvas.width = CERTIFICATE_WIDTH;
   canvas.height = CERTIFICATE_HEIGHT;
@@ -246,6 +253,7 @@ const renderCertificate = async (certificate: CertificateData): Promise<HTMLCanv
     throw new Error('No fue posible inicializar el lienzo del certificado');
   }
 
+  const templateImage = templateImages[certificate.variant] || templateImages.regular;
   context.drawImage(templateImage, 0, 0, CERTIFICATE_WIDTH, CERTIFICATE_HEIGHT);
 
   drawCenteredText(context, certificate.classroomName, CERTIFICATE_TEXT_LAYOUT.classroomHeader);

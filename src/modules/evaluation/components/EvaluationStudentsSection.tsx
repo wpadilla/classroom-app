@@ -6,6 +6,7 @@ import SectionHeader from '../../../components/student/SectionHeader';
 import { IClassroom, ICustomCriterion, IStudentEvaluation, IUser } from '../../../models';
 import {
   isStudentEligibleForCertificate,
+  isStudentOutstandingForCertificate,
 } from '../certificates/certificate.utils';
 
 export type StudentWithEvaluation = IUser & {
@@ -17,10 +18,14 @@ interface EvaluationStudentsSectionProps {
   students: StudentWithEvaluation[];
   selectedIds: Set<string>;
   isFinalized: boolean;
-  certificateLoadingId: string | null;
+  certificateLoadingKey: string | null;
   bulkCertificateLoading: boolean;
+  includeOutstandingCertificatesInBulk: boolean;
+  selectedOutstandingCount: number;
   onSelectionChange: (ids: Set<string>) => void;
+  onIncludeOutstandingCertificatesInBulkChange: (value: boolean) => void;
   onDownloadCertificate: (student: StudentWithEvaluation) => void;
+  onDownloadOutstandingCertificate: (student: StudentWithEvaluation) => void;
   onOpenEvaluationModal: (student: IUser) => void;
   onBulkDownloadCertificates: () => void;
   onOpenBulkEvaluation: () => void;
@@ -32,10 +37,14 @@ const EvaluationStudentsSection: React.FC<EvaluationStudentsSectionProps> = ({
   students,
   selectedIds,
   isFinalized,
-  certificateLoadingId,
+  certificateLoadingKey,
   bulkCertificateLoading,
+  includeOutstandingCertificatesInBulk,
+  selectedOutstandingCount,
   onSelectionChange,
+  onIncludeOutstandingCertificatesInBulkChange,
   onDownloadCertificate,
+  onDownloadOutstandingCertificate,
   onOpenEvaluationModal,
   onBulkDownloadCertificates,
   onOpenBulkEvaluation,
@@ -119,7 +128,13 @@ const EvaluationStudentsSection: React.FC<EvaluationStudentsSectionProps> = ({
         align: 'center' as const,
         mobileHidden: true,
         render: (_: unknown, row: StudentWithEvaluation) =>
-          isStudentEligibleForCertificate(row.evaluation) ? (
+          isStudentOutstandingForCertificate(row.evaluation) ? (
+            <div className="d-flex flex-column align-items-center gap-1">
+              <Badge color="success">Evaluado</Badge>
+              <Badge color="info" pill>Certificable</Badge>
+              <Badge color="warning" pill>Meritorio</Badge>
+            </div>
+          ) : isStudentEligibleForCertificate(row.evaluation) ? (
             <div className="d-flex flex-column align-items-center gap-1">
               <Badge color="success">Evaluado</Badge>
               <Badge color="info" pill>Certificable</Badge>
@@ -169,20 +184,32 @@ const EvaluationStudentsSection: React.FC<EvaluationStudentsSectionProps> = ({
           onSelectionChange={onSelectionChange}
           actions={(row) => (
             <div className="d-flex gap-1">
-                    <Button
-                      color="secondary"
-                      size="sm"
-                      outline
-                      onClick={() => onDownloadCertificate(row)}
-                      disabled={!isStudentEligibleForCertificate(row.evaluation) || bulkCertificateLoading}
-                      title={
-                        isStudentEligibleForCertificate(row.evaluation)
-                          ? 'Descargar certificado'
-                          : 'Disponible solo para estudiantes evaluados y aprobados'
-                      }
-                    >
-                {certificateLoadingId === row.id ? <Spinner size="sm" /> : <i className="bi bi-award" />}
+              <Button
+                color="secondary"
+                size="sm"
+                outline
+                onClick={() => onDownloadCertificate(row)}
+                disabled={!isStudentEligibleForCertificate(row.evaluation) || bulkCertificateLoading}
+                title={
+                  isStudentEligibleForCertificate(row.evaluation)
+                    ? 'Descargar certificado'
+                    : 'Disponible solo para estudiantes evaluados y aprobados'
+                }
+              >
+                {certificateLoadingKey === `${row.id}:regular` ? <Spinner size="sm" /> : <i className="bi bi-award" />}
               </Button>
+              {isStudentOutstandingForCertificate(row.evaluation) && (
+                <Button
+                  color="warning"
+                  size="sm"
+                  outline
+                  onClick={() => onDownloadOutstandingCertificate(row)}
+                  disabled={bulkCertificateLoading}
+                  title="Descargar certificado de meritorio"
+                >
+                  {certificateLoadingKey === `${row.id}:outstanding` ? <Spinner size="sm" /> : <i className="bi bi-trophy-fill" />}
+                </Button>
+              )}
               <Button
                 color="primary"
                 size="sm"
@@ -214,6 +241,19 @@ const EvaluationStudentsSection: React.FC<EvaluationStudentsSectionProps> = ({
                   </>
                 )}
               </Button>
+              <label className="mb-0 d-flex align-items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="form-check-input mt-0"
+                  checked={includeOutstandingCertificatesInBulk}
+                  disabled={bulkCertificateLoading || selectedOutstandingCount === 0}
+                  onChange={(event) => onIncludeOutstandingCertificatesInBulkChange(event.target.checked)}
+                />
+                <span>
+                  Incluir meritorios
+                  {selectedOutstandingCount > 0 ? ` (${selectedOutstandingCount})` : ''}
+                </span>
+              </label>
               <Button color="primary" size="sm" onClick={onOpenBulkEvaluation} disabled={isFinalized}>
                 <i className="bi bi-pencil-square me-2" />
                 Evaluar seleccionados

@@ -1,4 +1,5 @@
 export const CERTIFICATE_TEMPLATE_PATH = '/assets/images/certificate_template.png';
+export const CERTIFICATE_TEMPLATE_OUTSTANDING_PATH = '/assets/images/certificate_template_outstanding.png';
 export const CERTIFICATE_ALEGREYA_PATH = '/assets/fonts/Alegreya-VariableFont_wght.ttf';
 export const CERTIFICATE_GREAT_VIBES_PATH = '/assets/fonts/GreatVibes-Regular.ttf';
 export const CERTIFICATE_PLAY_FAIR_PATH = '/assets/fonts/PlayfairDisplay-VariableFont_wght.ttf';
@@ -6,6 +7,7 @@ export const CERTIFICATE_PLAY_FAIR_PATH = '/assets/fonts/PlayfairDisplay-Variabl
 export const CERTIFICATE_WIDTH = 2000;
 export const CERTIFICATE_HEIGHT = 1414;
 export const CERTIFICATE_PASSING_PERCENTAGE = 70;
+export const CERTIFICATE_OUTSTANDING_PERCENTAGE = 90;
 
 export const CERTIFICATE_COLORS = {
   navy: '#113f86',

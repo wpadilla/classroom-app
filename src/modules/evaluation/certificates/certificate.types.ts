@@ -1,5 +1,8 @@
+export type CertificateVariant = 'regular' | 'outstanding';
+
 export interface CertificateData {
   id: string;
+  variant: CertificateVariant;
   classroomName: string;
   subjectName: string;
   completionText: string;

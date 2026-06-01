@@ -12,6 +12,7 @@ import { ProgramService } from '../../services/program/program.service';
 import { IUser, IClassroom, IStudentEvaluation, IProgram, IClassroomHistory } from '../../models';
 import { toast } from 'react-toastify';
 import GradeRing from '../../components/student/GradeRing';
+import HistoryCertificateActions from '../../components/student/HistoryCertificateActions';
 
 interface ClassGradeItem {
   classroomId: string;
@@ -23,6 +24,7 @@ interface ClassGradeItem {
   status: 'in-progress' | 'completed' | 'evaluated' | 'dropped' | 'failed';
   isCurrentEnrollment: boolean;
   evaluation?: IStudentEvaluation;
+  historyEntry?: IClassroomHistory;
   breakdown?: {
     name: string;
     earned: number;
@@ -167,6 +169,7 @@ const StudentGrades: React.FC = () => {
             grade: hist.finalGrade || 0,
             status: hist.status === 'completed' ? 'evaluated' : hist.status,
             isCurrentEnrollment: false,
+            historyEntry: hist,
           });
         }
       }
@@ -278,7 +281,7 @@ const StudentGrades: React.FC = () => {
   }
 
   return (
-    <div className="px-1 pb-6 -mx-3 -my-3">
+    <div className="pb-6 -mx-3 -my-3">
       {/* Header */}
       <div className="bg-white px-4 pt-4 pb-3 border-b border-gray-100">
         <div className="flex items-center justify-between">
@@ -300,7 +303,7 @@ const StudentGrades: React.FC = () => {
 
       {/* Screenshottable area */}
       <div ref={screenshotRef}>
-        <div className="px-4 pt-4">
+        <div className="pt-4">
           {/* Summary visual */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -374,6 +377,7 @@ const StudentGrades: React.FC = () => {
                   <GradeItemCard
                     key={item.classroomId}
                     item={item}
+                    student={profile}
                     index={index}
                     expanded={expandedId === item.classroomId}
                     onToggle={() =>
@@ -400,6 +404,7 @@ const StudentGrades: React.FC = () => {
                   <GradeItemCard
                     key={`${item.classroomId}-hist-${index}`}
                     item={item}
+                    student={profile}
                     index={index}
                     expanded={expandedId === `${item.classroomId}-hist`}
                     onToggle={() =>
@@ -443,11 +448,12 @@ const StudentGrades: React.FC = () => {
 // Grade item card with expandable breakdown
 const GradeItemCard: React.FC<{
   item: ClassGradeItem;
+  student: Pick<IUser, 'id' | 'firstName' | 'lastName'> | null;
   index: number;
   expanded: boolean;
   onToggle: () => void;
   getStatusBadge: (status: string) => { text: string; class: string };
-}> = ({ item, index, expanded, onToggle, getStatusBadge }) => {
+}> = ({ item, student, index, expanded, onToggle, getStatusBadge }) => {
   const badge = getStatusBadge(item.status);
 
   return (
@@ -457,31 +463,41 @@ const GradeItemCard: React.FC<{
       transition={{ delay: index * 0.04 }}
       className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
     >
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 p-3 border-0 bg-transparent active:bg-gray-50 transition-colors text-left"
-      >
-        <GradeRing value={item.grade} size={40} strokeWidth={3.5} className="shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-gray-900 truncate">{item.subject}</div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] text-gray-400 truncate">{item.programName}</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${badge.class}`}>
-              {badge.text}
-            </span>
+      <div className="flex items-center gap-2 p-3">
+        <button
+          onClick={onToggle}
+          className="flex flex-1 items-center gap-3 border-0 bg-transparent p-0 active:opacity-80 transition-colors text-left"
+        >
+          <GradeRing value={item.grade} size={40} strokeWidth={3.5} className="shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-gray-900 truncate">{item.subject}</div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] text-gray-400 truncate">{item.programName}</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${badge.class}`}>
+                {badge.text}
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-gray-900">{item.grade.toFixed(0)}%</span>
-          {item.breakdown && (
-            <motion.i
-              className="bi bi-chevron-down text-gray-300 text-xs"
-              animate={{ rotate: expanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            />
+        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {item.historyEntry && student && (
+            <HistoryCertificateActions history={item.historyEntry} student={student} />
           )}
+          <button
+            onClick={onToggle}
+            className="flex items-center gap-2 border-0 bg-transparent p-0 text-left active:opacity-80"
+          >
+            <span className="text-base font-bold text-gray-900">{item.grade.toFixed(0)}%</span>
+            {item.breakdown && (
+              <motion.i
+                className="bi bi-chevron-down text-gray-300 text-xs"
+                animate={{ rotate: expanded ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              />
+            )}
+          </button>
         </div>
-      </button>
+      </div>
 
       <AnimatePresence>
         {expanded && item.breakdown && (

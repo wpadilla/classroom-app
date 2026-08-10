@@ -126,7 +126,8 @@ export const buildCertificateData = ({
     subjectName: classroom.subject?.trim() || classroom.name?.trim() || 'Materia',
     completionText: buildCompletionText(classroom) || classroom.subject?.trim() || 'Materia',
     studentName: getUserFullName(student) || 'Estudiante',
-    teacherName: (getUserFullName(teacher) || 'Maestro no asignado').toLocaleUpperCase('es'),
+    teacherName: '',
+    // teacherName: (getUserFullName(teacher) || 'Maestro no asignado').toLocaleUpperCase('es'),
   };
 };
 

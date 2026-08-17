@@ -15,7 +15,6 @@ import {
   TabContent,
   TabPane,
   Badge,
-  Spinner,
 } from 'reactstrap';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,6 +47,7 @@ interface UserDetailModalProps {
   user: IUser | null;
   onSave?: (updatedUser: IUser) => void;
   mode?: 'view' | 'edit';
+  onProgressChange?: (state: { active: boolean; label?: string; progress?: number }) => void;
 }
 
 const UserDetailModal: React.FC<UserDetailModalProps> = ({
@@ -56,6 +56,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   user,
   onSave,
   mode = 'view',
+  onProgressChange,
 }) => {
   const { user: authUser } = useAuth();
   // State
@@ -86,6 +87,14 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const [documents, setDocuments] = useState<IUserDocument[]>([]);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+
+  const showProgress = useCallback((label: string) => {
+    onProgressChange?.({ active: true, label });
+  }, [onProgressChange]);
+
+  const hideProgress = useCallback(() => {
+    onProgressChange?.({ active: false });
+  }, [onProgressChange]);
 
   const canManageDocuments = authUser?.role === 'admin' || authUser?.role === 'teacher';
 
@@ -201,6 +210,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   // Load data on open
   const loadData = useCallback(async (userId: string) => {
     setLoading(true);
+    showProgress('Cargando detalle del usuario');
     try {
       // Fetch fresh user data
       const freshUser = await UserService.getUserById(userId);
@@ -228,8 +238,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       toast.error('Error al cargar datos del usuario');
     } finally {
       setLoading(false);
+      hideProgress();
     }
-  }, [calculateProgress, resetForm]);
+  }, [calculateProgress, hideProgress, resetForm, showProgress]);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -260,6 +271,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     }
 
     setUploadingDocument(true);
+    showProgress('Subiendo documento');
     try {
       const url = await GCloudService.uploadFile(file, `user-${currentUser.id}`);
       const newDoc: IUserDocument = {
@@ -281,6 +293,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       toast.error('Error al subir el documento');
     } finally {
       setUploadingDocument(false);
+      hideProgress();
     }
   };
 
@@ -293,6 +306,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       d.id === doc.id ? { ...d, name: nextName, updatedAt: new Date() } : d
     );
 
+    showProgress('Actualizando documento');
     try {
       setDocuments(nextDocs);
       await UserService.updateUser(currentUser.id, { documents: nextDocs });
@@ -300,6 +314,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     } catch (error) {
       console.error('Error renaming document:', error);
       toast.error('Error al actualizar el documento');
+    } finally {
+      hideProgress();
     }
   };
 
@@ -308,6 +324,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     if (!window.confirm('¿Desea eliminar este documento?')) return;
 
     setDeletingDocumentId(doc.id);
+    showProgress('Eliminando documento');
     try {
       const nextDocs = documents.filter(d => d.id !== doc.id);
       setDocuments(nextDocs);
@@ -323,6 +340,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       toast.error('Error al eliminar el documento');
     } finally {
       setDeletingDocumentId(null);
+      hideProgress();
     }
   };
 
@@ -353,6 +371,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     }
 
     setUploadingPhoto(true);
+    showProgress('Actualizando fotografía');
     try {
       const photoUrl = await UserService.updateProfilePhoto(currentUser.id, file);
       setPhotoPreview(photoUrl);
@@ -363,6 +382,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       toast.error('Error al subir la foto');
     } finally {
       setUploadingPhoto(false);
+      hideProgress();
     }
   };
 
@@ -371,6 +391,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     if (!currentUser) return;
 
     setSaving(true);
+    showProgress('Guardando cambios del usuario');
     try {
       const updates: any = {
         firstName: data.firstName,
@@ -411,6 +432,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       toast.error(error.message || 'Error al guardar');
     } finally {
       setSaving(false);
+      hideProgress();
     }
   };
 
@@ -436,6 +458,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     });
 
     setSaving(true);
+    showProgress(editingHistory ? 'Actualizando historial académico' : 'Agregando historial académico');
     try {
       const completedClassrooms = StudentClassroomManagementService.upsertStudentHistoryEntry(
         currentUser.completedClassrooms || [],
@@ -457,6 +480,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       toast.error('Error al guardar historial');
     } finally {
       setSaving(false);
+      hideProgress();
     }
   };
 
@@ -469,6 +493,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     }
 
     setSaving(true);
+    showProgress('Eliminando historial académico');
     try {
       const completedClassrooms = (currentUser.completedClassrooms || []).filter(
         c => c.classroomId !== classroomId
@@ -485,6 +510,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       toast.error('Error al eliminar');
     } finally {
       setSaving(false);
+      hideProgress();
     }
   };
 
@@ -556,7 +582,15 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} toggle={toggle} size="xl" backdrop="static">
+    <Modal
+      isOpen={isOpen}
+      toggle={toggle}
+      size="xl"
+      backdrop="static"
+      centered
+      scrollable
+      className="user-management-modal user-detail-modal"
+    >
       <ModalHeader toggle={toggle}>
         <i className="bi bi-person-badge me-2"></i>
         {currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Cargando...'}
@@ -568,12 +602,13 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
         )}
       </ModalHeader>
       <ModalBody>
-        {loading ? (
-          <div className="text-center py-5">
-            <Spinner color="primary" />
-            <p className="mt-3">Cargando datos...</p>
+        {loading && (
+          <div className="user-management-inline-progress" role="status">
+            <i className="bi bi-arrow-repeat" aria-hidden="true" />
+            Actualizando los datos del usuario…
           </div>
-        ) : currentUser && (
+        )}
+        {currentUser && (
           <>
             <Nav tabs className="mb-3">
               <NavItem>
@@ -736,11 +771,13 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       </ModalBody>
       <ModalFooter>
         {user && (
-          <UserProfilePdfDownloadButton user={user}>
-            <Button color="outline-primary" size="sm" tag="span">
-              <i className="bi bi-file-earmark-pdf me-2"></i>
-              Descargar PDF
-            </Button>
+          <UserProfilePdfDownloadButton
+            user={user}
+            className="btn btn-outline-primary btn-sm"
+            onProgressChange={onProgressChange}
+          >
+            <i className="bi bi-file-earmark-pdf me-2"></i>
+            Descargar PDF
           </UserProfilePdfDownloadButton>
         )}
         <Button color="secondary" onClick={toggle}>

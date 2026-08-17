@@ -1,7 +1,12 @@
 // Classroom Service - CRUD operations for classrooms
 
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
-import { IClassroom, IWhatsappGroup, IClassroomResource } from '../../models';
+import {
+  IClassroom,
+  IWhatsappGroup,
+  IClassroomResource,
+  IWhatsappParticipantsSyncOperation,
+} from '../../models';
 import { orderBy } from 'firebase/firestore';
 import { UserService } from '../user/user.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -305,7 +310,9 @@ export class ClassroomService {
   /**
    * Sync WhatsApp group participants with classroom students
    */
-  static async syncWhatsappGroup(classroomId: string): Promise<void> {
+  static async syncWhatsappGroup(
+    classroomId: string
+  ): Promise<IWhatsappParticipantsSyncOperation> {
     try {
       const classroom = await this.getClassroomById(classroomId);
       if (!classroom) throw new Error('Clase no encontrada');
@@ -329,11 +336,11 @@ export class ClassroomService {
       // Sync with WhatsApp group
       const response = await WhatsappService.syncGroupParticipants(
         classroom.whatsappGroup.id,
-        classroomId,
         allPhones
       );
 
-      if (!response.success) {
+      const operation = response.data?.participantsOperation;
+      if (!response.success || !operation) {
         throw new Error(response.error || 'Error al sincronizar grupo');
       }
 
@@ -371,6 +378,8 @@ export class ClassroomService {
           await this.addStudentToClassroom(classroomId, newStudent);
         }
       }
+
+      return operation;
     } catch (error) {
       console.error(`Error syncing WhatsApp group for classroom ${classroomId}:`, error);
       throw error;

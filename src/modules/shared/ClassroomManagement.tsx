@@ -949,8 +949,12 @@ const ClassroomManagement: React.FC = () => {
 
     try {
       setSyncingGroup(true);
-      await ClassroomService.syncWhatsappGroup(id);
-      toast.success('Grupo sincronizado exitosamente');
+      const operation = await ClassroomService.syncWhatsappGroup(id);
+      toast.success(
+        operation.status === 'not_required'
+          ? 'El grupo ya estaba sincronizado'
+          : `Grupo sincronizado: ${operation.successful} participante(s) agregado(s)`
+      );
       await loadClassroomData();
     } catch (error: any) {
       console.error('Error syncing WhatsApp group:', error);

@@ -2,9 +2,10 @@
 
 import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
 import { IUser, UserRole, IClassroomHistory } from '../../models';
-import { orderBy } from 'firebase/firestore';
+import { arrayRemove, doc, orderBy, writeBatch } from 'firebase/firestore';
 import { GCloudService } from '../gcloud/gcloud.service';
 import { ClassroomEnrollmentService } from '../classroom/classroom-enrollment.service';
+import { firebaseStoreDB } from '../../utils/firebase';
 
 export class UserService {
   static normalizePhone(phone: string): string {
@@ -350,11 +351,35 @@ export class UserService {
   }
 
   /**
-   * Delete user
+   * Delete a user and remove any current classroom memberships atomically.
    */
-  static async deleteUser(userId: string): Promise<void> {
+  static async deleteUser(userId: string, classroomIds: string[] = []): Promise<void> {
     try {
-      await FirebaseService.deleteDocument(COLLECTIONS.USERS, userId);
+      const uniqueClassroomIds = Array.from(new Set(classroomIds.filter(Boolean)));
+
+      if (uniqueClassroomIds.length === 0) {
+        await FirebaseService.deleteDocument(COLLECTIONS.USERS, userId);
+        return;
+      }
+
+      // A Firestore batch accepts up to 500 writes. Keeping this operation atomic
+      // prevents a deleted user from remaining as a ghost student in a classroom.
+      if (uniqueClassroomIds.length > 498) {
+        throw new Error('El usuario está vinculado a demasiadas clases para eliminarlo en una sola operación.');
+      }
+
+      const batch = writeBatch(firebaseStoreDB);
+      const updatedAt = new Date();
+
+      uniqueClassroomIds.forEach((classroomId) => {
+        batch.update(doc(firebaseStoreDB, COLLECTIONS.CLASSROOMS, classroomId), {
+          studentIds: arrayRemove(userId),
+          updatedAt,
+        });
+      });
+      batch.delete(doc(firebaseStoreDB, COLLECTIONS.USERS, userId));
+
+      await batch.commit();
     } catch (error) {
       console.error(`Error deleting user ${userId}:`, error);
       throw error;

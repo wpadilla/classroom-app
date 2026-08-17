@@ -2,12 +2,9 @@
 // Provides bulk action capabilities for user management
 // Features: select all, bulk enroll/unenroll, bulk activate/deactivate
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Row,
-  Col,
   Button,
-  ButtonGroup,
   Dropdown,
   DropdownToggle,
   DropdownMenu,
@@ -20,8 +17,6 @@ import {
   Label,
   FormGroup,
   Badge,
-  Progress,
-  Spinner,
   Alert,
 } from 'reactstrap';
 import { IUser, IClassroom, IProgram } from '../../../models';
@@ -32,20 +27,24 @@ import { toast } from 'react-toastify';
 
 interface BulkOperationsToolbarProps {
   users: IUser[];
+  allClassrooms: IClassroom[];
   selectedIds: Set<string>;
   onSelectAll: () => void;
   onClearSelection: () => void;
-  onToggleSelection: (id: string) => void;
-  onRefresh: () => void;
+  onRefresh: () => Promise<void> | void;
+  protectedUserId?: string;
+  onProgressChange?: (state: { active: boolean; label?: string; progress?: number }) => void;
 }
 
 const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
   users,
+  allClassrooms,
   selectedIds,
   onSelectAll,
   onClearSelection,
-  onToggleSelection,
   onRefresh,
+  protectedUserId,
+  onProgressChange,
 }) => {
   // Dropdown state
   const [actionDropdownOpen, setActionDropdownOpen] = useState(false);
@@ -54,6 +53,7 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const [unenrollModalOpen, setUnenrollModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   
   // Data
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
@@ -66,6 +66,28 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentOperation, setCurrentOperation] = useState('');
+
+  const beginOperation = (label: string) => {
+    setProcessing(true);
+    setProgress(0);
+    setCurrentOperation(label);
+    onProgressChange?.({
+      active: true,
+      label,
+      progress: 0,
+    });
+  };
+
+  const reportOperationProgress = (nextProgress: number, label: string) => {
+    setProgress(nextProgress);
+    setCurrentOperation(label);
+    onProgressChange?.({ active: true, label, progress: nextProgress });
+  };
+
+  const finishOperation = () => {
+    setProcessing(false);
+    onProgressChange?.({ active: false });
+  };
 
   // Load classrooms and programs
   useEffect(() => {
@@ -88,10 +110,49 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
   // Toggle action dropdown
   const toggleActionDropdown = () => setActionDropdownOpen(prev => !prev);
 
-  // Get selected users
-  const getSelectedUsers = (): IUser[] => {
-    return users.filter(u => selectedIds.has(u.id));
-  };
+  const selectedUsers = useMemo(
+    () => users.filter((user) => selectedIds.has(user.id)),
+    [selectedIds, users]
+  );
+
+  const assignedTeacherIds = useMemo(
+    () => allClassrooms.reduce((teacherIds, classroom) => {
+      if (classroom.teacherId) teacherIds.add(classroom.teacherId);
+      return teacherIds;
+    }, new Set<string>()),
+    [allClassrooms]
+  );
+
+  const existingClassroomIds = useMemo(
+    () => new Set(allClassrooms.map((classroom) => classroom.id)),
+    [allClassrooms]
+  );
+
+  const classroomMembershipIdsByStudent = useMemo(
+    () => allClassrooms.reduce((memberships, classroom) => {
+      (classroom.studentIds || []).forEach((studentId) => {
+        const classroomIds = memberships.get(studentId) || [];
+        classroomIds.push(classroom.id);
+        memberships.set(studentId, classroomIds);
+      });
+      return memberships;
+    }, new Map<string, string[]>()),
+    [allClassrooms]
+  );
+
+  const protectedSelectedUsers = useMemo(
+    () => selectedUsers.filter((user) =>
+      user.id === protectedUserId || assignedTeacherIds.has(user.id)
+    ),
+    [assignedTeacherIds, protectedUserId, selectedUsers]
+  );
+
+  const deletableSelectedUsers = useMemo(
+    () => selectedUsers.filter((user) =>
+      user.id !== protectedUserId && !assignedTeacherIds.has(user.id)
+    ),
+    [assignedTeacherIds, protectedUserId, selectedUsers]
+  );
 
   // Bulk enroll
   const handleBulkEnroll = async () => {
@@ -100,7 +161,6 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
       return;
     }
 
-    const selectedUsers = getSelectedUsers();
     const classroom = classrooms.find(c => c.id === selectedClassroomId);
     
     if (!classroom) {
@@ -109,48 +169,55 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
     }
     const classroomStudentIds = new Set(classroom.studentIds || []);
 
-    setProcessing(true);
-    setProgress(0);
-    setCurrentOperation('Inscribiendo estudiantes...');
+    beginOperation('Inscribiendo estudiantes...');
 
     let successCount = 0;
     let errorCount = 0;
     let skippedCount = 0;
 
-    for (let i = 0; i < selectedUsers.length; i++) {
-      const user = selectedUsers[i];
-      setProgress(Math.round(((i + 1) / selectedUsers.length) * 100));
-      setCurrentOperation(`Inscribiendo: ${user.firstName} ${user.lastName}`);
+    try {
+      for (let index = 0; index < selectedUsers.length; index++) {
+        const selectedUser = selectedUsers[index];
+        reportOperationProgress(
+          Math.round(((index + 1) / selectedUsers.length) * 100),
+          `Inscribiendo: ${selectedUser.firstName} ${selectedUser.lastName}`
+        );
 
-      const isFullyEnrolled =
-        user.enrolledClassrooms?.includes(selectedClassroomId) &&
-        classroomStudentIds.has(user.id);
-      if (isFullyEnrolled) {
-        skippedCount++;
-        continue;
+        const isFullyEnrolled =
+          selectedUser.enrolledClassrooms?.includes(selectedClassroomId) &&
+          classroomStudentIds.has(selectedUser.id);
+        if (isFullyEnrolled) {
+          skippedCount++;
+          continue;
+        }
+
+        try {
+          await ClassroomService.addStudentToClassroom(selectedClassroomId, selectedUser.id);
+          successCount++;
+        } catch (error) {
+          console.error(`Error enrolling ${selectedUser.id}:`, error);
+          errorCount++;
+        }
       }
 
-      try {
-        await ClassroomService.addStudentToClassroom(selectedClassroomId, user.id);
-        successCount++;
-      } catch (error) {
-        console.error(`Error enrolling ${user.id}:`, error);
-        errorCount++;
+      setEnrollModalOpen(false);
+      setSelectedClassroomId('');
+      setSelectedProgramId('');
+      onClearSelection();
+      await onRefresh();
+
+      const message = [`${successCount} inscrito(s)`];
+      if (skippedCount > 0) message.push(`${skippedCount} ya estaba(n) inscrito(s)`);
+      if (errorCount > 0) message.push(`${errorCount} error(es)`);
+
+      if (errorCount > 0) {
+        toast.warning(message.join(', '));
+      } else {
+        toast.success(message.join(', '));
       }
+    } finally {
+      finishOperation();
     }
-
-    setProcessing(false);
-    setEnrollModalOpen(false);
-    setSelectedClassroomId('');
-    setSelectedProgramId('');
-    onClearSelection();
-    onRefresh();
-
-    const message = [`${successCount} inscrito(s)`];
-    if (skippedCount > 0) message.push(`${skippedCount} ya estaba(n) inscrito(s)`);
-    if (errorCount > 0) message.push(`${errorCount} error(es)`);
-    
-    toast.success(message.join(', '));
   };
 
   // Bulk unenroll
@@ -160,7 +227,6 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
       return;
     }
 
-    const selectedUsers = getSelectedUsers();
     const classroom = classrooms.find(c => c.id === selectedClassroomId);
 
     if (!classroom) {
@@ -169,93 +235,161 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
     }
     const classroomStudentIds = new Set(classroom.studentIds || []);
 
-    setProcessing(true);
-    setProgress(0);
-    setCurrentOperation('Desinscribiendo estudiantes...');
+    beginOperation('Desinscribiendo estudiantes...');
 
     let successCount = 0;
     let errorCount = 0;
     let skippedCount = 0;
 
-    for (let i = 0; i < selectedUsers.length; i++) {
-      const user = selectedUsers[i];
-      setProgress(Math.round(((i + 1) / selectedUsers.length) * 100));
-      setCurrentOperation(`Desinscribiendo: ${user.firstName} ${user.lastName}`);
+    try {
+      for (let index = 0; index < selectedUsers.length; index++) {
+        const selectedUser = selectedUsers[index];
+        reportOperationProgress(
+          Math.round(((index + 1) / selectedUsers.length) * 100),
+          `Desinscribiendo: ${selectedUser.firstName} ${selectedUser.lastName}`
+        );
 
-      const isFullyUnenrolled =
-        !user.enrolledClassrooms?.includes(selectedClassroomId) &&
-        !classroomStudentIds.has(user.id);
-      if (isFullyUnenrolled) {
-        skippedCount++;
-        continue;
+        const isFullyUnenrolled =
+          !selectedUser.enrolledClassrooms?.includes(selectedClassroomId) &&
+          !classroomStudentIds.has(selectedUser.id);
+        if (isFullyUnenrolled) {
+          skippedCount++;
+          continue;
+        }
+
+        try {
+          await ClassroomService.removeStudentFromClassroom(selectedClassroomId, selectedUser.id);
+          successCount++;
+        } catch (error) {
+          console.error(`Error unenrolling ${selectedUser.id}:`, error);
+          errorCount++;
+        }
       }
 
-      try {
-        await ClassroomService.removeStudentFromClassroom(selectedClassroomId, user.id);
-        successCount++;
-      } catch (error) {
-        console.error(`Error unenrolling ${user.id}:`, error);
-        errorCount++;
+      setUnenrollModalOpen(false);
+      setSelectedClassroomId('');
+      setSelectedProgramId('');
+      onClearSelection();
+      await onRefresh();
+
+      const message = [`${successCount} desinscrito(s)`];
+      if (skippedCount > 0) message.push(`${skippedCount} no estaba(n) inscrito(s)`);
+      if (errorCount > 0) message.push(`${errorCount} error(es)`);
+
+      if (errorCount > 0) {
+        toast.warning(message.join(', '));
+      } else {
+        toast.success(message.join(', '));
       }
+    } finally {
+      finishOperation();
     }
-
-    setProcessing(false);
-    setUnenrollModalOpen(false);
-    setSelectedClassroomId('');
-    setSelectedProgramId('');
-    onClearSelection();
-    onRefresh();
-
-    const message = [`${successCount} desinscrito(s)`];
-    if (skippedCount > 0) message.push(`${skippedCount} no estaba(n) inscrito(s)`);
-    if (errorCount > 0) message.push(`${errorCount} error(es)`);
-    
-    toast.success(message.join(', '));
   };
 
   // Bulk status change
   const handleBulkStatusChange = async () => {
-    const selectedUsers = getSelectedUsers();
-
-    setProcessing(true);
-    setProgress(0);
-    setCurrentOperation(statusAction === 'activate' ? 'Activando usuarios...' : 'Desactivando usuarios...');
+    beginOperation(statusAction === 'activate' ? 'Activando usuarios...' : 'Desactivando usuarios...');
 
     let successCount = 0;
     let errorCount = 0;
     let skippedCount = 0;
 
-    for (let i = 0; i < selectedUsers.length; i++) {
-      const user = selectedUsers[i];
-      setProgress(Math.round(((i + 1) / selectedUsers.length) * 100));
-      setCurrentOperation(`Procesando: ${user.firstName} ${user.lastName}`);
+    try {
+      for (let index = 0; index < selectedUsers.length; index++) {
+        const selectedUser = selectedUsers[index];
+        reportOperationProgress(
+          Math.round(((index + 1) / selectedUsers.length) * 100),
+          `Procesando: ${selectedUser.firstName} ${selectedUser.lastName}`
+        );
 
-      // Check if already in desired state
-      if ((statusAction === 'activate' && user.isActive) || 
-          (statusAction === 'deactivate' && !user.isActive)) {
-        skippedCount++;
-        continue;
+        const alreadyInDesiredState =
+          (statusAction === 'activate' && selectedUser.isActive) ||
+          (statusAction === 'deactivate' && !selectedUser.isActive);
+        if (alreadyInDesiredState) {
+          skippedCount++;
+          continue;
+        }
+
+        try {
+          await UserService.updateUser(selectedUser.id, { isActive: statusAction === 'activate' });
+          successCount++;
+        } catch (error) {
+          console.error(`Error updating ${selectedUser.id}:`, error);
+          errorCount++;
+        }
       }
 
-      try {
-        await UserService.updateUser(user.id, { isActive: statusAction === 'activate' });
-        successCount++;
-      } catch (error) {
-        console.error(`Error updating ${user.id}:`, error);
-        errorCount++;
+      setStatusModalOpen(false);
+      onClearSelection();
+      await onRefresh();
+
+      const message = [`${successCount} ${statusAction === 'activate' ? 'activado(s)' : 'desactivado(s)'}`];
+      if (skippedCount > 0) message.push(`${skippedCount} ya estaba(n) en ese estado`);
+      if (errorCount > 0) message.push(`${errorCount} error(es)`);
+
+      if (errorCount > 0) {
+        toast.warning(message.join(', '));
+      } else {
+        toast.success(message.join(', '));
       }
+    } finally {
+      finishOperation();
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (deletableSelectedUsers.length === 0) {
+      toast.error('No hay usuarios eliminables en la selección actual.');
+      return;
     }
 
-    setProcessing(false);
-    setStatusModalOpen(false);
-    onClearSelection();
-    onRefresh();
+    beginOperation('Preparando eliminación definitiva...');
 
-    const message = [`${successCount} ${statusAction === 'activate' ? 'activado(s)' : 'desactivado(s)'}`];
-    if (skippedCount > 0) message.push(`${skippedCount} ya estaba(n) en ese estado`);
-    if (errorCount > 0) message.push(`${errorCount} error(es)`);
-    
-    toast.success(message.join(', '));
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (let index = 0; index < deletableSelectedUsers.length; index++) {
+        const selectedUser = deletableSelectedUsers[index];
+        reportOperationProgress(
+          Math.round(((index + 1) / deletableSelectedUsers.length) * 100),
+          `Eliminando: ${selectedUser.firstName} ${selectedUser.lastName}`
+        );
+
+        const classroomMembershipIds = Array.from(new Set([
+          ...(classroomMembershipIdsByStudent.get(selectedUser.id) || []),
+          ...(selectedUser.enrolledClassrooms || []).filter((classroomId) =>
+            existingClassroomIds.has(classroomId)
+          ),
+        ]));
+
+        try {
+          await UserService.deleteUser(selectedUser.id, classroomMembershipIds);
+          successCount++;
+        } catch (error) {
+          console.error(`Error deleting ${selectedUser.id}:`, error);
+          errorCount++;
+        }
+      }
+
+      setDeleteModalOpen(false);
+      onClearSelection();
+      await onRefresh();
+
+      const message = [`${successCount} eliminado(s)`];
+      if (protectedSelectedUsers.length > 0) {
+        message.push(`${protectedSelectedUsers.length} protegido(s)`);
+      }
+      if (errorCount > 0) message.push(`${errorCount} error(es)`);
+
+      if (errorCount > 0 || protectedSelectedUsers.length > 0) {
+        toast.warning(message.join(', '));
+      } else {
+        toast.success(message.join(', '));
+      }
+    } finally {
+      finishOperation();
+    }
   };
 
   // Filter classrooms by program
@@ -270,8 +404,8 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
   return (
     <>
       {/* Toolbar */}
-      <Row className="align-items-center mb-3 p-2 bg-light rounded">
-        <Col xs="auto">
+      <div className="user-management-bulk-toolbar">
+        <div className="user-management-bulk-toolbar__selection">
           <FormGroup check className="mb-0">
             <Input
               type="checkbox"
@@ -283,18 +417,15 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
               Seleccionar todo
             </Label>
           </FormGroup>
-        </Col>
-        
-        <Col xs="auto">
+
           {hasSelection && (
-            <Badge color="primary" className="me-2">
+            <Badge color="primary" pill>
               {selectedIds.size} seleccionado(s)
             </Badge>
           )}
-        </Col>
+        </div>
 
-        <Col xs="auto">
-          <ButtonGroup size="sm">
+        <div className="user-management-bulk-toolbar__actions">
             <Dropdown isOpen={actionDropdownOpen} toggle={toggleActionDropdown}>
               <DropdownToggle 
                 caret 
@@ -324,84 +455,95 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
                   <i className="bi bi-x-circle me-2 text-danger"></i>
                   Desactivar usuarios
                 </DropdownItem>
+                <DropdownItem divider />
+                <DropdownItem header>Zona de riesgo</DropdownItem>
+                <DropdownItem className="text-danger" onClick={() => setDeleteModalOpen(true)}>
+                  <i className="bi bi-trash3 me-2"></i>
+                  Eliminar definitivamente
+                </DropdownItem>
               </DropdownMenu>
             </Dropdown>
-          </ButtonGroup>
-        </Col>
+        </div>
 
         {hasSelection && (
-          <Col xs="auto" className="ms-auto">
-            <Button size="sm" color="link" onClick={onClearSelection} className="text-muted">
+            <Button
+              size="sm"
+              color="link"
+              onClick={onClearSelection}
+              className="user-management-bulk-toolbar__clear text-muted"
+            >
               <i className="bi bi-x me-1"></i>
               Limpiar selección
             </Button>
-          </Col>
         )}
-      </Row>
+      </div>
 
       {/* Enroll Modal */}
-      <Modal isOpen={enrollModalOpen} toggle={() => setEnrollModalOpen(false)} backdrop="static">
-        <ModalHeader toggle={() => setEnrollModalOpen(false)}>
+      <Modal
+        isOpen={enrollModalOpen}
+        toggle={() => !processing && setEnrollModalOpen(false)}
+        backdrop="static"
+        centered
+        scrollable
+        className="user-management-modal"
+      >
+        <ModalHeader toggle={() => !processing && setEnrollModalOpen(false)}>
           <i className="bi bi-person-plus me-2"></i>
           Inscribir en Clase
         </ModalHeader>
         <ModalBody>
-          {processing ? (
-            <div className="text-center py-4">
-              <Spinner color="primary" className="mb-3" />
-              <p>{currentOperation}</p>
-              <Progress value={progress} className="mb-2" />
-              <small>{progress}% completado</small>
-            </div>
-          ) : (
-            <>
-              <Alert color="info">
-                <i className="bi bi-info-circle me-2"></i>
-                Se inscribirán <strong>{selectedIds.size}</strong> usuario(s) en la clase seleccionada.
-              </Alert>
-              
-              <FormGroup>
-                <Label>Filtrar por Programa</Label>
-                <Input
-                  type="select"
-                  value={selectedProgramId}
-                  onChange={e => {
-                    setSelectedProgramId(e.target.value);
-                    setSelectedClassroomId('');
-                  }}
-                >
-                  <option value="">Todos los programas</option>
-                  {programs.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </Input>
-              </FormGroup>
-
-              <FormGroup>
-                <Label>Clase *</Label>
-                <Input
-                  type="select"
-                  value={selectedClassroomId}
-                  onChange={e => setSelectedClassroomId(e.target.value)}
-                >
-                  <option value="">Seleccionar clase...</option>
-                  {programs.map(program => {
-                    const programClassrooms = filteredClassrooms.filter(c => c.programId === program.id);
-                    if (programClassrooms.length === 0) return null;
-                    return (
-                      <optgroup key={program.id} label={program.name}>
-                        {programClassrooms.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.name} ({c.studentIds?.length || 0} estudiantes)
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </Input>
-              </FormGroup>
-            </>
+          <Alert color="info">
+            <i className="bi bi-info-circle me-2"></i>
+            Se inscribirán <strong>{selectedIds.size}</strong> usuario(s) en la clase seleccionada.
+          </Alert>
+          {processing && (
+            <Alert color="primary" className="small" role="status">
+              <strong>{progress}%</strong> · {currentOperation}
+            </Alert>
           )}
+
+          <FormGroup>
+            <Label>Filtrar por Programa</Label>
+            <Input
+              type="select"
+              value={selectedProgramId}
+              disabled={processing}
+              onChange={e => {
+                setSelectedProgramId(e.target.value);
+                setSelectedClassroomId('');
+              }}
+            >
+              <option value="">Todos los programas</option>
+              {programs.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Input>
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Clase *</Label>
+            <Input
+              type="select"
+              value={selectedClassroomId}
+              disabled={processing}
+              onChange={e => setSelectedClassroomId(e.target.value)}
+            >
+              <option value="">Seleccionar clase...</option>
+              {programs.map(program => {
+                const programClassrooms = filteredClassrooms.filter(c => c.programId === program.id);
+                if (programClassrooms.length === 0) return null;
+                return (
+                  <optgroup key={program.id} label={program.name}>
+                    {programClassrooms.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.studentIds?.length || 0} estudiantes)
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </Input>
+          </FormGroup>
         </ModalBody>
         <ModalFooter>
           <Button color="secondary" onClick={() => setEnrollModalOpen(false)} disabled={processing}>
@@ -415,68 +557,71 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
       </Modal>
 
       {/* Unenroll Modal */}
-      <Modal isOpen={unenrollModalOpen} toggle={() => setUnenrollModalOpen(false)} backdrop="static">
-        <ModalHeader toggle={() => setUnenrollModalOpen(false)}>
+      <Modal
+        isOpen={unenrollModalOpen}
+        toggle={() => !processing && setUnenrollModalOpen(false)}
+        backdrop="static"
+        centered
+        scrollable
+        className="user-management-modal"
+      >
+        <ModalHeader toggle={() => !processing && setUnenrollModalOpen(false)}>
           <i className="bi bi-person-dash me-2"></i>
           Desinscribir de Clase
         </ModalHeader>
         <ModalBody>
-          {processing ? (
-            <div className="text-center py-4">
-              <Spinner color="primary" className="mb-3" />
-              <p>{currentOperation}</p>
-              <Progress value={progress} className="mb-2" />
-              <small>{progress}% completado</small>
-            </div>
-          ) : (
-            <>
-              <Alert color="warning">
-                <i className="bi bi-exclamation-triangle me-2"></i>
-                Se desinscribirán <strong>{selectedIds.size}</strong> usuario(s) de la clase seleccionada.
-              </Alert>
-              
-              <FormGroup>
-                <Label>Filtrar por Programa</Label>
-                <Input
-                  type="select"
-                  value={selectedProgramId}
-                  onChange={e => {
-                    setSelectedProgramId(e.target.value);
-                    setSelectedClassroomId('');
-                  }}
-                >
-                  <option value="">Todos los programas</option>
-                  {programs.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </Input>
-              </FormGroup>
-
-              <FormGroup>
-                <Label>Clase *</Label>
-                <Input
-                  type="select"
-                  value={selectedClassroomId}
-                  onChange={e => setSelectedClassroomId(e.target.value)}
-                >
-                  <option value="">Seleccionar clase...</option>
-                  {programs.map(program => {
-                    const programClassrooms = filteredClassrooms.filter(c => c.programId === program.id);
-                    if (programClassrooms.length === 0) return null;
-                    return (
-                      <optgroup key={program.id} label={program.name}>
-                        {programClassrooms.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.name} ({c.studentIds?.length || 0} estudiantes)
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </Input>
-              </FormGroup>
-            </>
+          <Alert color="warning">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            Se desinscribirán <strong>{selectedIds.size}</strong> usuario(s) de la clase seleccionada.
+          </Alert>
+          {processing && (
+            <Alert color="primary" className="small" role="status">
+              <strong>{progress}%</strong> · {currentOperation}
+            </Alert>
           )}
+
+          <FormGroup>
+            <Label>Filtrar por Programa</Label>
+            <Input
+              type="select"
+              value={selectedProgramId}
+              disabled={processing}
+              onChange={e => {
+                setSelectedProgramId(e.target.value);
+                setSelectedClassroomId('');
+              }}
+            >
+              <option value="">Todos los programas</option>
+              {programs.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Input>
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Clase *</Label>
+            <Input
+              type="select"
+              value={selectedClassroomId}
+              disabled={processing}
+              onChange={e => setSelectedClassroomId(e.target.value)}
+            >
+              <option value="">Seleccionar clase...</option>
+              {programs.map(program => {
+                const programClassrooms = filteredClassrooms.filter(c => c.programId === program.id);
+                if (programClassrooms.length === 0) return null;
+                return (
+                  <optgroup key={program.id} label={program.name}>
+                    {programClassrooms.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.studentIds?.length || 0} estudiantes)
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </Input>
+          </FormGroup>
         </ModalBody>
         <ModalFooter>
           <Button color="secondary" onClick={() => setUnenrollModalOpen(false)} disabled={processing}>
@@ -490,26 +635,28 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
       </Modal>
 
       {/* Status Modal */}
-      <Modal isOpen={statusModalOpen} toggle={() => setStatusModalOpen(false)} backdrop="static">
-        <ModalHeader toggle={() => setStatusModalOpen(false)}>
+      <Modal
+        isOpen={statusModalOpen}
+        toggle={() => !processing && setStatusModalOpen(false)}
+        backdrop="static"
+        centered
+        className="user-management-modal"
+      >
+        <ModalHeader toggle={() => !processing && setStatusModalOpen(false)}>
           <i className={`bi bi-${statusAction === 'activate' ? 'check-circle' : 'x-circle'} me-2`}></i>
           {statusAction === 'activate' ? 'Activar' : 'Desactivar'} Usuarios
         </ModalHeader>
         <ModalBody>
-          {processing ? (
-            <div className="text-center py-4">
-              <Spinner color="primary" className="mb-3" />
-              <p>{currentOperation}</p>
-              <Progress value={progress} className="mb-2" />
-              <small>{progress}% completado</small>
-            </div>
-          ) : (
-            <Alert color={statusAction === 'activate' ? 'success' : 'warning'}>
-              <i className={`bi bi-${statusAction === 'activate' ? 'check-circle' : 'exclamation-triangle'} me-2`}></i>
-              {statusAction === 'activate' 
-                ? `Se activarán ${selectedIds.size} usuario(s). Podrán acceder al sistema.`
-                : `Se desactivarán ${selectedIds.size} usuario(s). No podrán acceder al sistema.`
-              }
+          <Alert color={statusAction === 'activate' ? 'success' : 'warning'}>
+            <i className={`bi bi-${statusAction === 'activate' ? 'check-circle' : 'exclamation-triangle'} me-2`}></i>
+            {statusAction === 'activate'
+              ? `Se activarán ${selectedIds.size} usuario(s). Podrán acceder al sistema.`
+              : `Se desactivarán ${selectedIds.size} usuario(s). No podrán acceder al sistema.`
+            }
+          </Alert>
+          {processing && (
+            <Alert color="primary" className="small mb-0" role="status">
+              <strong>{progress}%</strong> · {currentOperation}
             </Alert>
           )}
         </ModalBody>
@@ -524,6 +671,67 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
           >
             <i className={`bi bi-${statusAction === 'activate' ? 'check' : 'x'} me-1`}></i>
             {statusAction === 'activate' ? 'Activar' : 'Desactivar'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Delete Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        toggle={() => !processing && setDeleteModalOpen(false)}
+        backdrop="static"
+        centered
+        scrollable
+        className="user-management-modal"
+      >
+        <ModalHeader toggle={() => !processing && setDeleteModalOpen(false)}>
+          <i className="bi bi-trash3 me-2 text-danger" />
+          Eliminar usuarios
+        </ModalHeader>
+        <ModalBody>
+          <Alert color="danger">
+            <strong>Esta acción es permanente.</strong>
+            <div className="mt-1">
+              Se eliminarán {deletableSelectedUsers.length} de los {selectedUsers.length} usuario(s)
+              seleccionados, junto con sus vínculos de inscripción actuales.
+            </div>
+          </Alert>
+
+          {protectedSelectedUsers.length > 0 && (
+            <Alert color="warning">
+              <div className="fw-semibold mb-1">
+                {protectedSelectedUsers.length} usuario(s) no se eliminarán:
+              </div>
+              <ul className="small mb-0 ps-3">
+                {protectedSelectedUsers.map((selectedUser) => (
+                  <li key={selectedUser.id}>
+                    {selectedUser.firstName} {selectedUser.lastName} —{' '}
+                    {selectedUser.id === protectedUserId
+                      ? 'es tu sesión actual'
+                      : 'tiene una o más clases asignadas como profesor'}
+                  </li>
+                ))}
+              </ul>
+            </Alert>
+          )}
+
+          {processing && (
+            <Alert color="primary" className="small mb-0" role="status">
+              <strong>{progress}%</strong> · {currentOperation}
+            </Alert>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button color="light" onClick={() => setDeleteModalOpen(false)} disabled={processing}>
+            Cancelar
+          </Button>
+          <Button
+            color="danger"
+            onClick={handleBulkDelete}
+            disabled={processing || deletableSelectedUsers.length === 0}
+          >
+            <i className="bi bi-trash3 me-2" />
+            Eliminar {deletableSelectedUsers.length} usuario(s)
           </Button>
         </ModalFooter>
       </Modal>

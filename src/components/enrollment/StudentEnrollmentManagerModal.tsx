@@ -38,6 +38,7 @@ interface StudentEnrollmentManagerModalProps {
   confirmLabel?: string;
   loadingClassrooms?: boolean;
   onSaved?: () => Promise<void> | void;
+  onProgressChange?: (state: { active: boolean; label?: string; progress?: number }) => void;
 }
 
 const EMPTY_PROGRAM_NAMES_BY_ID: Record<string, string> = {};
@@ -54,6 +55,7 @@ const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps
   confirmLabel,
   loadingClassrooms = false,
   onSaved,
+  onProgressChange,
 }) => {
   const [selectedClassroomIds, setSelectedClassroomIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,6 +99,11 @@ const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps
     );
   }, [classrooms, programNamesById, searchQuery]);
 
+  const selectedClassroomIdSet = useMemo(
+    () => new Set(selectedClassroomIds),
+    [selectedClassroomIds]
+  );
+
   const toggleClassroom = (classroomId: string, checked: boolean) => {
     setSelectedClassroomIds((current) => {
       if (checked) {
@@ -120,6 +127,7 @@ const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps
 
     try {
       setSaving(true);
+      onProgressChange?.({ active: true, label: 'Actualizando inscripciones' });
 
       if (mode === 'bulk-add') {
         await StudentClassroomManagementService.bulkEnrollStudentsInClassrooms({
@@ -155,6 +163,7 @@ const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps
       );
     } finally {
       setSaving(false);
+      onProgressChange?.({ active: false });
     }
   };
 
@@ -162,8 +171,15 @@ const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps
   const hasMoreStudents = students.length > 3;
 
   return (
-    <Modal isOpen={isOpen} toggle={onClose} size="lg">
-      <ModalHeader toggle={onClose}>{title || defaultTitle}</ModalHeader>
+    <Modal
+      isOpen={isOpen}
+      toggle={() => !saving && onClose()}
+      size="lg"
+      centered
+      scrollable
+      className="user-management-modal"
+    >
+      <ModalHeader toggle={() => !saving && onClose()}>{title || defaultTitle}</ModalHeader>
       <ModalBody>
         <Alert color="info">
           <div className="d-flex flex-column gap-1">
@@ -208,7 +224,7 @@ const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps
             </div>
           ) : filteredClassrooms.length > 0 ? (
             filteredClassrooms.map((classroom) => {
-              const isChecked = selectedClassroomIds.includes(classroom.id);
+              const isChecked = selectedClassroomIdSet.has(classroom.id);
               const programName = programNamesById[classroom.programId];
 
               return (

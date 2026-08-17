@@ -87,6 +87,45 @@ export interface ISyncWhatsappGroupRequest {
   }>;
 }
 
+export type WhatsappParticipantSyncResultStatus = 'success' | 'error';
+
+export interface IWhatsappParticipantSyncResult {
+  participant: string;
+  index: number;
+  status: WhatsappParticipantSyncResultStatus;
+  response?: {
+    jid?: string;
+    status: string | number;
+  };
+  error?: {
+    message: string;
+    code?: string | number;
+    status?: string | number;
+  };
+}
+
+export type WhatsappParticipantsSyncStatus =
+  | 'completed'
+  | 'completed_with_errors'
+  | 'failed'
+  | 'not_required';
+
+export interface IWhatsappParticipantsSyncOperation {
+  operationId?: string;
+  participants: string[];
+  results: IWhatsappParticipantSyncResult[];
+  total: number;
+  successful: number;
+  failed: number;
+  status: WhatsappParticipantsSyncStatus;
+}
+
+export interface IWhatsappGroupSyncResponseData {
+  leftClients: unknown[];
+  group: unknown;
+  participantsOperation: IWhatsappParticipantsSyncOperation;
+}
+
 export interface ISendWhatsappMessageRequest {
   sessionId: string;
   recipients: string[]; // Phone numbers or group IDs

@@ -1,16 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { pdf } from '@react-pdf/renderer';
-import UserProfilePdfTemplate, { UserProfilePdfProps } from '../templates/UserProfilePdfTemplate';
+import type { UserProfilePdfProps } from '../templates/UserProfilePdfTemplate';
 import { IUser } from '../../../models';
 import { ClassroomService } from '../../../services/classroom/classroom.service';
 import { UserService } from '../../../services/user/user.service';
 import { EvaluationService } from '../../../services/evaluation/evaluation.service';
 import { ProgramService } from '../../../services/program/program.service';
 import { calculateStudentHistoryAverage } from '../../../services/evaluation/evaluation-history.utils';
+import './UserProfilePdfDownloadButton.css';
 
 interface UserProfilePdfDownloadButtonProps {
   user: IUser;
   children?: React.ReactNode;
+  className?: string;
+  onProgressChange?: (state: { active: boolean; label?: string; progress?: number }) => void;
 }
 
 /**
@@ -23,6 +25,8 @@ interface UserProfilePdfDownloadButtonProps {
 export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButtonProps> = ({
   user,
   children,
+  className = 'user-profile-pdf-download-button',
+  onProgressChange,
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -30,8 +34,18 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
     if (loading) return;
     
     setLoading(true);
+    onProgressChange?.({ active: true, label: 'Generando perfil PDF' });
     try {
-      const evaluations = await EvaluationService.getStudentEvaluations(user.id);
+      const [[{ pdf }, { default: UserProfilePdfTemplate }], evaluations] = await Promise.all([
+        Promise.all([
+          import('@react-pdf/renderer'),
+          import('../templates/UserProfilePdfTemplate'),
+        ]),
+        EvaluationService.getStudentEvaluations(user.id),
+      ]);
+      const evaluationByClassroomId = new Map(
+        evaluations.map((evaluation) => [evaluation.classroomId, evaluation])
+      );
 
       // Fetch enrolled classrooms data
       const enrolledClassrooms = await Promise.all(
@@ -45,7 +59,7 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
             if (teacher) teacherName = `${teacher.firstName} ${teacher.lastName}`;
           }
 
-          const evaluation = evaluations.find(e => e.classroomId === classroomId);
+          const evaluation = evaluationByClassroomId.get(classroomId);
 
           const completed = classroom.modules?.filter((m) => m.isCompleted).length || 0;
           const total = classroom.modules?.length || 0;
@@ -105,7 +119,7 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
               gradeCount++;
             }
           } else if (isEnrolled) {
-            const currentEval = evaluations.find(e => e.classroomId === classroom.id);
+            const currentEval = evaluationByClassroomId.get(classroom.id);
             if (currentEval && currentEval.percentage > 0) {
               totalGrades += currentEval.percentage;
               gradeCount++;
@@ -159,22 +173,28 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
       console.error('Error generating user profile PDF:', error);
     } finally {
       setLoading(false);
+      onProgressChange?.({ active: false });
     }
-  }, [user, loading]);
+  }, [loading, onProgressChange, user]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleDownload();
-    }
-  }, [handleDownload]);
+  if (React.isValidElement<React.ButtonHTMLAttributes<HTMLButtonElement>>(children) && children.type === 'button') {
+    return React.cloneElement(children, {
+      onClick: handleDownload,
+      disabled: loading,
+      style: {
+        ...children.props.style,
+        cursor: loading ? 'not-allowed' : 'pointer',
+        opacity: loading ? 0.6 : 1,
+      },
+    });
+  }
 
   return (
-    <span 
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
+      className={className}
       onClick={handleDownload}
-      onKeyDown={handleKeyDown}
+      disabled={loading}
       style={{ 
         cursor: loading ? 'not-allowed' : 'pointer',
         opacity: loading ? 0.6 : 1,
@@ -187,7 +207,7 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
           <span style={{ color: '#1976d2' }}>Descargar Perfil PDF</span>
         )
       )}
-    </span>
+    </button>
   );
 };
 

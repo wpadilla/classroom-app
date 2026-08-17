@@ -7,7 +7,8 @@ import {
   IWhatsappSession,
   IWhatsappResponse,
   IWhatsappGroupResponse,
-  IWhatsappMessageResponse
+  IWhatsappMessageResponse,
+  IWhatsappGroupSyncResponseData
 } from '../../models';
 
 const WHATSAPP_API_URL = 'https://betuel-promotions.xyz/api/whatsapp';
@@ -109,9 +110,8 @@ export class WhatsappService {
    */
   static async syncGroupParticipants(
     groupId: string,
-    classroomId: string,
     studentsPhones: string[]
-  ): Promise<IWhatsappResponse> {
+  ): Promise<IWhatsappResponse<IWhatsappGroupSyncResponseData>> {
     try {
       // Filter and format phones
       const validPhones = studentsPhones
@@ -135,12 +135,33 @@ export class WhatsappService {
         }))
       };
 
-      const response = await axios.post(`${this.apiUrl}/group/sync`, payload);
+      const response = await axios.post<IWhatsappGroupSyncResponseData>(
+        `${this.apiUrl}/group/sync`,
+        payload
+      );
+      const operation = response.data?.participantsOperation;
+
+      if (!operation) {
+        return {
+          success: false,
+          error: 'La API de WhatsApp devolvió una respuesta de sincronización inválida'
+        };
+      }
+
+      if (operation.failed > 0 || operation.status === 'failed') {
+        return {
+          success: false,
+          data: response.data,
+          error: `WhatsApp rechazó ${operation.failed} de ${operation.total} participante(s)`
+        };
+      }
 
       return {
         success: true,
         data: response.data,
-        message: 'Grupo sincronizado exitosamente'
+        message: operation.status === 'not_required'
+          ? 'El grupo ya estaba sincronizado'
+          : `Se agregaron ${operation.successful} participante(s)`
       };
     } catch (error: any) {
       console.error('Error syncing WhatsApp group:', error);

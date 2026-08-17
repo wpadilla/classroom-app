@@ -8,7 +8,6 @@ import {
   Card,
   CardBody,
   Button,
-  Table,
   Badge,
   Modal,
   ModalHeader,
@@ -21,10 +20,6 @@ import {
   InputGroup,
   InputGroupText,
   Alert,
-  Nav,
-  NavItem,
-  NavLink,
-  Spinner,
   UncontrolledDropdown,
   DropdownToggle,
   DropdownMenu,
@@ -52,8 +47,44 @@ import {
   getUserAcademicMetrics,
 } from './utils/userFilters';
 import { saveAs } from 'file-saver';
+import { useAuth } from '../../contexts/AuthContext';
+import './UserManagement.css';
+
+interface OperationProgressState {
+  active: boolean;
+  label?: string;
+  progress?: number;
+}
+
+const IDLE_PROGRESS: OperationProgressState = { active: false };
+
+const TopProgressBar: React.FC<OperationProgressState> = ({ active, label, progress }) => {
+  if (!active) return null;
+
+  const hasMeasuredProgress = typeof progress === 'number';
+  const normalizedProgress = hasMeasuredProgress
+    ? Math.min(100, Math.max(2, progress))
+    : undefined;
+
+  return (
+    <div
+      className="user-management-progress"
+      role="progressbar"
+      aria-label={label || 'Procesando acción'}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={normalizedProgress}
+    >
+      <span
+        className={hasMeasuredProgress ? 'user-management-progress__bar' : 'user-management-progress__bar is-indeterminate'}
+        style={hasMeasuredProgress ? { width: `${normalizedProgress}%` } : undefined}
+      />
+    </div>
+  );
+};
 
 const UserManagement: React.FC = () => {
+  const { user: authenticatedUser } = useAuth();
   // State
   const [users, setUsers] = useState<IUser[]>([]);
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
@@ -64,6 +95,9 @@ const UserManagement: React.FC = () => {
   const [filters, setFilters] = useState<UserFilters>(defaultUserFilters);
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [actionLabel, setActionLabel] = useState<string | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<OperationProgressState>(IDLE_PROGRESS);
+  const [childProgress, setChildProgress] = useState<OperationProgressState>(IDLE_PROGRESS);
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -110,6 +144,14 @@ const UserManagement: React.FC = () => {
     }
   }, []);
 
+  const handleBulkProgress = useCallback((progressState: OperationProgressState) => {
+    setBulkProgress(progressState);
+  }, []);
+
+  const handleChildProgress = useCallback((progressState: OperationProgressState) => {
+    setChildProgress(progressState);
+  }, []);
+
   const evaluationsByStudent = useMemo(
     () => buildEvaluationsByStudent(evaluations),
     [evaluations]
@@ -139,9 +181,28 @@ const UserManagement: React.FC = () => {
     [users]
   );
 
+  const enrollmentStudents = useMemo(
+    () => selectedUser
+      ? [{
+          id: selectedUser.id,
+          fullName: `${selectedUser.firstName} ${selectedUser.lastName}`.trim(),
+          phone: selectedUser.phone,
+          email: selectedUser.email,
+          enrolledClassrooms: selectedUser.enrolledClassrooms || [],
+        }]
+      : [],
+    [selectedUser]
+  );
+
+  const programNamesById = useMemo(
+    () => Object.fromEntries(programs.map((program) => [program.id, program.name])),
+    [programs]
+  );
+
   const handleExportCSV = async () => {
     try {
       setExporting(true);
+      setActionLabel('Preparando el archivo de usuarios');
       const XLSX = await import('xlsx');
       const dataToExport = filteredUsers.map(u => ({
         ...(() => {
@@ -180,12 +241,14 @@ const UserManagement: React.FC = () => {
       toast.error('Error al exportar a Excel');
     } finally {
       setExporting(false);
+      setActionLabel(null);
     }
   };
 
   const handleExportPDF = async () => {
     try {
       setExporting(true);
+      setActionLabel('Generando el reporte PDF');
       toast.info('Generando PDF, por favor espere...', { autoClose: 2000 });
 
       const [{ pdf }, { UserListPdfDocument }] = await Promise.all([
@@ -201,6 +264,7 @@ const UserManagement: React.FC = () => {
       toast.error('Error al exportar PDF');
     } finally {
       setExporting(false);
+      setActionLabel(null);
     }
   };
 
@@ -208,6 +272,7 @@ const UserManagement: React.FC = () => {
     {
       header: 'Foto',
       width: '60px',
+      mobileHidden: true,
       render: (_, user) => (
         <button
           type="button"
@@ -236,20 +301,36 @@ const UserManagement: React.FC = () => {
     {
       header: 'Nombre',
       accessor: 'firstName',
-      render: (_, user) => (
-        <button
-          type="button"
-          className="btn btn-link p-0 text-start text-decoration-none border-0"
-          onClick={() => handleOpenDetailModal(user)}
-        >
-          <span className="text-primary fw-semibold">{user.firstName} {user.lastName}</span>
-        </button>
-      )
+      render: (_, user) => {
+        const metrics = academicMetricsByUser.get(user.id);
+        const roleLabel = user.role === 'admin'
+          ? 'Admin'
+          : user.isTeacher
+            ? 'Profesor'
+            : 'Estudiante';
+
+        return (
+          <button
+            type="button"
+            className="btn btn-link p-0 text-start text-decoration-none border-0 user-management-person"
+            onClick={() => handleOpenDetailModal(user)}
+          >
+            <span className="user-management-person__name">{user.firstName} {user.lastName}</span>
+            <span className="user-management-person__mobile-meta d-md-none">
+              {roleLabel} · {user.phone || 'Sin teléfono'}
+              {metrics?.generalIndex !== null && metrics?.generalIndex !== undefined
+                ? ` · Índice ${metrics.generalIndex.toFixed(1)}%`
+                : ''}
+            </span>
+          </button>
+        );
+      }
     },
-    { header: 'Teléfono', accessor: 'phone' },
+    { header: 'Teléfono', accessor: 'phone', mobileHidden: true },
     { header: 'Correo', accessor: 'email', mobileHidden: true, render: (v) => v || '-' },
     {
       header: 'Rol',
+      mobileHidden: true,
       render: (_, user) => (
         <div>
           {user.role === 'admin' && <Badge color="warning" className="me-1">Admin</Badge>}
@@ -261,6 +342,7 @@ const UserManagement: React.FC = () => {
     {
       header: 'Índice',
       align: 'center',
+      mobileHidden: true,
       render: (_, user) => {
         const metrics = academicMetricsByUser.get(user.id);
         if (metrics?.generalIndex === null || metrics?.generalIndex === undefined) {
@@ -322,19 +404,6 @@ const UserManagement: React.FC = () => {
     });
   }, [filteredUsers]);
 
-  // Selection handlers
-  const handleToggleSelection = (userId: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(userId)) {
-        next.delete(userId);
-      } else {
-        next.add(userId);
-      }
-      return next;
-    });
-  };
-
   const handleSelectAll = () => {
     setSelectedIds(new Set(filteredUsers.map(u => u.id)));
   };
@@ -392,6 +461,7 @@ const UserManagement: React.FC = () => {
 
 
     try {
+      setActionLabel(editingUser ? 'Actualizando usuario' : 'Creando usuario');
       if (editingUser) {
         // Update existing user
         const updates: any = {
@@ -435,14 +505,37 @@ const UserManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Error saving user:', error);
       toast.error(error.message || 'Error al guardar usuario');
+    } finally {
+      setActionLabel(null);
     }
   };
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
+    if (userToDelete.id === authenticatedUser?.id) {
+      toast.error('No puedes eliminar la cuenta con la que tienes la sesión iniciada.');
+      return;
+    }
+
+    const assignedClassrooms = classrooms.filter((classroom) => classroom.teacherId === userToDelete.id);
+    if (assignedClassrooms.length > 0) {
+      toast.error('Reasigna las clases de este profesor antes de eliminar su cuenta.');
+      return;
+    }
+
+    const enrolledClassroomIds = new Set(userToDelete.enrolledClassrooms || []);
+    const classroomMembershipIds = classrooms.reduce<string[]>((membershipIds, classroom) => {
+      const classroomStudentIds = new Set(classroom.studentIds || []);
+      if (classroomStudentIds.has(userToDelete.id) || enrolledClassroomIds.has(classroom.id)) {
+        membershipIds.push(classroom.id);
+      }
+      return membershipIds;
+    }, []);
+
     try {
-      await UserService.deleteUser(userToDelete.id);
+      setActionLabel('Eliminando usuario y sus inscripciones');
+      await UserService.deleteUser(userToDelete.id, classroomMembershipIds);
       toast.success('Usuario eliminado exitosamente');
       setDeleteModal(false);
       setUserToDelete(null);
@@ -450,28 +543,36 @@ const UserManagement: React.FC = () => {
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Error al eliminar usuario');
+    } finally {
+      setActionLabel(null);
     }
   };
 
   const handleToggleUserStatus = async (user: IUser) => {
     try {
+      setActionLabel(user.isActive ? 'Desactivando usuario' : 'Activando usuario');
       await UserService.updateUser(user.id, { isActive: !user.isActive });
       toast.success(`Usuario ${user.isActive ? 'desactivado' : 'activado'} exitosamente`);
       await loadData();
     } catch (error) {
       console.error('Error toggling user status:', error);
       toast.error('Error al cambiar el estado del usuario');
+    } finally {
+      setActionLabel(null);
     }
   };
 
   const handleToggleTeacherStatus = async (user: IUser) => {
     try {
+      setActionLabel('Actualizando permisos de profesor');
       await UserService.toggleTeacherStatus(user.id);
       toast.success(`Estado de profesor ${user.isTeacher ? 'removido' : 'asignado'}`);
       await loadData();
     } catch (error) {
       console.error('Error toggling teacher status:', error);
       toast.error('Error al cambiar el estado de profesor');
+    } finally {
+      setActionLabel(null);
     }
   };
 
@@ -485,168 +586,168 @@ const UserManagement: React.FC = () => {
     setSelectedUser(null);
   };
 
-  const getUserStats = () => {
-    return {
+  const stats = useMemo(
+    () => ({
       total: users.length,
       students: users.filter(u => u.role === 'student' && !u.isTeacher).length,
       teachers: users.filter(u => u.isTeacher).length,
       admins: users.filter(u => u.role === 'admin').length,
       active: users.filter(u => u.isActive).length,
       inactive: users.filter(u => !u.isActive).length
-    };
-  };
+    }),
+    [users]
+  );
 
-  const stats = getUserStats();
-
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="primary" />
-        <p className="mt-3">Cargando usuarios...</p>
-      </Container>
-    );
-  }
+  const visibleProgress = bulkProgress.active
+    ? bulkProgress
+    : childProgress.active
+      ? childProgress
+      : actionLabel
+        ? { active: true, label: actionLabel }
+        : loading
+          ? { active: true, label: 'Actualizando usuarios' }
+          : IDLE_PROGRESS;
 
   return (
-    <Container className="py-4">
-      {/* Header */}
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <h2>Gestión de Usuarios</h2>
-            <div className="d-flex flex-wrap gap-2 justify-content-end">
-              <UncontrolledDropdown>
-                <DropdownToggle color="light" caret disabled={exporting}>
-                  {exporting ? <Spinner size="sm" className="me-2" /> : <i className="bi bi-download me-2"></i>}
-                  Exportar
-                </DropdownToggle>
-                <DropdownMenu end>
-                  <DropdownItem onClick={handleExportCSV}>
-                    <i className="bi bi-file-earmark-excel text-success me-2"></i> Documento CSV / Excel
-                  </DropdownItem>
-                  <DropdownItem onClick={handleExportPDF}>
-                    <i className="bi bi-file-earmark-pdf text-danger me-2"></i> Documento PDF
-                  </DropdownItem>
-                </DropdownMenu>
-              </UncontrolledDropdown>
-              <Button 
-                color="info" 
-                className="text-white"
-                onClick={() => setShowImporter(true)}
+    <div className="user-management-page">
+      <TopProgressBar {...visibleProgress} />
+      <Container fluid className="user-management-container py-3 py-lg-4">
+        <section className="user-management-hero" aria-labelledby="user-management-title">
+          <div className="user-management-hero__copy">
+            <span className="user-management-eyebrow">
+              <i className="bi bi-people" aria-hidden="true" />
+              Administración académica
+            </span>
+            <h1 id="user-management-title">Usuarios</h1>
+            <p>
+              Gestiona perfiles, inscripciones, permisos y estado de cuenta desde un solo lugar.
+            </p>
+            {visibleProgress.active && (
+              <span className="user-management-live-status" role="status" aria-live="polite">
+                <span aria-hidden="true" />
+                {visibleProgress.label || 'Procesando acción'}
+                {typeof visibleProgress.progress === 'number' ? ` · ${visibleProgress.progress}%` : ''}
+              </span>
+            )}
+          </div>
+
+          <div className="user-management-hero__actions">
+            <UncontrolledDropdown>
+              <DropdownToggle
+                color="light"
+                caret
+                className="user-management-action-button"
+                disabled={exporting}
               >
-                <i className="bi bi-upload me-2"></i>
-                Importar Excel
-              </Button>
-              <Button color="primary" onClick={() => handleOpenModal()}>
-                <i className="bi bi-person-plus me-2"></i>
-                Nuevo Usuario
+                <i className="bi bi-download me-2" aria-hidden="true" />
+                Exportar
+              </DropdownToggle>
+              <DropdownMenu end>
+                <DropdownItem onClick={handleExportCSV}>
+                  <i className="bi bi-file-earmark-excel text-success me-2" />
+                  Documento CSV / Excel
+                </DropdownItem>
+                <DropdownItem onClick={handleExportPDF}>
+                  <i className="bi bi-file-earmark-pdf text-danger me-2" />
+                  Documento PDF
+                </DropdownItem>
+              </DropdownMenu>
+            </UncontrolledDropdown>
+            <Button
+              color="light"
+              className="user-management-action-button"
+              onClick={() => setShowImporter(true)}
+            >
+              <i className="bi bi-cloud-arrow-up me-2" aria-hidden="true" />
+              Importar
+            </Button>
+            <Button color="primary" className="user-management-action-button" onClick={() => handleOpenModal()}>
+              <i className="bi bi-person-plus me-2" aria-hidden="true" />
+              Nuevo usuario
+            </Button>
+          </div>
+        </section>
+
+        <section className="user-management-stats" aria-label="Resumen de usuarios">
+          {[
+            { label: 'Total', value: stats.total, icon: 'people', tone: 'primary' },
+            { label: 'Estudiantes', value: stats.students, icon: 'backpack', tone: 'blue' },
+            { label: 'Profesores', value: stats.teachers, icon: 'mortarboard', tone: 'cyan' },
+            { label: 'Administradores', value: stats.admins, icon: 'shield-check', tone: 'amber' },
+            { label: 'Activos', value: stats.active, icon: 'person-check', tone: 'green' },
+            { label: 'Inactivos', value: stats.inactive, icon: 'person-dash', tone: 'red' },
+          ].map((item) => (
+            <Card key={item.label} className={`user-management-stat user-management-stat--${item.tone}`}>
+              <CardBody>
+                <span className="user-management-stat__icon" aria-hidden="true">
+                  <i className={`bi bi-${item.icon}`} />
+                </span>
+                <span className="user-management-stat__content">
+                  <strong>{item.value}</strong>
+                  <small>{item.label}</small>
+                </span>
+              </CardBody>
+            </Card>
+          ))}
+        </section>
+
+        <section className="user-management-workspace" aria-label="Directorio de usuarios">
+          <div className="user-management-workspace__header">
+            <div>
+              <h2>Directorio</h2>
+              <p>{filteredUsers.length} usuario{filteredUsers.length === 1 ? '' : 's'} visible{filteredUsers.length === 1 ? '' : 's'}</p>
+            </div>
+            <div className="user-management-search-tools">
+              <InputGroup className="user-management-search">
+                <InputGroupText>
+                  <i className="bi bi-search" aria-hidden="true" />
+                </InputGroupText>
+                <Input
+                  aria-label="Buscar usuarios"
+                  placeholder="Buscar por nombre, teléfono o correo"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+                {searchQuery && (
+                  <Button
+                    color="light"
+                    aria-label="Limpiar búsqueda"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <i className="bi bi-x-lg" aria-hidden="true" />
+                  </Button>
+                )}
+              </InputGroup>
+              <Button
+                color={activeFilterCount > 0 ? 'primary' : 'light'}
+                className="user-management-filter-button"
+                onClick={() => setFiltersModalOpen(true)}
+              >
+                <i className="bi bi-sliders me-2" aria-hidden="true" />
+                Filtros
+                {activeFilterCount > 0 && <Badge color="light" pill>{activeFilterCount}</Badge>}
               </Button>
             </div>
           </div>
-        </Col>
-      </Row>
 
-      {/* Statistics */}
-      <Row className="mb-4">
-        <Col md={2}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0">{stats.total}</h3>
-              <small className="text-muted">Total</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={2}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-primary">{stats.students}</h3>
-              <small className="text-muted">Estudiantes</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={2}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-info">{stats.teachers}</h3>
-              <small className="text-muted">Profesores</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={2}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-warning">{stats.admins}</h3>
-              <small className="text-muted">Admins</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={2}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-success">{stats.active}</h3>
-              <small className="text-muted">Activos</small>
-            </CardBody>
-          </Card>
-        </Col>
-        <Col md={2}>
-          <Card className="text-center">
-            <CardBody>
-              <h3 className="mb-0 text-danger">{stats.inactive}</h3>
-              <small className="text-muted">Inactivos</small>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-
-      <Row className="mb-3">
-        <Col md={8}>
-          <InputGroup>
-            <InputGroupText className="bg-white">
-              <i className="bi bi-search text-muted"></i>
-            </InputGroupText>
-            <Input
-              placeholder="Buscar por nombre, teléfono o correo..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="border-start-0"
-            />
-          </InputGroup>
-        </Col>
-        <Col md={4} className="mt-3 mt-md-0 d-flex justify-content-end">
-          <Button 
-            color="light" 
-            className="w-100 d-flex justify-content-center align-items-center position-relative border"
-            onClick={() => setFiltersModalOpen(true)}
-          >
-            <i className="bi bi-funnel me-2"></i>
-            Filtros Avanzados
-            {activeFilterCount > 0 && (
-              <Badge color="primary" pill className="position-absolute" style={{ top: '-8px', right: '-8px' }}>
-                {activeFilterCount}
-              </Badge>
-            )}
-          </Button>
-        </Col>
-      </Row>
-
-      {(activeFilterCount > 0 || searchQuery) && (
-        <Alert color="light" className="border d-flex flex-wrap align-items-center justify-content-between gap-2 py-2">
-          <span className="small">
-            <strong>{filteredUsers.length}</strong> de {users.length} usuarios coinciden con la búsqueda actual.
-          </span>
-          <Button
-            color="link"
-            size="sm"
-            className="text-decoration-none p-0"
-            onClick={() => {
-              setFilters(defaultUserFilters);
-              setSearchQuery('');
-            }}
-          >
-            Limpiar búsqueda y filtros
-          </Button>
-        </Alert>
-      )}
+          {(activeFilterCount > 0 || searchQuery) && (
+            <div className="user-management-results-note">
+              <span>
+                <i className="bi bi-funnel" aria-hidden="true" />
+                <strong>{filteredUsers.length}</strong> de {users.length} usuarios coinciden.
+              </span>
+              <Button
+                color="link"
+                size="sm"
+                onClick={() => {
+                  setFilters(defaultUserFilters);
+                  setSearchQuery('');
+                }}
+              >
+                Limpiar búsqueda y filtros
+              </Button>
+            </div>
+          )}
 
       {/* Filters Modal */}
       <UserFiltersModal 
@@ -663,11 +764,13 @@ const UserManagement: React.FC = () => {
       {/* Bulk Operations Toolbar */}
       <BulkOperationsToolbar
         users={filteredUsers}
+        allClassrooms={classrooms}
         selectedIds={selectedIds}
         onSelectAll={handleSelectAll}
         onClearSelection={handleClearSelection}
-        onToggleSelection={handleToggleSelection}
         onRefresh={loadData}
+        protectedUserId={authenticatedUser?.id}
+        onProgressChange={handleBulkProgress}
       />
 
       {/* Users DataTable */}
@@ -681,10 +784,13 @@ const UserManagement: React.FC = () => {
         onSelectionChange={setSelectedIds}
         pagination={true}
         defaultPageSize={10}
+        className="user-management-table"
         emptyState={
-          <Alert color="info" className="mb-0">
-            <i className="bi bi-info-circle me-2"></i>
-            No se encontraron usuarios que coincidan con los filtros.
+          <Alert color={loading ? 'light' : 'info'} className="user-management-empty-state mb-0">
+            <i className={`bi bi-${loading ? 'arrow-repeat' : 'info-circle'} me-2`} />
+            {loading
+              ? 'Preparando el directorio de usuarios…'
+              : 'No se encontraron usuarios que coincidan con los filtros.'}
           </Alert>
         }
         actions={(user: IUser) => (
@@ -721,11 +827,13 @@ const UserManagement: React.FC = () => {
                   {user.isActive ? 'Desactivar' : 'Activar'}
                 </DropdownItem>
 
-                <DropdownItem>
-                  <UserProfilePdfDownloadButton user={user}>
-                    <span><i className="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</span>
-                  </UserProfilePdfDownloadButton>
-                </DropdownItem>
+                <UserProfilePdfDownloadButton
+                  user={user}
+                  className="dropdown-item text-start w-100"
+                  onProgressChange={handleChildProgress}
+                >
+                  <span><i className="bi bi-file-earmark-pdf me-2"></i>Descargar PDF</span>
+                </UserProfilePdfDownloadButton>
 
                 <DropdownItem divider />
 
@@ -744,15 +852,23 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       />
+        </section>
 
       {/* User Modal */}
-      <Modal isOpen={userModal} toggle={() => setUserModal(false)} size="lg">
+      <Modal
+        isOpen={userModal}
+        toggle={() => setUserModal(false)}
+        size="lg"
+        centered
+        scrollable
+        className="user-management-modal"
+      >
         <ModalHeader toggle={() => setUserModal(false)}>
           {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
         </ModalHeader>
         <ModalBody>
           <Form>
-            <Row>
+            <Row className="g-3">
               <Col md={6}>
                 <FormGroup>
                   <Label for="firstName">Nombre *</Label>
@@ -792,7 +908,7 @@ const UserManagement: React.FC = () => {
                   <Input
                     type="email"
                     id="email"
-                    autocomplete="new-password"
+                    autoComplete="new-password"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
@@ -806,7 +922,7 @@ const UserManagement: React.FC = () => {
                   <Input
                     type="password"
                     id="password"
-                    autocomplete="new-password"
+                    autoComplete="new-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder={editingUser ? 'Dejar vacío para mantener actual' : 'Mínimo 6 caracteres'}
@@ -861,10 +977,10 @@ const UserManagement: React.FC = () => {
           </Form>
         </ModalBody>
         <ModalFooter>
-          <Button color="secondary" onClick={() => setUserModal(false)}>
+          <Button color="light" onClick={() => setUserModal(false)} disabled={Boolean(actionLabel)}>
             Cancelar
           </Button>
-          <Button color="primary" onClick={handleSaveUser}>
+          <Button color="primary" onClick={handleSaveUser} disabled={Boolean(actionLabel)}>
             {editingUser ? 'Actualizar' : 'Crear'} Usuario
           </Button>
         </ModalFooter>
@@ -873,26 +989,17 @@ const UserManagement: React.FC = () => {
       <StudentEnrollmentManagerModal
         isOpen={enrollModal}
         onClose={handleCloseEnrollModal}
-        students={
-          selectedUser
-            ? [{
-                id: selectedUser.id,
-                fullName: `${selectedUser.firstName} ${selectedUser.lastName}`.trim(),
-                phone: selectedUser.phone,
-                email: selectedUser.email,
-                enrolledClassrooms: selectedUser.enrolledClassrooms || [],
-              }]
-            : []
-        }
+        students={enrollmentStudents}
         classrooms={classrooms}
-        programNamesById={Object.fromEntries(programs.map((program) => [program.id, program.name]))}
+        programNamesById={programNamesById}
         mode="sync"
         title={selectedUser ? `Gestionar Inscripciones - ${selectedUser.firstName} ${selectedUser.lastName}` : undefined}
         onSaved={loadData}
+        onProgressChange={handleChildProgress}
       />
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={deleteModal} toggle={() => setDeleteModal(false)}>
+      <Modal isOpen={deleteModal} toggle={() => setDeleteModal(false)} centered className="user-management-modal">
         <ModalHeader toggle={() => setDeleteModal(false)}>
           Confirmar Eliminación
         </ModalHeader>
@@ -902,12 +1009,30 @@ const UserManagement: React.FC = () => {
             ¿Está seguro que desea eliminar al usuario <strong>{userToDelete?.firstName} {userToDelete?.lastName}</strong>?
             Esta acción no se puede deshacer.
           </Alert>
+          {userToDelete?.id === authenticatedUser?.id && (
+            <Alert color="warning" className="mb-0">
+              No puedes eliminar la cuenta con la que tienes la sesión iniciada.
+            </Alert>
+          )}
+          {userToDelete && classrooms.some((classroom) => classroom.teacherId === userToDelete.id) && (
+            <Alert color="warning" className="mb-0">
+              Este profesor tiene clases asignadas. Reasígnalas antes de eliminar su cuenta.
+            </Alert>
+          )}
         </ModalBody>
         <ModalFooter>
           <Button color="secondary" onClick={() => setDeleteModal(false)}>
             Cancelar
           </Button>
-          <Button color="danger" onClick={handleDeleteUser}>
+          <Button
+            color="danger"
+            onClick={handleDeleteUser}
+            disabled={
+              Boolean(actionLabel) ||
+              userToDelete?.id === authenticatedUser?.id ||
+              Boolean(userToDelete && classrooms.some((classroom) => classroom.teacherId === userToDelete.id))
+            }
+          >
             Eliminar Usuario
           </Button>
         </ModalFooter>
@@ -922,14 +1047,17 @@ const UserManagement: React.FC = () => {
         onSave={(updatedUser) => {
           setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
         }}
+        onProgressChange={handleChildProgress}
       />
       
       <StudentImporter
         isOpen={showImporter}
         toggle={() => setShowImporter(false)}
         onImportComplete={loadData}
+        onProgressChange={handleChildProgress}
       />
-    </Container>
+      </Container>
+    </div>
   );
 };
 

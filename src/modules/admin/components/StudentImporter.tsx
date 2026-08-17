@@ -66,13 +66,15 @@ interface ImportResult {
 interface StudentImporterProps {
   isOpen: boolean;
   toggle: () => void;
-  onImportComplete?: () => void;
+  onImportComplete?: () => Promise<void> | void;
+  onProgressChange?: (state: { active: boolean; label?: string; progress?: number }) => void;
 }
 
 const StudentImporter: React.FC<StudentImporterProps> = ({
   isOpen,
   toggle,
   onImportComplete,
+  onProgressChange,
 }) => {
   // File state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,10 +125,11 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
     setProgress(0);
     setLogs([]);
     setResult(null);
+    onProgressChange?.({ active: false });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+  }, [onProgressChange]);
 
   // Handle file selection
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +150,7 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
 
     setLoading(true);
     setFileName(file.name);
+    onProgressChange?.({ active: true, label: 'Procesando archivo' });
 
     try {
       // Read file
@@ -162,7 +166,6 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
       
       if (jsonData.length < 2) {
         toast.error('El archivo no contiene datos suficientes');
-        setLoading(false);
         return;
       }
 
@@ -222,6 +225,7 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
       toast.error('Error al leer el archivo');
     } finally {
       setLoading(false);
+      onProgressChange?.({ active: false });
     }
   };
 
@@ -356,6 +360,7 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
     setStep('importing');
     setProgress(0);
     setLogs([]);
+    onProgressChange?.({ active: true, label: 'Importando estudiantes', progress: 0 });
 
     const importResult: ImportResult = {
       total: students.length,
@@ -451,7 +456,13 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
       }
 
       // Update progress
-      setProgress(Math.round(((i + 1) / updatedStudents.length) * 100));
+      const nextProgress = Math.round(((i + 1) / updatedStudents.length) * 100);
+      setProgress(nextProgress);
+      onProgressChange?.({
+        active: true,
+        label: `Importando: ${student.fullName}`,
+        progress: nextProgress,
+      });
       setStudents([...updatedStudents]);
     }
 
@@ -460,9 +471,8 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
     setStep('complete');
     toast.success(`Importación completada: ${importResult.created} creados, ${importResult.enrolled} inscripciones`);
     
-    if (onImportComplete) {
-      onImportComplete();
-    }
+    await onImportComplete?.();
+    onProgressChange?.({ active: false });
   };
 
   // Render column mapping selector
@@ -494,7 +504,15 @@ const StudentImporter: React.FC<StudentImporterProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} toggle={toggle} size="xl" backdrop="static">
+    <Modal
+      isOpen={isOpen}
+      toggle={toggle}
+      size="xl"
+      backdrop="static"
+      centered
+      scrollable
+      className="user-management-modal"
+    >
       <ModalHeader toggle={step !== 'importing' ? toggle : undefined}>
         <i className="bi bi-file-earmark-spreadsheet me-2"></i>
         Importar Estudiantes desde Excel

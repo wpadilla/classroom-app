@@ -123,8 +123,12 @@ const WhatsAppGroupManager: React.FC = () => {
     
     try {
       setSyncing(true);
-      await ClassroomService.syncWhatsappGroup(selectedClassroom.id);
-      toast.success('Grupo sincronizado exitosamente');
+      const operation = await ClassroomService.syncWhatsappGroup(selectedClassroom.id);
+      toast.success(
+        operation.status === 'not_required'
+          ? 'El grupo ya estaba sincronizado'
+          : `Grupo sincronizado: ${operation.successful} participante(s) agregado(s)`
+      );
       setSyncModal(false);
       await loadClassrooms();
     } catch (error: any) {

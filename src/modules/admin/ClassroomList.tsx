@@ -15,7 +15,7 @@ import {
   Spinner,
   Alert
 } from 'reactstrap';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { ProgramService } from '../../services/program/program.service';
 import { UserService } from '../../services/user/user.service';
@@ -286,19 +286,27 @@ const ClassroomList: React.FC = () => {
                 <Card
                   className="h-100 border-0 shadow-sm"
                   style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/admin/classroom/${classroom.id}`)}
                 >
                   <CardBody>
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <div className="flex-grow-1">
-                        <h6 className="mb-1 fw-bold">{classroom.subject}</h6>
+                        <Link
+                          to={`/admin/classroom/${classroom.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="stretched-link text-reset text-decoration-none"
+                          aria-label={`Abrir ${classroom.subject} en una nueva pestaña`}
+                        >
+                          <h6 className="mb-1 fw-bold">{classroom.subject}</h6>
+                        </Link>
                         <p className="text-muted small mb-0">{classroom.name}</p>
                       </div>
                       <div className="d-flex align-items-center gap-1">
                         <Button
                           color="light"
                           size="sm"
-                          className="p-1"
+                          className="p-1 position-relative"
+                          style={{ zIndex: 2 }}
                           onClick={(e) => handleEditClassroom(classroom, e)}
                           title="Editar clase"
                         >

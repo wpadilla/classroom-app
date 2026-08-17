@@ -358,7 +358,10 @@ const StudentEnrollment: React.FC<StudentEnrollmentProps> = ({ classroom, onUpda
           updateLocalClassroomStudents(currentStudentIds);
           toast.info('Estudiante creado localmente. Se sincronizará cuando haya conexión.');
         } else {
-          const studentId = await UserService.createUser(studentData);
+          const studentId = await UserService.createUser({
+            ...studentData,
+            enrolledClassrooms: [],
+          });
           await ClassroomService.addStudentToClassroom(classroom.id, studentId);
           toast.success('Estudiante creado y agregado a la clase.');
         }

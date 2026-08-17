@@ -26,12 +26,14 @@ interface ISyncStudentEnrollmentsOptions {
   userId: string;
   desiredClassroomIds: string[];
   managedClassroomIds: string[];
+  managedClassrooms?: IClassroom[];
 }
 
 interface ISyncMultipleStudentEnrollmentsOptions {
   userIds: string[];
   desiredClassroomIds: string[];
   managedClassroomIds: string[];
+  managedClassrooms?: IClassroom[];
 }
 
 interface IBulkEnrollStudentsInClassroomsOptions {
@@ -40,6 +42,23 @@ interface IBulkEnrollStudentsInClassroomsOptions {
 }
 
 export class StudentClassroomManagementService {
+  static async ensureStudentEnrollmentForAccess(
+    userId: string,
+    classroom: IClassroom
+  ): Promise<boolean> {
+    if (classroom.studentIds?.includes(userId)) {
+      return true;
+    }
+
+    const user = await UserService.getUserById(userId);
+    if (!user?.enrolledClassrooms?.includes(classroom.id)) {
+      return false;
+    }
+
+    await ClassroomService.addStudentToClassroom(classroom.id, userId);
+    return true;
+  }
+
   static buildHistoryEntry({
     classroom,
     program,
@@ -127,6 +146,7 @@ export class StudentClassroomManagementService {
     userId,
     desiredClassroomIds,
     managedClassroomIds,
+    managedClassrooms = [],
   }: ISyncStudentEnrollmentsOptions): Promise<void> {
     const user = await UserService.getUserById(userId);
     if (!user) {
@@ -137,18 +157,22 @@ export class StudentClassroomManagementService {
     const nextManagedEnrollments = Array.from(
       new Set(desiredClassroomIds.filter((classroomId) => managedSet.has(classroomId)))
     );
-    const currentManagedEnrollments = (user.enrolledClassrooms || []).filter((classroomId) =>
-      managedSet.has(classroomId)
+    const desiredSet = new Set(nextManagedEnrollments);
+    const userEnrollmentSet = new Set(user.enrolledClassrooms || []);
+    const classroomById = new Map(
+      managedClassrooms.map((classroom) => [classroom.id, classroom])
     );
+    const classroomIdsToRemove = managedClassroomIds.filter((classroomId) => {
+      if (desiredSet.has(classroomId)) return false;
 
-    const classroomIdsToAdd = nextManagedEnrollments.filter(
-      (classroomId) => !currentManagedEnrollments.includes(classroomId)
-    );
-    const classroomIdsToRemove = currentManagedEnrollments.filter(
-      (classroomId) => !nextManagedEnrollments.includes(classroomId)
-    );
+      const managedClassroom = classroomById.get(classroomId);
+      return userEnrollmentSet.has(classroomId) ||
+        Boolean(managedClassroom?.isActive && managedClassroom.studentIds?.includes(userId));
+    });
 
-    for (const classroomId of classroomIdsToAdd) {
+    // Always assert desired enrollments on both documents. This intentionally
+    // repairs legacy records that exist only on the user or only on the class.
+    for (const classroomId of nextManagedEnrollments) {
       await ClassroomService.addStudentToClassroom(classroomId, userId);
     }
 
@@ -161,6 +185,7 @@ export class StudentClassroomManagementService {
     userIds,
     desiredClassroomIds,
     managedClassroomIds,
+    managedClassrooms = [],
   }: ISyncMultipleStudentEnrollmentsOptions): Promise<void> {
     const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)));
 
@@ -169,6 +194,7 @@ export class StudentClassroomManagementService {
         userId,
         desiredClassroomIds,
         managedClassroomIds,
+        managedClassrooms,
       });
     }
   }

@@ -14,7 +14,7 @@ export interface StatItem {
 interface StatStripProps {
   stats: StatItem[];
   className?: string;
-  columns?: 2 | 3;
+  columns?: 2 | 3 | 4 | 5;
 }
 
 const colorMap: Record<string, { bg: string; text: string; iconBg: string }> = {
@@ -27,7 +27,12 @@ const colorMap: Record<string, { bg: string; text: string; iconBg: string }> = {
 };
 
 const StatStrip: React.FC<StatStripProps> = ({ stats, className = '', columns = 2 }) => {
-  const gridCols = columns === 3 ? 'grid-cols-3' : 'grid-cols-2';
+  const gridCols = {
+    2: 'grid-cols-2',
+    3: 'grid-cols-2 sm:grid-cols-3',
+    4: 'grid-cols-2 sm:grid-cols-4',
+    5: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5',
+  }[columns];
 
   return (
     <div className={`grid ${gridCols} gap-2 ${className}`}>

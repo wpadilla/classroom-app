@@ -319,7 +319,7 @@ const StudentProfile: React.FC = () => {
             style={{ cursor: 'pointer' }}
           >
             <i className="bi bi-clock-history me-2"></i>
-            Historial
+            Historial!!!!
           </NavLink>
         </NavItem>
       </Nav>
@@ -404,7 +404,13 @@ const StudentProfile: React.FC = () => {
                               <Col>
                                 <small className="text-muted d-block">Asistencia</small>
                                 <Badge color="info">
-                                  {evaluation.attendanceRecords?.length || 0}/{classroom.modules.length}
+                                  {evaluation.attendanceRecords?.filter((record) => record.isPresent === true).length || 0}/
+                                  {evaluation.attendanceRecords?.filter(
+                                    (record) => record.isPresent === true || record.isPresent === false
+                                  ).length || 0}
+                                  {(evaluation.attendanceRecords?.filter((record) => record.isPresent === null).length || 0) > 0
+                                    ? ` · ${evaluation.attendanceRecords?.filter((record) => record.isPresent === null).length}E`
+                                    : ''}
                                 </Badge>
                               </Col>
                               <Col>

@@ -7,6 +7,7 @@ import { UserService } from '../user/user.service';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
 import { ClassroomFinalizationService, IFinalizationOptions, IFinalizationResult } from './classroom-finalization.service';
 import { ClassroomRestartService, IRestartResult } from './classroom-restart.service';
+import { ClassroomEnrollmentService } from './classroom-enrollment.service';
 
 export class ClassroomService {
   static sortClassroomsByProgramPosition(classrooms: IClassroom[]): IClassroom[] {
@@ -236,17 +237,7 @@ export class ClassroomService {
    */
   static async addStudentToClassroom(classroomId: string, studentId: string): Promise<void> {
     try {
-      const classroom = await this.getClassroomById(classroomId);
-      if (!classroom) throw new Error('Clase no encontrada');
-
-      const studentIds = classroom.studentIds || [];
-      if (!studentIds.includes(studentId)) {
-        studentIds.push(studentId);
-        await this.updateClassroom(classroomId, { studentIds });
-
-        // Also update user's enrolled classrooms
-        await UserService.enrollInClassroom(studentId, classroomId);
-      }
+      await ClassroomEnrollmentService.enrollStudent(classroomId, studentId);
     } catch (error) {
       console.error(`Error adding student ${studentId} to classroom ${classroomId}:`, error);
       throw error;
@@ -258,14 +249,7 @@ export class ClassroomService {
    */
   static async removeStudentFromClassroom(classroomId: string, studentId: string): Promise<void> {
     try {
-      const classroom = await this.getClassroomById(classroomId);
-      if (!classroom) throw new Error('Clase no encontrada');
-
-      const studentIds = (classroom.studentIds || []).filter(id => id !== studentId);
-      await this.updateClassroom(classroomId, { studentIds });
-
-      // Also update user's enrolled classrooms
-      await UserService.removeFromClassroom(studentId, classroomId);
+      await ClassroomEnrollmentService.unenrollStudent(classroomId, studentId);
     } catch (error) {
       console.error(`Error removing student ${studentId} from classroom ${classroomId}:`, error);
       throw error;
@@ -380,7 +364,7 @@ export class ClassroomService {
             role: 'student',
             isTeacher: false,
             isActive: true,
-            enrolledClassrooms: [classroomId]
+            enrolledClassrooms: []
           });
 
           // Add to classroom

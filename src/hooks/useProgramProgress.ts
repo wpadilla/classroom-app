@@ -6,6 +6,7 @@ import { IUser, IClassroom, IProgram, IClassroomHistory } from '../models';
 import { ClassroomService } from '../services/classroom/classroom.service';
 import { ProgramService } from '../services/program/program.service';
 import { EvaluationService } from '../services/evaluation/evaluation.service';
+import { calculateStudentHistoryAverage } from '../services/evaluation/evaluation-history.utils';
 
 export interface ProgramProgress {
   program: IProgram;
@@ -183,13 +184,10 @@ export const useProgramProgress = (): UseProgramProgressReturn => {
       (sum, p) => sum + p.enrolledClassrooms, 0
     );
 
-    const programsWithGrades = programProgress.filter(p => p.averageGrade > 0);
-    const overallAverage = programsWithGrades.length > 0
-      ? Math.round(
-          (programsWithGrades.reduce((sum, p) => sum + p.averageGrade, 0) / 
-           programsWithGrades.length) * 10
-        ) / 10
-      : 0;
+    const histories = programProgress.flatMap((progress) =>
+      progress.classroomDetails.flatMap((detail) => detail.history ? [detail.history] : [])
+    );
+    const overallAverage = calculateStudentHistoryAverage(histories);
 
     const averageProgress = totalPrograms > 0
       ? Math.round(

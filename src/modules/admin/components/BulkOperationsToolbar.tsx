@@ -107,6 +107,7 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
       toast.error('Clase no encontrada');
       return;
     }
+    const classroomStudentIds = new Set(classroom.studentIds || []);
 
     setProcessing(true);
     setProgress(0);
@@ -121,20 +122,16 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
       setProgress(Math.round(((i + 1) / selectedUsers.length) * 100));
       setCurrentOperation(`Inscribiendo: ${user.firstName} ${user.lastName}`);
 
-      // Check if already enrolled
-      if (user.enrolledClassrooms?.includes(selectedClassroomId)) {
+      const isFullyEnrolled =
+        user.enrolledClassrooms?.includes(selectedClassroomId) &&
+        classroomStudentIds.has(user.id);
+      if (isFullyEnrolled) {
         skippedCount++;
         continue;
       }
 
       try {
-        const newEnrolledClassrooms = [...(user.enrolledClassrooms || []), selectedClassroomId];
-        await UserService.updateUser(user.id, { enrolledClassrooms: newEnrolledClassrooms });
-        
-        // Also add user to classroom
-        const newStudentIds = [...(classroom.studentIds || []), user.id];
-        await ClassroomService.updateClassroom(selectedClassroomId, { studentIds: newStudentIds });
-        
+        await ClassroomService.addStudentToClassroom(selectedClassroomId, user.id);
         successCount++;
       } catch (error) {
         console.error(`Error enrolling ${user.id}:`, error);
@@ -164,6 +161,13 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
     }
 
     const selectedUsers = getSelectedUsers();
+    const classroom = classrooms.find(c => c.id === selectedClassroomId);
+
+    if (!classroom) {
+      toast.error('Clase no encontrada');
+      return;
+    }
+    const classroomStudentIds = new Set(classroom.studentIds || []);
 
     setProcessing(true);
     setProgress(0);
@@ -178,23 +182,16 @@ const BulkOperationsToolbar: React.FC<BulkOperationsToolbarProps> = ({
       setProgress(Math.round(((i + 1) / selectedUsers.length) * 100));
       setCurrentOperation(`Desinscribiendo: ${user.firstName} ${user.lastName}`);
 
-      // Check if enrolled
-      if (!user.enrolledClassrooms?.includes(selectedClassroomId)) {
+      const isFullyUnenrolled =
+        !user.enrolledClassrooms?.includes(selectedClassroomId) &&
+        !classroomStudentIds.has(user.id);
+      if (isFullyUnenrolled) {
         skippedCount++;
         continue;
       }
 
       try {
-        const newEnrolledClassrooms = (user.enrolledClassrooms || []).filter(id => id !== selectedClassroomId);
-        await UserService.updateUser(user.id, { enrolledClassrooms: newEnrolledClassrooms });
-        
-        // Also remove user from classroom
-        const classroom = classrooms.find(c => c.id === selectedClassroomId);
-        if (classroom) {
-          const newStudentIds = (classroom.studentIds || []).filter(id => id !== user.id);
-          await ClassroomService.updateClassroom(selectedClassroomId, { studentIds: newStudentIds });
-        }
-        
+        await ClassroomService.removeStudentFromClassroom(selectedClassroomId, user.id);
         successCount++;
       } catch (error) {
         console.error(`Error unenrolling ${user.id}:`, error);

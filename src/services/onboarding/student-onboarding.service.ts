@@ -94,6 +94,7 @@ export class StudentOnboardingService {
           ? [formData.currentInternalClassroomId]
           : [],
       managedClassroomIds: managedClassrooms.map((classroom) => classroom.id),
+      managedClassrooms,
     });
 
     const refreshedUser = await UserService.getUserById(userId);

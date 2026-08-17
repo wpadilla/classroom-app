@@ -94,15 +94,9 @@ const StudentDashboard: React.FC = () => {
         ? evaluatedOnes.reduce((sum, e) => sum + (e.percentage || 0), 0) / evaluatedOnes.length
         : 0;
 
-    let totalPresent = 0;
-    let totalRecords = 0;
-    evaluations.forEach((evaluation) => {
-      if (evaluation.attendanceRecords) {
-        totalPresent += evaluation.attendanceRecords.filter((r) => r.isPresent).length;
-        totalRecords += evaluation.attendanceRecords.length;
-      }
-    });
-    const attendanceRate = totalRecords > 0 ? (totalPresent / totalRecords) * 100 : 0;
+    const attendanceRate = EvaluationService.calculateAttendanceScore(
+      evaluations.flatMap((evaluation) => evaluation.attendanceRecords || [])
+    );
 
     const totalParticipation = evaluations.reduce((sum, evaluation) => {
       if (evaluation.participationRecords) {

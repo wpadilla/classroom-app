@@ -25,6 +25,10 @@ import EvaluationHero from './components/EvaluationHero';
 import EvaluationStudentsSection, { StudentWithEvaluation } from './components/EvaluationStudentsSection';
 import EvaluationSummarySection from './components/EvaluationSummarySection';
 import {
+  buildAttendanceRecordsFromScore,
+  participationScoreToAccumulatedPoints,
+} from '../../services/evaluation/evaluation-score.utils';
+import {
   BulkEvaluationDialog,
   EvaluationCriteriaDialog,
   EvaluationFormData,
@@ -54,6 +58,8 @@ const EvaluationManager: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<IUser | null>(null);
   const [evaluationForm, setEvaluationForm] = useState<EvaluationFormData>({
     questionnaires: 0,
+    attendance: 0,
+    participation: 0,
     finalExam: 0,
     customScores: []
   });
@@ -75,6 +81,8 @@ const EvaluationManager: React.FC = () => {
   const [bulkEvaluationModal, setBulkEvaluationModal] = useState(false);
   const [bulkEvaluationForm, setBulkEvaluationForm] = useState<EvaluationFormData>({
     questionnaires: 0,
+    attendance: 0,
+    participation: 0,
     finalExam: 0,
     customScores: []
   });
@@ -281,6 +289,8 @@ const EvaluationManager: React.FC = () => {
     setSelectedStudent(student);
     setEvaluationForm({
       questionnaires: evaluation.scores.questionnaires,
+      attendance: evaluation.scores.attendance,
+      participation: evaluation.scores.participation,
       finalExam: evaluation.scores.finalExam,
       customScores: [...evaluation.scores.customScores]
     });
@@ -288,7 +298,7 @@ const EvaluationManager: React.FC = () => {
   };
 
   const handleSaveEvaluation = async () => {
-    if (!selectedStudent || !classroom?.evaluationCriteria) return;
+    if (!selectedStudent || !classroom?.evaluationCriteria || !user) return;
     
     const evaluation = evaluations.get(selectedStudent.id);
     if (!evaluation) return;
@@ -296,12 +306,41 @@ const EvaluationManager: React.FC = () => {
     try {
       setSaving(true);
       
-      // Update scores
+      const totalModules = classroom.modules?.length || 8;
+      const attendanceChanged = Math.abs(
+        evaluationForm.attendance - evaluation.scores.attendance
+      ) > 0.001;
+      const participationChanged = Math.abs(
+        evaluationForm.participation - evaluation.scores.participation
+      ) > 0.001;
+      const attendanceRecords = attendanceChanged
+        ? buildAttendanceRecordsFromScore({
+            requestedScore: evaluationForm.attendance,
+            maxScore: classroom.evaluationCriteria.attendance,
+            modules: classroom.modules || [],
+            existingRecords: evaluation.attendanceRecords || [],
+            studentId: selectedStudent.id,
+            markedBy: user.id,
+          })
+        : evaluation.attendanceRecords;
+      const participationPoints = participationChanged
+        ? participationScoreToAccumulatedPoints(
+            evaluationForm.participation,
+            classroom.evaluationCriteria,
+            totalModules
+          )
+        : evaluation.participationPoints;
+
+      // Update scores and the underlying attendance/participation history.
       const updatedEvaluation: IStudentEvaluation = {
         ...evaluation,
+        attendanceRecords,
+        participationPoints,
         scores: {
           ...evaluation.scores,
           questionnaires: evaluationForm.questionnaires,
+          attendance: evaluationForm.attendance,
+          participation: evaluationForm.participation,
           finalExam: evaluationForm.finalExam,
           customScores: evaluationForm.customScores
         },
@@ -310,7 +349,6 @@ const EvaluationManager: React.FC = () => {
       };
       
       // Calculate final grade
-      const totalModules = classroom.modules?.length || 8;
       const finalEvaluation = EvaluationService.calculateFinalGrade(
         updatedEvaluation,
         classroom.evaluationCriteria,
@@ -340,6 +378,8 @@ const EvaluationManager: React.FC = () => {
 
     setEvaluationForm({
       questionnaires: classroom.evaluationCriteria.questionnaires,
+      attendance: classroom.evaluationCriteria.attendance,
+      participation: classroom.evaluationCriteria.participation,
       finalExam: classroom.evaluationCriteria.finalExam,
       customScores: (classroom.evaluationCriteria.customCriteria || []).map((criterion) => ({
         criterionId: criterion.id,
@@ -350,7 +390,7 @@ const EvaluationManager: React.FC = () => {
 
   // Bulk evaluation handler
   const handleBulkEvaluation = async () => {
-    if (!classroom?.evaluationCriteria || evaluationSelection.selectedIds.size === 0) return;
+    if (!classroom?.evaluationCriteria || evaluationSelection.selectedIds.size === 0 || !user) return;
     
     try {
       setSaving(true);
@@ -364,12 +404,30 @@ const EvaluationManager: React.FC = () => {
         const evaluation = evaluations.get(studentId);
         if (!evaluation) continue;
         
-        // Update scores
+        const attendanceRecords = buildAttendanceRecordsFromScore({
+          requestedScore: bulkEvaluationForm.attendance,
+          maxScore: classroom.evaluationCriteria.attendance,
+          modules: classroom.modules || [],
+          existingRecords: evaluation.attendanceRecords || [],
+          studentId,
+          markedBy: user.id,
+        });
+        const participationPoints = participationScoreToAccumulatedPoints(
+          bulkEvaluationForm.participation,
+          classroom.evaluationCriteria,
+          totalModules
+        );
+
+        // Update scores and the underlying attendance/participation history.
         const updatedEvaluation: IStudentEvaluation = {
           ...evaluation,
+          attendanceRecords,
+          participationPoints,
           scores: {
             ...evaluation.scores,
             questionnaires: bulkEvaluationForm.questionnaires,
+            attendance: bulkEvaluationForm.attendance,
+            participation: bulkEvaluationForm.participation,
             finalExam: bulkEvaluationForm.finalExam,
             customScores: bulkEvaluationForm.customScores
           },
@@ -408,6 +466,8 @@ const EvaluationManager: React.FC = () => {
   const handleOpenBulkEvaluationModal = useCallback(() => {
     setBulkEvaluationForm({
       questionnaires: 0,
+      attendance: 0,
+      participation: 0,
       finalExam: 0,
       customScores: classroom?.evaluationCriteria?.customCriteria?.map((criterion) => ({
         criterionId: criterion.id,
@@ -420,6 +480,8 @@ const EvaluationManager: React.FC = () => {
   const handleSetAllBulkEvaluationMax = useCallback(() => {
     setBulkEvaluationForm({
       questionnaires: classroom?.evaluationCriteria?.questionnaires || 0,
+      attendance: classroom?.evaluationCriteria?.attendance || 0,
+      participation: classroom?.evaluationCriteria?.participation || 0,
       finalExam: classroom?.evaluationCriteria?.finalExam || 0,
       customScores: classroom?.evaluationCriteria?.customCriteria?.map((criterion) => ({
         criterionId: criterion.id,

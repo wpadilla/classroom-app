@@ -16,12 +16,17 @@ import {
   IClassroomRun, 
   IStudentRunRecord, 
   IStudentEvaluation,
-  IClassroomPaymentsSnapshot
+  IClassroomPaymentsSnapshot,
+  IUser,
 } from '../../models';
 import { UserService } from '../user/user.service';
 import { EvaluationService } from '../evaluation/evaluation.service';
 import { ProgramService } from '../program/program.service';
 import { PaymentService } from '../payment/payment.service';
+import {
+  didStudentHistoryGradesChange,
+  reconcileStudentHistoryGrades,
+} from '../evaluation/evaluation-history.utils';
 
 /**
  * Result of restart operation
@@ -108,8 +113,14 @@ export class ClassroomRestartService {
       ? `${teacher.firstName} ${teacher.lastName}` 
       : 'Profesor desconocido';
 
-    // Get all evaluations for this classroom
-    const evaluations = await EvaluationService.getClassroomEvaluations(classroom.id);
+    // Recalculate before creating the immutable run snapshot. This also fixes
+    // finalized classrooms whose stored percentage predates attendance or
+    // participation changes.
+    const storedEvaluations = await EvaluationService.getClassroomEvaluations(classroom.id);
+    const evaluations = await EvaluationService.recalculateAndPersistClassroomEvaluations(
+      classroom,
+      storedEvaluations
+    );
 
     let paymentsSnapshot: IClassroomPaymentsSnapshot | undefined;
     try {
@@ -126,6 +137,10 @@ export class ClassroomRestartService {
       if (!student) continue;
 
       const evaluation = evaluations.find(e => e.studentId === studentId);
+
+      if (evaluation) {
+        await this.repairCompletedHistoryGrade(student, evaluation);
+      }
       
       const record: IStudentRunRecord = {
         studentId: student.id,
@@ -201,6 +216,25 @@ export class ClassroomRestartService {
   }
 
   /**
+   * A class may have been finalized before canonical recalculation was added.
+   * Repair that existing user history while the matching run data is still
+   * available, without creating a history entry that did not already exist.
+   */
+  private static async repairCompletedHistoryGrade(
+    student: IUser,
+    evaluation: IStudentEvaluation
+  ): Promise<void> {
+    const currentHistory = student.completedClassrooms || [];
+    const nextHistory = reconcileStudentHistoryGrades(currentHistory, [evaluation]);
+
+    if (!didStudentHistoryGradesChange(currentHistory, nextHistory)) return;
+
+    await UserService.updateUser(student.id, {
+      completedClassrooms: nextHistory,
+    });
+  }
+
+  /**
    * Determine student status based on grade
    */
   private static determineStudentStatus(grade: number): 'completed' | 'failed' {
@@ -211,11 +245,7 @@ export class ClassroomRestartService {
    * Calculate attendance rate from evaluation
    */
   private static calculateAttendanceRate(evaluation?: IStudentEvaluation): number {
-    if (!evaluation?.attendanceRecords || evaluation.attendanceRecords.length === 0) {
-      return 0;
-    }
-    const present = evaluation.attendanceRecords.filter(r => r.isPresent).length;
-    return (present / evaluation.attendanceRecords.length) * 100;
+    return EvaluationService.calculateAttendanceScore(evaluation?.attendanceRecords || []);
   }
 
   /**

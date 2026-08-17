@@ -6,6 +6,7 @@ import { UserService } from '../../../services/user/user.service';
 import { EvaluationService } from '../../../services/evaluation/evaluation.service';
 import { ProgramService } from '../../../services/program/program.service';
 import { createBarChartImage } from '../utils/chartToImage';
+import { recalculateClassroomReportEvaluations } from '../utils/classroomReportEvaluations';
 
 interface ClassroomReportPdfDownloadButtonProps {
   classroom: IClassroom;
@@ -35,7 +36,8 @@ export const ClassroomReportPdfDownloadButton: React.FC<ClassroomReportPdfDownlo
         }
 
         // Fetch evaluations
-        const evaluations = await EvaluationService.getClassroomEvaluations(classroom.id);
+        const storedEvaluations = await EvaluationService.getClassroomEvaluations(classroom.id);
+        const evaluations = recalculateClassroomReportEvaluations(storedEvaluations, classroom);
 
         // Fetch students
         const studentUsers = await UserService.getUsersByIds(classroom.studentIds || []);

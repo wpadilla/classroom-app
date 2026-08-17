@@ -19,6 +19,7 @@ import {
   IModule,
   IStudentEvaluation,
   IAttendanceRecord,
+  AttendanceStatus,
   IClassroomResource,
   IClassroomPaymentCost,
   IClassroomPaymentCostItem,
@@ -79,7 +80,7 @@ const ClassroomManagement: React.FC = () => {
   const [isFinalized, setIsFinalized] = useState(false);
 
   // Attendance state - Now per module
-  const [attendanceRecords, setAttendanceRecords] = useState<Map<string, boolean>>(new Map());
+  const [attendanceRecords, setAttendanceRecords] = useState<Map<string, AttendanceStatus>>(new Map());
   const attendanceSelection = useSelection();
   const [bulkAttendanceOpen, setBulkAttendanceOpen] = useState(false);
 
@@ -140,7 +141,7 @@ const ClassroomManagement: React.FC = () => {
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
 
   const evaluationsRef = useRef<Map<string, IStudentEvaluation>>(new Map());
-  const attendanceRecordsRef = useRef<Map<string, boolean>>(new Map());
+  const attendanceRecordsRef = useRef<Map<string, AttendanceStatus>>(new Map());
   const participationTotalsRef = useRef<Map<string, number>>(new Map());
   const evaluationWriteQueuesRef = useRef<Map<string, Promise<void>>>(new Map());
 
@@ -149,7 +150,7 @@ const ClassroomManagement: React.FC = () => {
     setEvaluations(next);
   }, []);
 
-  const replaceAttendanceRecords = useCallback((next: Map<string, boolean>) => {
+  const replaceAttendanceRecords = useCallback((next: Map<string, AttendanceStatus>) => {
     attendanceRecordsRef.current = next;
     setAttendanceRecords(next);
   }, []);
@@ -242,6 +243,22 @@ const ClassroomManagement: React.FC = () => {
     return totalModules * pointsPerModule;
   }, [classroom]);
 
+  const recalculateEvaluation = useCallback((evaluation: IStudentEvaluation): IStudentEvaluation => {
+    if (!classroom?.evaluationCriteria) return evaluation;
+
+    const recalculated = EvaluationService.calculateFinalGrade(
+      evaluation,
+      classroom.evaluationCriteria,
+      classroom.modules?.length || 8
+    );
+
+    return {
+      ...recalculated,
+      status: evaluation.status,
+      evaluatedAt: evaluation.evaluatedAt,
+    };
+  }, [classroom]);
+
   const completedModules = useMemo(
     () => classroom?.modules.filter((module) => module.isCompleted).length || 0,
     [classroom]
@@ -326,7 +343,7 @@ const ClassroomManagement: React.FC = () => {
         null;
       setCurrentModule(activeModule);
 
-      const attendanceMap = new Map<string, boolean>();
+      const attendanceMap = new Map<string, AttendanceStatus>();
       const participationMap = new Map<string, number>();
 
       evaluationsData.forEach((evaluation) => {
@@ -360,7 +377,7 @@ const ClassroomManagement: React.FC = () => {
   const loadModuleAttendance = useCallback(() => {
     if (!currentModule) return;
 
-    const attendanceMap = new Map<string, boolean>();
+    const attendanceMap = new Map<string, AttendanceStatus>();
 
     evaluations.forEach((evaluation, studentId) => {
       const moduleAttendance = evaluation.attendanceRecords?.find(
@@ -385,6 +402,103 @@ const ClassroomManagement: React.FC = () => {
 
     replaceParticipationTotals(totalsMap);
   }, [evaluations, replaceParticipationTotals]);
+
+  const initializeModuleAttendance = useCallback(async (module: IModule) => {
+    if (!id || !user || isFinalized || students.length === 0) return;
+
+    const now = new Date();
+    const nextAttendance = new Map<string, AttendanceStatus>();
+    const nextEvaluations = new Map(evaluationsRef.current);
+    const missingStudentIds: string[] = [];
+
+    students.forEach((student) => {
+      const evaluation = nextEvaluations.get(student.id) || buildOptimisticEvaluation(student.id, {
+        moduleId: module.id,
+      });
+      const attendanceRecords = [...(evaluation.attendanceRecords || [])];
+      const existingIndex = attendanceRecords.findIndex((record) => record.moduleId === module.id);
+      const existingRecord = existingIndex >= 0 ? attendanceRecords[existingIndex] : undefined;
+
+      if (existingRecord?.isPresent !== undefined) {
+        nextAttendance.set(student.id, existingRecord.isPresent);
+        nextEvaluations.set(student.id, evaluation);
+        return;
+      }
+
+      const defaultAbsentRecord: IAttendanceRecord = {
+        moduleId: module.id,
+        studentId: student.id,
+        isPresent: false,
+        date: existingRecord?.date || module.date || now,
+        markedBy: user.id,
+        markedAt: now,
+      };
+
+      if (existingIndex >= 0) {
+        attendanceRecords[existingIndex] = defaultAbsentRecord;
+      } else {
+        attendanceRecords.push(defaultAbsentRecord);
+      }
+      const attendanceScore = (
+        EvaluationService.calculateAttendanceScore(attendanceRecords) / 100
+      ) * (classroom?.evaluationCriteria.attendance || 0);
+
+      missingStudentIds.push(student.id);
+      nextAttendance.set(student.id, false);
+      nextEvaluations.set(student.id, recalculateEvaluation({
+        ...evaluation,
+        moduleId: evaluation.moduleId || module.id,
+        attendanceRecords,
+        scores: {
+          ...evaluation.scores,
+          attendance: attendanceScore,
+        },
+        updatedAt: now,
+      }));
+    });
+
+    replaceAttendanceRecords(nextAttendance);
+    replaceEvaluations(nextEvaluations);
+
+    if (missingStudentIds.length === 0) return;
+
+    try {
+      await Promise.all(
+        missingStudentIds.map((studentId) =>
+          enqueueEvaluationWrite(studentId, async () => {
+            const persistedEvaluation = await EvaluationService.saveAttendanceState(
+              studentId,
+              id,
+              module.id,
+              false,
+              user.id,
+              evaluationsRef.current.get(studentId),
+              classroom?.evaluationCriteria,
+              classroom?.modules.length || 8
+            );
+            mergePersistedEvaluation(studentId, persistedEvaluation);
+          })
+        )
+      );
+    } catch (error) {
+      console.error('Error initializing module attendance:', error);
+      toast.error('No se pudo inicializar la asistencia del módulo');
+      await loadClassroomData();
+    }
+  }, [
+    buildOptimisticEvaluation,
+    classroom?.evaluationCriteria.attendance,
+    enqueueEvaluationWrite,
+    id,
+    isFinalized,
+    loadClassroomData,
+    mergePersistedEvaluation,
+    replaceAttendanceRecords,
+    replaceEvaluations,
+    recalculateEvaluation,
+    students,
+    user,
+  ]);
 
   const buildDefaultCostItems = (targetClassroom: IClassroom, monthlyFee?: number) => {
     const items: IClassroomPaymentCostItem[] = [];
@@ -472,6 +586,12 @@ const ClassroomManagement: React.FC = () => {
       loadParticipationTotals();
     }
   }, [currentModule, evaluations, loadModuleAttendance, loadParticipationTotals]);
+
+  useEffect(() => {
+    if (!loading && currentModule) {
+      void initializeModuleAttendance(currentModule);
+    }
+  }, [currentModule, initializeModuleAttendance, loading]);
 
   const getPaymentMethodLabel = (method: PaymentMethod) => {
     const map: Record<PaymentMethod, string> = {
@@ -860,7 +980,7 @@ const ClassroomManagement: React.FC = () => {
     }
   };
 
-  const handleAttendanceChange = async (studentId: string, isPresent: boolean) => {
+  const handleAttendanceChange = async (studentId: string, isPresent: boolean | null) => {
     if (!id || !currentModule || !user) return;
 
     const previousAttendance = attendanceRecordsRef.current.get(studentId);
@@ -889,16 +1009,17 @@ const ClassroomManagement: React.FC = () => {
         updatedRecords.push(newRecord);
       }
 
-      return {
+      return recalculateEvaluation({
         ...evaluation,
         moduleId: evaluation.moduleId || currentModule.id,
         attendanceRecords: updatedRecords,
         scores: {
           ...evaluation.scores,
-          attendance: EvaluationService.calculateAttendanceScore(updatedRecords),
+          attendance: (EvaluationService.calculateAttendanceScore(updatedRecords) / 100) *
+            (classroom?.evaluationCriteria.attendance || 0),
         },
         updatedAt: now,
-      };
+      });
     });
 
     try {
@@ -909,7 +1030,9 @@ const ClassroomManagement: React.FC = () => {
           currentModule.id,
           isPresent,
           user.id,
-          evaluationsRef.current.get(studentId)
+          evaluationsRef.current.get(studentId),
+          classroom?.evaluationCriteria,
+          classroom?.modules.length || 8
         );
         mergePersistedEvaluation(studentId, persistedEvaluation);
       });
@@ -959,16 +1082,17 @@ const ClassroomManagement: React.FC = () => {
         updatedRecords.push(newRecord);
       }
 
-      nextEvaluations.set(studentId, {
+      nextEvaluations.set(studentId, recalculateEvaluation({
         ...evaluation,
         moduleId: evaluation.moduleId || currentModule.id,
         attendanceRecords: updatedRecords,
         scores: {
           ...evaluation.scores,
-          attendance: EvaluationService.calculateAttendanceScore(updatedRecords),
+          attendance: (EvaluationService.calculateAttendanceScore(updatedRecords) / 100) *
+            (classroom?.evaluationCriteria.attendance || 0),
         },
         updatedAt: now,
-      });
+      }));
     });
     replaceEvaluations(nextEvaluations);
 
@@ -985,7 +1109,9 @@ const ClassroomManagement: React.FC = () => {
               currentModule.id,
               isPresent,
               user.id,
-              evaluationsRef.current.get(studentId)
+              evaluationsRef.current.get(studentId),
+              classroom?.evaluationCriteria,
+              classroom?.modules.length || 8
             );
             mergePersistedEvaluation(studentId, persistedEvaluation);
           });
@@ -1036,11 +1162,11 @@ const ClassroomManagement: React.FC = () => {
 
     updateStudentEvaluation(studentId, (current) => {
       const evaluation = current || buildOptimisticEvaluation(studentId);
-      return {
+      return recalculateEvaluation({
         ...evaluation,
         participationPoints: newPoints,
         updatedAt: new Date(),
-      };
+      });
     });
 
     try {
@@ -1049,7 +1175,9 @@ const ClassroomManagement: React.FC = () => {
           studentId,
           id,
           newPoints,
-          evaluationsRef.current.get(studentId)
+          evaluationsRef.current.get(studentId),
+          classroom?.evaluationCriteria,
+          classroom?.modules.length || 8
         );
         mergePersistedEvaluation(studentId, persistedEvaluation);
       });
@@ -1135,12 +1263,7 @@ const ClassroomManagement: React.FC = () => {
 
   const getStudentAttendanceRate = (studentId: string): number => {
     const evaluation = evaluations.get(studentId);
-    if (!evaluation?.attendanceRecords || evaluation.attendanceRecords.length === 0) {
-      return 0;
-    }
-
-    const present = evaluation.attendanceRecords.filter(r => r.isPresent).length;
-    return (present / evaluation.attendanceRecords.length) * 100;
+    return EvaluationService.calculateAttendanceScore(evaluation?.attendanceRecords || []);
   };
 
   const handleToggleStudentStatus = async (studentId: string, currentStatus: boolean) => {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Badge, Button, Card, CardBody, Col, FormGroup, Input, Label, Row, Spinner, Table } from 'reactstrap';
 import { IClassroom, IClassroomHistory, IProgram, IUser } from '../../../../models';
+import { formatStudentGrade } from '../../../../services/evaluation/evaluation-history.utils';
 
 interface HistoryTabProps {
   currentUser: IUser;
@@ -81,7 +82,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                       return (
                         <optgroup key={program.id} label={program.name}>
                           {availableClassrooms.map(c => (
-                            <option key={c.id} value={c.id}>{c.subject}</option>
+                            <option key={c.id} value={c.id}>{c.subject} | {c.name}</option>
                           ))}
                         </optgroup>
                       );
@@ -163,8 +164,8 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
             </tr>
           </thead>
           <tbody>
-            {currentUser.completedClassrooms?.map((entry, idx) => (
-              <tr key={idx}>
+            {currentUser.completedClassrooms?.map((entry) => (
+              <tr key={`${entry.classroomId}-${entry.role}`}>
                 <td>{entry.classroomName}</td>
                 <td><small className="text-muted">{entry.programName}</small></td>
                 <td>{new Date(entry.enrollmentDate).toLocaleDateString()}</td>
@@ -172,7 +173,7 @@ const HistoryTab: React.FC<HistoryTabProps> = ({
                 <td>
                   {entry.finalGrade !== undefined && (
                     <Badge color={getGradeColor(entry.finalGrade)}>
-                      {entry.finalGrade}%
+                      {formatStudentGrade(entry.finalGrade)}%
                     </Badge>
                   )}
                 </td>

@@ -10,6 +10,7 @@ import {
   ISession, 
   IRegistrationData 
 } from '../../models';
+import { ClassroomEnrollmentService } from '../classroom/classroom-enrollment.service';
 
 export class AuthService {
   private static SESSION_KEY = 'classroom_app_session';
@@ -162,7 +163,7 @@ export class AuthService {
         academicLevel: data.academicLevel,
         pastor: data.pastor,
         enrollmentType: data.enrollmentType,
-        enrolledClassrooms: data.classroomToEnroll ? [data.classroomToEnroll] : [],
+        enrolledClassrooms: [],
         completedClassrooms: [],
         teachingClassrooms: [],
         taughtClassrooms: [],
@@ -175,8 +176,16 @@ export class AuthService {
 
       const userId = await FirebaseService.createDocument(COLLECTIONS.USERS, newUser);
 
+      if (data.classroomToEnroll) {
+        await ClassroomEnrollmentService.enrollStudent(data.classroomToEnroll, userId);
+      }
+
       // Create session
-      const userWithId = { ...newUser, id: userId } as IUser;
+      const userWithId = {
+        ...newUser,
+        id: userId,
+        enrolledClassrooms: data.classroomToEnroll ? [data.classroomToEnroll] : [],
+      } as IUser;
       const session = await this.createSession(userWithId);
 
       // Store session

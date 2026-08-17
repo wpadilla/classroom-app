@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Button } from 'reactstrap';
-import { IUser, IModule } from '../../../../models';
+import { AttendanceStatus, IUser, IModule } from '../../../../models';
 import { DataTable } from '../../../../components/common';
 import { EmptyState, Switch } from '../../../../components/mobile';
 import StatStrip, { StatItem } from '../../../../components/student/StatStrip';
@@ -10,12 +10,12 @@ interface ClassroomAttendanceSectionProps {
   students: IUser[];
   currentModule: IModule | null;
   isFinalized: boolean;
-  attendanceRecords: Map<string, boolean>;
+  attendanceRecords: Map<string, AttendanceStatus>;
   selectedIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
   onOpenBulkAttendance: () => void;
   onClearSelection: () => void;
-  onAttendanceChange: (studentId: string, isPresent: boolean) => void;
+  onAttendanceChange: (studentId: string, status: boolean | null) => void;
 }
 
 const ClassroomAttendanceSection: React.FC<ClassroomAttendanceSectionProps> = ({
@@ -32,11 +32,18 @@ const ClassroomAttendanceSection: React.FC<ClassroomAttendanceSectionProps> = ({
   const stats = useMemo<StatItem[]>(() => {
     const presentCount = Array.from(attendanceRecords.values()).filter((value) => value === true).length;
     const absentCount = Array.from(attendanceRecords.values()).filter((value) => value === false).length;
+    const excusedCount = Array.from(attendanceRecords.values()).filter((value) => value === null).length;
+    const unassignedCount = Math.max(
+      students.length - presentCount - absentCount - excusedCount,
+      0
+    );
 
     return [
       { icon: 'bi-people', label: 'Total', value: students.length, color: 'blue' },
       { icon: 'bi-check-circle', label: 'Presentes', value: presentCount, color: 'green' },
       { icon: 'bi-x-circle', label: 'Ausentes', value: absentCount, color: 'red' },
+      { icon: 'bi-file-earmark-check', label: 'Excusas', value: excusedCount, color: 'amber' },
+      { icon: 'bi-clock', label: 'Sin asignar', value: unassignedCount, color: 'blue' },
     ];
   }, [attendanceRecords, students.length]);
 
@@ -63,7 +70,7 @@ const ClassroomAttendanceSection: React.FC<ClassroomAttendanceSectionProps> = ({
 
         {students.length > 0 ? (
           <div className="mb-4">
-            <StatStrip stats={stats} columns={3} />
+            <StatStrip stats={stats} columns={5} />
           </div>
         ) : null}
 
@@ -85,22 +92,51 @@ const ClassroomAttendanceSection: React.FC<ClassroomAttendanceSectionProps> = ({
             {
               header: 'Asistencia',
               accessor: (student) => attendanceRecords.get(student.id),
-              width: '160px',
+              width: '280px',
               align: 'center',
-              render: (isPresent, student) => (
-                <div className="flex items-center justify-center gap-2">
-                  <span className="hidden text-xs text-slate-500 md:inline">
-                    {isPresent === true ? 'Presente' : isPresent === false ? 'Ausente' : 'Sin marcar'}
-                  </span>
-                  <Switch
-                    checked={isPresent === true}
-                    onChange={(checked) => onAttendanceChange(student.id, checked)}
-                    disabled={isFinalized}
-                    onColor="bg-success"
-                    offColor="bg-danger"
-                  />
-                </div>
-              ),
+              render: (isPresent, student) => {
+                const isExcused = isPresent === null;
+
+                return (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <span className="min-w-[64px] text-xs text-slate-500">
+                      {isPresent === true
+                        ? 'Presente'
+                        : isPresent === false
+                        ? 'Ausente'
+                        : isExcused
+                        ? 'Excusa'
+                        : 'Sin marcar'}
+                    </span>
+                    <Switch
+                      checked={isPresent === true}
+                      onChange={(checked) => onAttendanceChange(student.id, checked)}
+                      disabled={isFinalized || isExcused}
+                      ariaLabel={`Marcar a ${student.firstName} ${student.lastName} como ${
+                        isPresent === true ? 'ausente' : 'presente'
+                      }`}
+                      onColor="bg-success"
+                      offColor="bg-danger"
+                    />
+                    <label className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                      isExcused
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={isExcused}
+                        onChange={(event) =>
+                          onAttendanceChange(student.id, event.target.checked ? null : false)
+                        }
+                        disabled={isFinalized}
+                        className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                      />
+                      Excusa
+                    </label>
+                  </div>
+                );
+              },
             },
           ]}
           keyExtractor={(student) => student.id}

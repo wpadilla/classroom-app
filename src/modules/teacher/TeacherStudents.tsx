@@ -159,18 +159,10 @@ const TeacherStudents: React.FC = () => {
   const getStudentAttendanceRate = (studentId: string): number => {
     const studentEvaluations = evaluations.get(studentId) || [];
     if (studentEvaluations.length === 0) return 0;
-    
-    let totalPresent = 0;
-    let totalRecords = 0;
-    
-    studentEvaluations.forEach(evaluation => {
-      if (evaluation.attendanceRecords) {
-        totalPresent += evaluation.attendanceRecords.filter(r => r.isPresent).length;
-        totalRecords += evaluation.attendanceRecords.length;
-      }
-    });
-    
-    return totalRecords > 0 ? (totalPresent / totalRecords) * 100 : 0;
+
+    return EvaluationService.calculateAttendanceScore(
+      studentEvaluations.flatMap((evaluation) => evaluation.attendanceRecords || [])
+    );
   };
 
   const getStudentParticipation = (studentId: string): number => {
@@ -615,16 +607,23 @@ const TeacherStudents: React.FC = () => {
                             e => e.classroomId === classroom.id
                           );
                           const attendanceCount = classroomEval?.attendanceRecords?.filter(
-                            r => r.isPresent
+                            r => r.isPresent === true
                           ).length || 0;
-                          const totalRecords = classroomEval?.attendanceRecords?.length || 0;
+                          const totalRecords = classroomEval?.attendanceRecords?.filter(
+                            r => r.isPresent === true || r.isPresent === false
+                          ).length || 0;
+                          const excusedCount = classroomEval?.attendanceRecords?.filter(
+                            r => r.isPresent === null
+                          ).length || 0;
                           
                           return (
                             <td key={classroom.id} className="text-center">
                               {totalRecords > 0 ? (
                                 <Badge color={attendanceCount >= totalRecords * 0.8 ? 'success' : 'warning'}>
-                                  {attendanceCount}/{totalRecords}
+                                  {attendanceCount}/{totalRecords}{excusedCount > 0 ? ` · ${excusedCount}E` : ''}
                                 </Badge>
+                              ) : excusedCount > 0 ? (
+                                <Badge color="info">{excusedCount}E</Badge>
                               ) : (
                                 <Badge color="secondary">N/A</Badge>
                               )}

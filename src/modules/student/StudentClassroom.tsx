@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import GradeRing from '../../components/student/GradeRing';
 import SectionHeader from '../../components/student/SectionHeader';
 import { BottomDrawer } from '../../components/mobile/BottomDrawer';
+import { StudentClassroomManagementService } from '../../services/student/student-classroom-management.service';
 
 const StudentClassroom: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,10 +40,18 @@ const StudentClassroom: React.FC = () => {
         return;
       }
 
-      if (!classroomData.studentIds?.includes(user.id)) {
+      const hasEnrollment = await StudentClassroomManagementService.ensureStudentEnrollmentForAccess(
+        user.id,
+        classroomData
+      );
+      if (!hasEnrollment) {
         toast.error('No estás inscrito en esta clase');
         navigate('/student/dashboard');
         return;
+      }
+
+      if (!classroomData.studentIds?.includes(user.id)) {
+        classroomData.studentIds = [...(classroomData.studentIds || []), user.id];
       }
 
       setClassroom(classroomData);
@@ -83,9 +92,7 @@ const StudentClassroom: React.FC = () => {
   };
 
   const getAttendanceRate = (): number => {
-    if (!evaluation?.attendanceRecords || evaluation.attendanceRecords.length === 0) return 0;
-    const present = evaluation.attendanceRecords.filter((r) => r.isPresent).length;
-    return (present / evaluation.attendanceRecords.length) * 100;
+    return EvaluationService.calculateAttendanceScore(evaluation?.attendanceRecords || []);
   };
 
   const getParticipationPoints = (): number => {
@@ -335,7 +342,7 @@ const StudentClassroom: React.FC = () => {
             {classroom.modules.map((module, index) => {
               const status = getModuleStatus(module);
               const attendanceRecord = evaluation?.attendanceRecords?.find(
-                (r) => r.moduleId === module.weekNumber.toString()
+                (r) => r.moduleId === module.id || r.moduleId === module.weekNumber.toString()
               );
               const participationRecord = evaluation?.participationRecords?.find(
                 (r) => r.moduleId === module.weekNumber.toString()
@@ -392,12 +399,18 @@ const StudentClassroom: React.FC = () => {
                           {attendanceRecord && (
                             <span
                               className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                                attendanceRecord.isPresent
+                                attendanceRecord.isPresent === true
                                   ? 'bg-emerald-50 text-emerald-600'
+                                  : attendanceRecord.isPresent === null
+                                  ? 'bg-amber-50 text-amber-700'
                                   : 'bg-red-50 text-red-600'
                               }`}
                             >
-                              {attendanceRecord.isPresent ? '✓' : '✗'}
+                              {attendanceRecord.isPresent === true
+                                ? '✓'
+                                : attendanceRecord.isPresent === null
+                                ? 'E'
+                                : '✗'}
                             </span>
                           )}
                           {participationRecord && participationRecord.points > 0 && (

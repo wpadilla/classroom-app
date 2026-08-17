@@ -68,6 +68,7 @@ export class ProgramEnrollmentService {
       userId,
       desiredClassroomIds: [classroomId],
       managedClassroomIds,
+      managedClassrooms: classrooms,
     });
 
     await UserService.updateUser(userId, {

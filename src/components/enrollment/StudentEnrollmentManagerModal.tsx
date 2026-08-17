@@ -40,12 +40,14 @@ interface StudentEnrollmentManagerModalProps {
   onSaved?: () => Promise<void> | void;
 }
 
+const EMPTY_PROGRAM_NAMES_BY_ID: Record<string, string> = {};
+
 const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps> = ({
   isOpen,
   onClose,
   students,
   classrooms,
-  programNamesById = {},
+  programNamesById = EMPTY_PROGRAM_NAMES_BY_ID,
   mode = 'sync',
   title,
   description,
@@ -129,6 +131,7 @@ const StudentEnrollmentManagerModal: React.FC<StudentEnrollmentManagerModalProps
           userIds: students.map((student) => student.id),
           desiredClassroomIds: selectedClassroomIds,
           managedClassroomIds: classrooms.map((classroom) => classroom.id),
+          managedClassrooms: classrooms,
         });
       }
 

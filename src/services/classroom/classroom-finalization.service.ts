@@ -231,8 +231,13 @@ export class ClassroomFinalizationService {
       const program = await ProgramService.getProgramById(classroom.programId);
       const programName = program?.name || 'Programa sin nombre';
 
-      // Get all evaluations
-      const evaluations = await EvaluationService.getClassroomEvaluations(classroomId);
+      // Recalculate from the source scores before copying grades to history.
+      // Stored percentages can be stale when attendance or participation changed.
+      const storedEvaluations = await EvaluationService.getClassroomEvaluations(classroomId);
+      const evaluations = await EvaluationService.recalculateAndPersistClassroomEvaluations(
+        classroom,
+        storedEvaluations
+      );
 
       // Process each student
       const completionDate = options.customCompletionDate || new Date();
@@ -581,8 +586,19 @@ export class ClassroomFinalizationService {
         throw new Error('Classroom not found');
       }
 
-      const evaluations = await EvaluationService.getClassroomEvaluations(classroomId);
-      const evaluatedOnes = evaluations.filter(e => e.status === 'evaluated');
+      const storedEvaluations = await EvaluationService.getClassroomEvaluations(classroomId);
+      const evaluatedStudentIds = new Set(
+        storedEvaluations
+          .filter((evaluation) => evaluation.status === 'evaluated')
+          .map((evaluation) => evaluation.studentId)
+      );
+      const evaluations = EvaluationService.recalculateClassroomEvaluations(
+        storedEvaluations,
+        classroom
+      );
+      const evaluatedOnes = evaluations.filter((evaluation) =>
+        evaluatedStudentIds.has(evaluation.studentId)
+      );
 
       const passed = evaluatedOnes.filter(e => (e.percentage || 0) >= 70).length;
       const failed = evaluatedOnes.filter(e => (e.percentage || 0) < 70).length;

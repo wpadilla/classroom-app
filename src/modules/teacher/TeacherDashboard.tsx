@@ -111,9 +111,8 @@ const TeacherDashboard: React.FC = () => {
     let totalAttendance = 0;
     let attendanceCount = 0;
     evaluations.forEach(evaluation => {
-      if (evaluation.attendanceRecords && evaluation.attendanceRecords.length > 0) {
-        const presentCount = evaluation.attendanceRecords.filter(r => r.isPresent).length;
-        totalAttendance += (presentCount / evaluation.attendanceRecords.length) * 100;
+      if (evaluation.attendanceRecords?.length > 0) {
+        totalAttendance += EvaluationService.calculateAttendanceScore(evaluation.attendanceRecords);
         attendanceCount++;
       }
     });

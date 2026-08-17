@@ -24,6 +24,7 @@ export interface SwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label?: string;
+  ariaLabel?: string;
   disabled?: boolean;
   onColor?: string;
   offColor?: string;
@@ -35,6 +36,7 @@ export const Switch: React.FC<SwitchProps> = ({
   checked,
   onChange,
   label,
+  ariaLabel,
   disabled = false,
   onColor = 'bg-primary',
   offColor = 'bg-neutral-300',
@@ -66,7 +68,7 @@ export const Switch: React.FC<SwitchProps> = ({
         onChange={() => onChange(!checked)}
         disabled={disabled}
         className="sr-only"
-        aria-label={label}
+        aria-label={ariaLabel || label}
       />
 
       {/* Switch Button */}
@@ -74,7 +76,7 @@ export const Switch: React.FC<SwitchProps> = ({
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        aria-label={ariaLabel || label}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
         disabled={disabled}

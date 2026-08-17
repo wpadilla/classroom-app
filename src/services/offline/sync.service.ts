@@ -85,7 +85,10 @@ export class SyncService {
     const { studentData, classroomId } = operation.data;
     
     // Create the student in Firebase
-    const studentId = await UserService.createUser(studentData);
+    const studentId = await UserService.createUser({
+      ...studentData,
+      enrolledClassrooms: [],
+    });
     
     // Add student to classroom
     if (classroomId) {

@@ -19,6 +19,9 @@ export interface IEvaluationCriteria {
   // Validation: Total must equal 100
 }
 
+export type AttendanceStatus = boolean | null | undefined;
+export type RecordedAttendanceStatus = Exclude<AttendanceStatus, undefined>;
+
 // Student evaluation for a specific classroom
 export interface IStudentEvaluation {
   id: string;
@@ -60,7 +63,7 @@ export interface IStudentEvaluation {
 export interface IAttendanceRecord {
   moduleId: string;
   studentId: string;
-  isPresent: boolean;
+  isPresent: AttendanceStatus;
   date: Date;
   markedBy: string; // Teacher ID
   markedAt: Date;

@@ -1,6 +1,6 @@
 // Complete User Management Module for Admins
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Container,
   Row,
@@ -34,25 +34,31 @@ import { toast } from 'react-toastify';
 import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { ProgramService } from '../../services/program/program.service';
-import { IUser, UserRole, IClassroom, IProgram } from '../../models';
+import { EvaluationService } from '../../services/evaluation/evaluation.service';
+import { IUser, UserRole, IClassroom, IProgram, IStudentEvaluation } from '../../models';
 import BulkOperationsToolbar from './components/BulkOperationsToolbar';
 import UserDetailModal from './components/UserDetailModal';
 import StudentImporter from './components/StudentImporter';
 import { UserProfilePdfDownloadButton } from '../../components/pdf/components/UserProfilePdfDownloadButton';
 import StudentEnrollmentManagerModal from '../../components/enrollment/StudentEnrollmentManagerModal';
 import DataTable, { Column } from '../../components/common/DataTable';
-import UserFiltersModal, { UserFilters, defaultUserFilters } from './components/UserFiltersModal';
-import { UserListPdfDocument } from '../../components/pdf/UserListPdfDocument';
-import { pdf } from '@react-pdf/renderer';
+import UserFiltersModal from './components/UserFiltersModal';
+import {
+  UserFilters,
+  buildEvaluationsByStudent,
+  countActiveUserFilters,
+  defaultUserFilters,
+  filterAndSortUsers,
+  getUserAcademicMetrics,
+} from './utils/userFilters';
 import { saveAs } from 'file-saver';
-import * as XLSX from 'xlsx';
 
 const UserManagement: React.FC = () => {
   // State
   const [users, setUsers] = useState<IUser[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<IUser[]>([]);
   const [classrooms, setClassrooms] = useState<IClassroom[]>([]);
   const [programs, setPrograms] = useState<IProgram[]>([]);
+  const [evaluations, setEvaluations] = useState<IStudentEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<UserFilters>(defaultUserFilters);
@@ -86,14 +92,16 @@ const UserManagement: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [usersList, classroomsList, programsList] = await Promise.all([
+      const [usersList, classroomsList, programsList, evaluationsList] = await Promise.all([
         UserService.getAllUsers(),
         ClassroomService.getAllClassrooms(),
-        ProgramService.getAllPrograms()
+        ProgramService.getAllPrograms(),
+        EvaluationService.getAllEvaluations(),
       ]);
       setUsers(usersList);
       setClassrooms(classroomsList);
       setPrograms(programsList);
+      setEvaluations(evaluationsList);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar los datos');
@@ -102,76 +110,52 @@ const UserManagement: React.FC = () => {
     }
   }, []);
 
-  const filterUsers = useCallback(() => {
-    let filtered = [...users];
+  const evaluationsByStudent = useMemo(
+    () => buildEvaluationsByStudent(evaluations),
+    [evaluations]
+  );
 
-    // General Filters
-    if (filters.role !== 'all') {
-      if (filters.role === 'teacher') {
-        filtered = filtered.filter(u => u.isTeacher);
-      } else {
-        filtered = filtered.filter(u => u.role === filters.role);
-      }
-    }
+  const academicMetricsByUser = useMemo(
+    () => new Map(
+      users.map((user) => [
+        user.id,
+        getUserAcademicMetrics(user, evaluationsByStudent.get(user.id) || []),
+      ])
+    ),
+    [evaluationsByStudent, users]
+  );
 
-    if (filters.isActive !== 'all') {
-      filtered = filtered.filter(u => u.isActive === (filters.isActive === 'true'));
-    }
+  const filteredUsers = useMemo(
+    () => filterAndSortUsers({ users, classrooms, evaluations, filters, searchQuery }),
+    [classrooms, evaluations, filters, searchQuery, users]
+  );
 
-    if (filters.enrollmentType !== 'all') {
-      filtered = filtered.filter(u => u.enrollmentType === filters.enrollmentType);
-    }
+  const enrollmentTypes = useMemo(
+    () => Array.from(users.reduce((types, user) => {
+      const enrollmentType = user.enrollmentType?.trim();
+      if (enrollmentType) types.add(enrollmentType);
+      return types;
+    }, new Set<string>())).sort((left, right) => left.localeCompare(right, 'es')),
+    [users]
+  );
 
-    if (filters.historyStatus !== 'all') {
-      if (filters.historyStatus === 'no-history') {
-        filtered = filtered.filter(u => 
-          (!u.completedClassrooms || u.completedClassrooms.length === 0) &&
-          (!u.enrolledClassrooms || u.enrolledClassrooms.length === 0)
-        );
-      } else if (filters.historyStatus === 'has-history') {
-        filtered = filtered.filter(u => 
-          (u.completedClassrooms && u.completedClassrooms.length > 0) ||
-          (u.enrolledClassrooms && u.enrolledClassrooms.length > 0)
-        );
-      }
-    }
-
-    if (filters.activeEnrollments !== 'all') {
-      if (filters.activeEnrollments === 'zero') {
-        filtered = filtered.filter(u => !u.enrolledClassrooms || u.enrolledClassrooms.length === 0);
-      } else if (filters.activeEnrollments === 'one-or-more') {
-        filtered = filtered.filter(u => u.enrolledClassrooms && u.enrolledClassrooms.length > 0);
-      }
-    }
-
-    // Program filter
-    if (filters.programId !== '') {
-      const programClassroomIds = classrooms
-        .filter(c => c.programId === filters.programId)
-        .map(c => c.id);
-      filtered = filtered.filter(u => 
-        (u.enrolledClassrooms || []).some(cId => programClassroomIds.includes(cId))
-      );
-    }
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(u => {
-        const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
-        const phone = u.phone.toLowerCase();
-        const email = (u.email || '').toLowerCase();
-        return fullName.includes(query) || phone.includes(query) || email.includes(query);
-      });
-    }
-
-    setFilteredUsers(filtered);
-  }, [filters, classrooms, searchQuery, users]);
-
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     try {
       setExporting(true);
+      const XLSX = await import('xlsx');
       const dataToExport = filteredUsers.map(u => ({
+        ...(() => {
+          const metrics = academicMetricsByUser.get(u.id);
+          return {
+            Indice_General: metrics?.generalIndex !== null && metrics?.generalIndex !== undefined
+              ? Number(metrics.generalIndex.toFixed(1))
+              : 'N/A',
+            Clases_Cursadas: u.completedClassrooms?.length || 0,
+            Asistencia_General: metrics?.attendanceRate !== null && metrics?.attendanceRate !== undefined
+              ? `${metrics.attendanceRate.toFixed(1)}%`
+              : 'N/A',
+          };
+        })(),
         ID: u.id,
         Nombres: u.firstName,
         Apellidos: u.lastName,
@@ -203,7 +187,11 @@ const UserManagement: React.FC = () => {
     try {
       setExporting(true);
       toast.info('Generando PDF, por favor espere...', { autoClose: 2000 });
-      
+
+      const [{ pdf }, { UserListPdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('../../components/pdf/UserListPdfDocument'),
+      ]);
       const blob = await pdf(<UserListPdfDocument users={filteredUsers} />).toBlob();
       saveAs(blob, 'reporte_usuarios_amoa.pdf');
       
@@ -221,7 +209,12 @@ const UserManagement: React.FC = () => {
       header: 'Foto',
       width: '60px',
       render: (_, user) => (
-        <div style={{ cursor: 'pointer' }} onClick={() => handleOpenDetailModal(user)}>
+        <button
+          type="button"
+          className="btn btn-link p-0 border-0"
+          onClick={() => handleOpenDetailModal(user)}
+          aria-label={`Ver detalles de ${user.firstName} ${user.lastName}`}
+        >
           {user.profilePhoto ? (
             <img
               src={user.profilePhoto}
@@ -237,16 +230,20 @@ const UserManagement: React.FC = () => {
               <i className="bi bi-person-fill text-white"></i>
             </div>
           )}
-        </div>
+        </button>
       )
     },
     {
       header: 'Nombre',
       accessor: 'firstName',
       render: (_, user) => (
-        <div style={{ cursor: 'pointer' }} onClick={() => handleOpenDetailModal(user)}>
+        <button
+          type="button"
+          className="btn btn-link p-0 text-start text-decoration-none border-0"
+          onClick={() => handleOpenDetailModal(user)}
+        >
           <span className="text-primary fw-semibold">{user.firstName} {user.lastName}</span>
-        </div>
+        </button>
       )
     },
     { header: 'Teléfono', accessor: 'phone' },
@@ -260,6 +257,28 @@ const UserManagement: React.FC = () => {
           {user.role === 'student' && !user.isTeacher && <Badge color="primary">Estudiante</Badge>}
         </div>
       )
+    },
+    {
+      header: 'Índice',
+      align: 'center',
+      render: (_, user) => {
+        const metrics = academicMetricsByUser.get(user.id);
+        if (metrics?.generalIndex === null || metrics?.generalIndex === undefined) {
+          return <span className="text-muted">—</span>;
+        }
+        const color = metrics.generalIndex >= 90
+          ? 'success'
+          : metrics.generalIndex >= 80
+            ? 'info'
+            : metrics.generalIndex >= 70
+              ? 'warning'
+              : 'danger';
+        return (
+          <Badge color={color} pill title={`${metrics.gradedClassrooms} clase(s) con calificación`}>
+            {metrics.generalIndex.toFixed(1)}%
+          </Badge>
+        );
+      }
     },
     {
       header: 'Estado',
@@ -289,24 +308,19 @@ const UserManagement: React.FC = () => {
     }
   ];
 
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (filters.role !== 'all') count++;
-    if (filters.isActive !== 'all') count++;
-    if (filters.enrollmentType !== 'all') count++;
-    if (filters.historyStatus !== 'all') count++;
-    if (filters.activeEnrollments !== 'all') count++;
-    if (filters.programId !== '') count++;
-    return count;
-  };
+  const activeFilterCount = countActiveUserFilters(filters);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   useEffect(() => {
-    filterUsers();
-  }, [filterUsers]);
+    const visibleIds = new Set(filteredUsers.map((user) => user.id));
+    setSelectedIds((current) => {
+      const next = new Set(Array.from(current).filter((id) => visibleIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [filteredUsers]);
 
   // Selection handlers
   const handleToggleSelection = (userId: string) => {
@@ -606,14 +620,33 @@ const UserManagement: React.FC = () => {
           >
             <i className="bi bi-funnel me-2"></i>
             Filtros Avanzados
-            {getActiveFilterCount() > 0 && (
+            {activeFilterCount > 0 && (
               <Badge color="primary" pill className="position-absolute" style={{ top: '-8px', right: '-8px' }}>
-                {getActiveFilterCount()}
+                {activeFilterCount}
               </Badge>
             )}
           </Button>
         </Col>
       </Row>
+
+      {(activeFilterCount > 0 || searchQuery) && (
+        <Alert color="light" className="border d-flex flex-wrap align-items-center justify-content-between gap-2 py-2">
+          <span className="small">
+            <strong>{filteredUsers.length}</strong> de {users.length} usuarios coinciden con la búsqueda actual.
+          </span>
+          <Button
+            color="link"
+            size="sm"
+            className="text-decoration-none p-0"
+            onClick={() => {
+              setFilters(defaultUserFilters);
+              setSearchQuery('');
+            }}
+          >
+            Limpiar búsqueda y filtros
+          </Button>
+        </Alert>
+      )}
 
       {/* Filters Modal */}
       <UserFiltersModal 
@@ -622,6 +655,9 @@ const UserManagement: React.FC = () => {
         filters={filters} 
         onFiltersChange={setFilters} 
         programs={programs} 
+        classrooms={classrooms}
+        users={users}
+        enrollmentTypes={enrollmentTypes}
       />
 
       {/* Bulk Operations Toolbar */}

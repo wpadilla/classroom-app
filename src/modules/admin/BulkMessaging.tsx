@@ -378,7 +378,7 @@ const BulkMessaging: React.FC = () => {
 
                     // Calculate absent times from attendance records
                     absentTimes = evaluation.attendanceRecords?.filter(
-                      record => !record.isPresent
+                      record => record.isPresent === false
                     ).length || 0;
                   }
                 } catch (error) {
@@ -1116,4 +1116,3 @@ const BulkMessaging: React.FC = () => {
 };
 
 export default BulkMessaging;
-

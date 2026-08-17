@@ -4,6 +4,7 @@ import { FirebaseService, COLLECTIONS } from '../firebase/firebase.service';
 import { IUser, UserRole, IClassroomHistory } from '../../models';
 import { orderBy } from 'firebase/firestore';
 import { GCloudService } from '../gcloud/gcloud.service';
+import { ClassroomEnrollmentService } from '../classroom/classroom-enrollment.service';
 
 export class UserService {
   static normalizePhone(phone: string): string {
@@ -233,14 +234,7 @@ export class UserService {
    */
   static async enrollInClassroom(userId: string, classroomId: string): Promise<void> {
     try {
-      const user = await this.getUserById(userId);
-      if (!user) throw new Error('User not found');
-      
-      const enrolledClassrooms = user.enrolledClassrooms || [];
-      if (!enrolledClassrooms.includes(classroomId)) {
-        enrolledClassrooms.push(classroomId);
-        await this.updateUser(userId, { enrolledClassrooms });
-      }
+      await ClassroomEnrollmentService.enrollStudent(classroomId, userId);
     } catch (error) {
       console.error(`Error enrolling user ${userId} in classroom ${classroomId}:`, error);
       throw error;
@@ -252,11 +246,7 @@ export class UserService {
    */
   static async removeFromClassroom(userId: string, classroomId: string): Promise<void> {
     try {
-      const user = await this.getUserById(userId);
-      if (!user) throw new Error('User not found');
-      
-      const enrolledClassrooms = (user.enrolledClassrooms || []).filter(id => id !== classroomId);
-      await this.updateUser(userId, { enrolledClassrooms });
+      await ClassroomEnrollmentService.unenrollStudent(classroomId, userId);
     } catch (error) {
       console.error(`Error removing user ${userId} from classroom ${classroomId}:`, error);
       throw error;

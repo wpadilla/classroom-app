@@ -7,8 +7,13 @@ import {
   IAttendanceRecord,
   DEFAULT_GRADE_SCALE,
   IEvaluationCreate
-} from '../../models';
+} from '../../models/evaluation.model';
+import { IClassroom } from '../../models/classroom.model';
 import { where } from 'firebase/firestore';
+import {
+  calculateAttendancePercentage,
+  calculateFinalEvaluation,
+} from './evaluation-score.utils';
 
 export class EvaluationService {
   private static createDefaultScores() {
@@ -44,6 +49,21 @@ export class EvaluationService {
     };
   }
 
+  private static recalculatePreservingWorkflowStatus(
+    evaluation: IStudentEvaluation,
+    criteria?: IEvaluationCriteria,
+    totalModules: number = 8
+  ): IStudentEvaluation {
+    if (!criteria) return evaluation;
+
+    const recalculated = this.calculateFinalGrade(evaluation, criteria, totalModules);
+    return {
+      ...recalculated,
+      status: evaluation.status,
+      evaluatedAt: evaluation.evaluatedAt,
+    };
+  }
+
   /**
    * Create evaluation criteria for a classroom
    */
@@ -56,6 +76,18 @@ export class EvaluationService {
       criteria.customCriteria.reduce((sum, c) => sum + c.points, 0);
     
     return total === 100;
+  }
+
+  /**
+   * Get all evaluations. Used by aggregate admin views to avoid one query per user.
+   */
+  static async getAllEvaluations(): Promise<IStudentEvaluation[]> {
+    try {
+      return await FirebaseService.getDocuments<IStudentEvaluation>(COLLECTIONS.EVALUATIONS);
+    } catch (error) {
+      console.error('Error getting all evaluations:', error);
+      return [];
+    }
   }
 
   /**
@@ -170,9 +202,11 @@ export class EvaluationService {
     studentId: string,
     classroomId: string,
     moduleId: string,
-    isPresent: boolean,
+    isPresent: boolean | null,
     teacherId: string,
-    currentEvaluation?: IStudentEvaluation | null
+    currentEvaluation?: IStudentEvaluation | null,
+    criteria?: IEvaluationCriteria,
+    totalModules: number = 8
   ): Promise<IStudentEvaluation> {
     try {
       const now = new Date();
@@ -201,10 +235,13 @@ export class EvaluationService {
         attendanceRecords.push(newRecord);
       }
 
-      const attendanceScore = this.calculateAttendanceScore(attendanceRecords);
+      const attendancePercentage = this.calculateAttendanceScore(attendanceRecords);
+      const attendanceScore = criteria
+        ? (attendancePercentage / 100) * criteria.attendance
+        : attendancePercentage;
 
       if (evaluation) {
-        const nextEvaluation: IStudentEvaluation = {
+        const nextEvaluation = this.recalculatePreservingWorkflowStatus({
           ...evaluation,
           moduleId: evaluation.moduleId || moduleId,
           attendanceRecords,
@@ -213,7 +250,7 @@ export class EvaluationService {
             attendance: attendanceScore,
           },
           updatedAt: now,
-        };
+        }, criteria, totalModules);
 
         await this.saveEvaluation(nextEvaluation);
         return nextEvaluation;
@@ -229,13 +266,18 @@ export class EvaluationService {
       });
 
       const savedId = await this.saveEvaluation(nextEvaluation);
-
-      return {
+      const savedEvaluation = this.recalculatePreservingWorkflowStatus({
         ...nextEvaluation,
         id: savedId,
         createdAt: now,
         updatedAt: now,
-      };
+      }, criteria, totalModules);
+
+      if (criteria) {
+        await this.saveEvaluation(savedEvaluation);
+      }
+
+      return savedEvaluation;
     } catch (error) {
       console.error('Error saving attendance state:', error);
       throw error;
@@ -250,7 +292,9 @@ export class EvaluationService {
     studentId: string,
     classroomId: string,
     participationPoints: number,
-    currentEvaluation?: IStudentEvaluation | null
+    currentEvaluation?: IStudentEvaluation | null,
+    criteria?: IEvaluationCriteria,
+    totalModules: number = 8
   ): Promise<IStudentEvaluation> {
     try {
       const now = new Date();
@@ -261,11 +305,11 @@ export class EvaluationService {
           : await this.getStudentClassroomEvaluation(studentId, classroomId);
 
       if (evaluation) {
-        const nextEvaluation: IStudentEvaluation = {
+        const nextEvaluation = this.recalculatePreservingWorkflowStatus({
           ...evaluation,
           participationPoints: normalizedPoints,
           updatedAt: now,
-        };
+        }, criteria, totalModules);
 
         await this.saveEvaluation(nextEvaluation);
         return nextEvaluation;
@@ -276,13 +320,18 @@ export class EvaluationService {
       });
 
       const savedId = await this.saveEvaluation(nextEvaluation);
-
-      return {
+      const savedEvaluation = this.recalculatePreservingWorkflowStatus({
         ...nextEvaluation,
         id: savedId,
         createdAt: now,
         updatedAt: now,
-      };
+      }, criteria, totalModules);
+
+      if (criteria) {
+        await this.saveEvaluation(savedEvaluation);
+      }
+
+      return savedEvaluation;
     } catch (error) {
       console.error('Error saving participation points:', error);
       throw error;
@@ -296,7 +345,7 @@ export class EvaluationService {
     studentId: string,
     classroomId: string,
     moduleId: string,
-    isPresent: boolean,
+    isPresent: boolean | null,
     teacherId: string
   ): Promise<void> {
     try {
@@ -390,64 +439,37 @@ export class EvaluationService {
     criteria: IEvaluationCriteria,
     totalModules: number = 8
   ): IStudentEvaluation {
-    // Calculate weighted scores
-    let totalScore = 0;
-    
-    // Questionnaires
-    totalScore += (evaluation.scores.questionnaires / criteria.questionnaires) * criteria.questionnaires;
-    
-    // Attendance
-    const attendancePercentage = this.calculateAttendanceScore(evaluation.attendanceRecords);
-    const attendanceScore = (attendancePercentage / 100) * criteria.attendance;
-    totalScore += attendanceScore;
-    
-    // Participation - Calculate based on points per module and required points per module
-    // Formula: (accumulated points / (total modules × points per module)) × criteria points
-    // Example: 
-    //   - 8 modules, 1 point per module required, 25 criteria points
-    //   - Student has 8 points: (8 / (8 × 1)) × 25 = 25/25 (100%)
-    //   - 8 modules, 2 points per module required, 25 criteria points
-    //   - Student has 8 points: (8 / (8 × 2)) × 25 = 12.5/25 (50%)
-    const participationPoints = evaluation.participationPoints || 0;
-    const pointsPerModule = criteria.participationPointsPerModule || 1;
-    const requiredPoints = totalModules * pointsPerModule;
-    const participationPercentage = requiredPoints > 0 ? (participationPoints / requiredPoints) : 0;
-    const participationScore = Math.min(participationPercentage * criteria.participation, criteria.participation);
-    totalScore += participationScore;
-    
-    // Final Exam
-    totalScore += (evaluation.scores.finalExam / criteria.finalExam) * criteria.finalExam;
-    
-    // Custom Criteria
-    criteria.customCriteria?.forEach(criterion => {
-      const customScore = evaluation.scores.customScores.find(
-        cs => cs.criterionId === criterion.id
-      );
-      if (customScore) {
-        totalScore += (customScore.score / criterion.points) * criterion.points;
-      }
-    });
-    
-    // Ensure totalScore does not exceed 100
-    totalScore = Math.min(totalScore, 100);
-    
-    const percentage = totalScore;
-    const letterGrade = this.getLetterGrade(percentage);
-    
+    const recalculated = calculateFinalEvaluation(evaluation, criteria, totalModules);
     return {
-      ...evaluation,
-      scores: {
-        ...evaluation.scores,
-        attendance: attendanceScore,
-        participation: participationScore
-      },
-      totalScore,
-      percentage,
-      letterGrade,
-      status: 'evaluated',
-      evaluatedAt: new Date(),
-      updatedAt: new Date()
+      ...recalculated,
+      letterGrade: this.getLetterGrade(recalculated.percentage),
     };
+  }
+
+  /**
+   * Recalculate every evaluation with the classroom's current criteria.
+   */
+  static recalculateClassroomEvaluations(
+    evaluations: IStudentEvaluation[],
+    classroom: IClassroom
+  ): IStudentEvaluation[] {
+    const totalModules = classroom.modules?.length || 8;
+    return evaluations.map((evaluation) =>
+      this.calculateFinalGrade(evaluation, classroom.evaluationCriteria, totalModules)
+    );
+  }
+
+  /**
+   * Recalculate and persist the canonical grade before a class is archived.
+   */
+  static async recalculateAndPersistClassroomEvaluations(
+    classroom: IClassroom,
+    evaluations?: IStudentEvaluation[]
+  ): Promise<IStudentEvaluation[]> {
+    const sourceEvaluations = evaluations || await this.getClassroomEvaluations(classroom.id);
+    const recalculated = this.recalculateClassroomEvaluations(sourceEvaluations, classroom);
+    await Promise.all(recalculated.map((evaluation) => this.saveEvaluation(evaluation)));
+    return recalculated;
   }
 
   /**
@@ -455,7 +477,8 @@ export class EvaluationService {
    */
   static async calculateFinalGradeAsync(
     evaluationId: string,
-    criteria: IEvaluationCriteria
+    criteria: IEvaluationCriteria,
+    totalModules: number = 8
   ): Promise<void> {
     try {
       const evaluation = await FirebaseService.getDocument<IStudentEvaluation>(
@@ -465,50 +488,8 @@ export class EvaluationService {
       
       if (!evaluation) throw new Error('Evaluación no encontrada');
       
-      // Calculate weighted scores
-      let totalScore = 0;
-      
-      // Questionnaires
-      totalScore += (evaluation.scores.questionnaires / 100) * criteria.questionnaires;
-      
-      // Attendance
-      const attendancePercentage = this.calculateAttendanceScore(evaluation.attendanceRecords);
-      totalScore += (attendancePercentage / 100) * criteria.attendance;
-      
-      // Participation - Simple: use accumulated points directly, capped at max criteria points
-      const participationPoints = evaluation.participationPoints || 0;
-      const participationScore = Math.min(participationPoints, criteria.participation);
-      totalScore += participationScore;
-      
-      // Final Exam
-      totalScore += (evaluation.scores.finalExam / 100) * criteria.finalExam;
-      
-      // Custom Criteria
-      criteria.customCriteria.forEach(criterion => {
-        const customScore = evaluation.scores.customScores.find(
-          cs => cs.criterionId === criterion.id
-        );
-        if (customScore) {
-          totalScore += (customScore.score / 100) * criterion.points;
-        }
-      });
-      
-      // Get letter grade
-      const letterGrade = this.getLetterGrade(totalScore);
-      
-      // Update evaluation
-      await FirebaseService.updateDocument(
-        COLLECTIONS.EVALUATIONS,
-        evaluationId,
-        {
-          totalScore,
-          percentage: totalScore,
-          letterGrade,
-          status: 'evaluated',
-          evaluatedAt: new Date(),
-          updatedAt: new Date()
-        }
-      );
+      const recalculated = this.calculateFinalGrade(evaluation, criteria, totalModules);
+      await this.saveEvaluation(recalculated);
     } catch (error) {
       console.error('Error calculating final grade:', error);
       throw error;
@@ -519,10 +500,7 @@ export class EvaluationService {
    * Calculate attendance score as percentage
    */
   static calculateAttendanceScore(records: IAttendanceRecord[]): number {
-    if (!records || records.length === 0) return 0;
-    
-    const presentCount = records.filter(r => r.isPresent).length;
-    return (presentCount / records.length) * 100;
+    return calculateAttendancePercentage(records);
   }
 
 

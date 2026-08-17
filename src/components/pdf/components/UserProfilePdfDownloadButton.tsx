@@ -6,6 +6,7 @@ import { ClassroomService } from '../../../services/classroom/classroom.service'
 import { UserService } from '../../../services/user/user.service';
 import { EvaluationService } from '../../../services/evaluation/evaluation.service';
 import { ProgramService } from '../../../services/program/program.service';
+import { calculateStudentHistoryAverage } from '../../../services/evaluation/evaluation-history.utils';
 
 interface UserProfilePdfDownloadButtonProps {
   user: IUser;
@@ -129,13 +130,7 @@ export const UserProfilePdfDownloadButton: React.FC<UserProfilePdfDownloadButton
         }];
       });
 
-      const programsWithGrades = programProgress.filter(p => p.average > 0);
-      const overallGrade = programsWithGrades.length > 0
-        ? Math.round(
-            (programsWithGrades.reduce((sum, p) => sum + p.average, 0) /
-              programsWithGrades.length) * 10
-          ) / 10
-        : 0;
+      const overallGrade = calculateStudentHistoryAverage(user.completedClassrooms || []);
 
       const validEnrolledClassrooms = enrolledClassrooms.filter(Boolean) as UserProfilePdfProps['enrolledClassrooms'];
 

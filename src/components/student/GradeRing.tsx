@@ -2,6 +2,7 @@
 // Pure SVG, no external library dependency
 
 import React from 'react';
+import { formatStudentGrade } from '../../services/evaluation/evaluation-history.utils';
 
 interface GradeRingProps {
   value: number; // 0-100
@@ -82,7 +83,7 @@ const GradeRing: React.FC<GradeRingProps> = ({
             textAlign: 'center',
           }}
         >
-          {value.toFixed(0)}
+          {formatStudentGrade(value)}
         </span>
       )}
       {label && (

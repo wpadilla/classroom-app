@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "Academia de Ministros Oasis de Amor" — a classroom management PWA for a Bible institute. The app manages students, teachers, classrooms, programs, evaluations, and WhatsApp messaging. The UI is in **Spanish** — all user-facing strings, toast messages, and validation errors must be in Spanish.
 
+
 ## Commands
 
 - `npm start` — Start dev server with emulators enabled (port 3000)

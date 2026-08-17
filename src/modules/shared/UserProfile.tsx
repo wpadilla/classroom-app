@@ -25,6 +25,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/user/user.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
+import {
+  calculateStudentHistoryAverage,
+  formatStudentGrade,
+} from '../../services/evaluation/evaluation-history.utils';
 import { ClassroomRestartService } from '../../services/classroom/classroom-restart.service';
 import { IUser, IClassroom, IStudentEvaluation, UserRole, IClassroomRun } from '../../models';
 import { userSelfEditSchema, UserSelfEditFormData } from '../../schemas/user.schema';
@@ -136,51 +140,43 @@ const UserProfile: React.FC = () => {
           pastorPhone: userProfile.pastor?.phone || '',
         });
 
-        // Parallel data loading
-        const promises: Promise<any>[] = [
+        const canViewTeacherRuns =
+          userProfile.isTeacher || userProfile.role === 'teacher' || userProfile.role === 'admin';
+        const [storedEvaluations, profileTeacherRuns] = await Promise.all([
           EvaluationService.getStudentEvaluations(user.id),
-        ];
+          canViewTeacherRuns
+            ? ClassroomRestartService.getTeacherRuns(user.id)
+            : Promise.resolve([]),
+        ]);
 
-        if (userProfile.enrolledClassrooms?.length) {
-          promises.push(
-            Promise.all(
-              userProfile.enrolledClassrooms.map((id) => ClassroomService.getClassroomById(id))
-            )
-          );
-        }
+        const classroomIds = Array.from(new Set([
+          ...(userProfile.enrolledClassrooms || []),
+          ...(userProfile.teachingClassrooms || []),
+        ]));
+        const loadedClassrooms = (
+          await Promise.all(
+            classroomIds.map((classroomId) => ClassroomService.getClassroomById(classroomId))
+          )
+        ).filter((classroom): classroom is IClassroom => classroom !== null);
+        const classroomById = new Map(
+          loadedClassrooms.map((classroom) => [classroom.id, classroom])
+        );
 
-        if (userProfile.teachingClassrooms?.length) {
-          promises.push(
-            Promise.all(
-              userProfile.teachingClassrooms.map((id) => ClassroomService.getClassroomById(id))
-            )
-          );
-        }
-
-        if (userProfile.isTeacher || userProfile.role === 'teacher' || userProfile.role === 'admin') {
-          promises.push(ClassroomRestartService.getTeacherRuns(user.id));
-        }
-
-        const results = await Promise.all(promises);
-
-        setEvaluations(results[0] || []);
-
-        let resultIdx = 1;
-        if (userProfile.enrolledClassrooms?.length) {
-          setEnrolledClassrooms(
-            (results[resultIdx] || []).filter((c: any) => c !== null)
-          );
-          resultIdx++;
-        }
-        if (userProfile.teachingClassrooms?.length) {
-          setTeachingClassrooms(
-            (results[resultIdx] || []).filter((c: any) => c !== null)
-          );
-          resultIdx++;
-        }
-        if (userProfile.isTeacher || userProfile.role === 'teacher' || userProfile.role === 'admin') {
-          setTeacherRuns(results[resultIdx] || []);
-        }
+        // Historical grades are immutable snapshots. Recalculating them here
+        // with a restarted classroom's current state corrupts prior runs.
+        setProfile(userProfile);
+        setEvaluations(storedEvaluations);
+        setEnrolledClassrooms(
+          (userProfile.enrolledClassrooms || [])
+            .map((classroomId) => classroomById.get(classroomId))
+            .filter((classroom): classroom is IClassroom => Boolean(classroom))
+        );
+        setTeachingClassrooms(
+          (userProfile.teachingClassrooms || [])
+            .map((classroomId) => classroomById.get(classroomId))
+            .filter((classroom): classroom is IClassroom => Boolean(classroom))
+        );
+        setTeacherRuns(profileTeacherRuns);
       }
     } catch (error) {
       console.error('Error loading profile data:', error);
@@ -354,13 +350,10 @@ const UserProfile: React.FC = () => {
     }
   };
 
-  const calculateOverallGrade = (): number => {
-    if (evaluations.length === 0) return 0;
-    const completedEvaluations = evaluations.filter((e) => e.status === 'evaluated');
-    if (completedEvaluations.length === 0) return 0;
-    const totalPercentage = completedEvaluations.reduce((sum, e) => sum + e.percentage, 0);
-    return totalPercentage / completedEvaluations.length;
-  };
+  const overallGrade = useMemo(
+    () => calculateStudentHistoryAverage(profile?.completedClassrooms || []),
+    [profile?.completedClassrooms]
+  );
 
   const getRoleLabel = (role: UserRole): string => {
     switch (role) {
@@ -369,22 +362,6 @@ const UserProfile: React.FC = () => {
       case 'student': return 'Estudiante';
       default: return role;
     }
-  };
-
-  const getRoleBadgeClass = (role: UserRole): string => {
-    switch (role) {
-      case 'admin': return 'bg-red-50 text-red-700';
-      case 'teacher': return 'bg-blue-50 text-blue-700';
-      case 'student': return 'bg-indigo-50 text-indigo-700';
-      default: return 'bg-gray-50 text-gray-700';
-    }
-  };
-
-  const getGradeColor = (percentage: number): string => {
-    if (percentage >= 90) return 'success';
-    if (percentage >= 80) return 'info';
-    if (percentage >= 70) return 'warning';
-    return 'danger';
   };
 
   const { overallStats: hookStats, calculateProgress } = useProgramProgress();
@@ -398,24 +375,19 @@ const UserProfile: React.FC = () => {
   // Share card stats
   const shareStats = useMemo(
     () => ({
-      averageGrade: calculateOverallGrade(),
+      averageGrade: overallGrade,
       totalClasses:
         (profile?.completedClassrooms?.length || 0) + enrolledClassrooms.length,
       completedPrograms: hookStats.completedPrograms, // Obtenido desde useProgramProgress (100% de progreso)
       currentEnrollments: enrolledClassrooms.length,
       attendanceRate: (() => {
-        let present = 0,
-          total = 0;
-        evaluations.forEach((e) => {
-          if (e.attendanceRecords) {
-            present += e.attendanceRecords.filter((r) => r.isPresent).length;
-            total += e.attendanceRecords.length;
-          }
-        });
-        return total > 0 ? (present / total) * 100 : 0;
+        const attendanceRecords = evaluations.flatMap(
+          (evaluation) => evaluation.attendanceRecords || []
+        );
+        return EvaluationService.calculateAttendanceScore(attendanceRecords);
       })(),
     }),
-    [evaluations, enrolledClassrooms, profile]
+    [evaluations, enrolledClassrooms, hookStats.completedPrograms, overallGrade, profile]
   );
 
   if (loading) {
@@ -506,11 +478,11 @@ const UserProfile: React.FC = () => {
         </div>
 
         {/* Stat chips row */}
-        {evaluations.length > 0 && (
+        {((profile.completedClassrooms?.length || 0) > 0 || evaluations.length > 0) && (
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-white/10 rounded-xl p-2.5 text-center">
               <div className="text-white text-lg font-bold">
-                {calculateOverallGrade().toFixed(0)}%
+                {formatStudentGrade(overallGrade)}%
               </div>
               <div className="text-blue-200 text-[10px]">Promedio</div>
             </div>
@@ -581,7 +553,7 @@ const UserProfile: React.FC = () => {
 
       <div className="px-4">
         {/* Personal Info — Read-only section */}
-        <SectionHeader icon="bi-person" title="Información Personal" defaultOpen={true}>
+        <SectionHeader icon="bi-person" title="Información Personal!" defaultOpen={true}>
           <div className="space-y-3">
             {[
               { label: 'Teléfono', value: profile.phone, icon: 'bi-telephone' },
@@ -784,7 +756,7 @@ const UserProfile: React.FC = () => {
             </SectionHeader>
           )}
 
-        {/* History */}
+        {/*    */}
         <SectionHeader
           icon="bi-clock-history"
           title="Historial"

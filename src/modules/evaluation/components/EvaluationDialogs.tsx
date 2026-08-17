@@ -2,9 +2,16 @@ import React from 'react';
 import { Alert, Input, Spinner } from 'reactstrap';
 import { Dialog } from '../../../components/common';
 import { IClassroom, ICustomCriterion, IEvaluationCriteria, IUser } from '../../../models';
+import {
+  calculateEvaluationTotalPreview,
+  getAttendancePointStep,
+  getAttendanceScorePreview,
+} from '../../../services/evaluation/evaluation-score.utils';
 
 export interface EvaluationFormData {
   questionnaires: number;
+  attendance: number;
+  participation: number;
   finalExam: number;
   customScores: { criterionId: string; score: number }[];
 }
@@ -14,6 +21,7 @@ interface ScoreFieldProps {
   value: number;
   max: number;
   step?: number;
+  helpText?: string;
   onChange: (value: number) => void;
   onSetMax: () => void;
 }
@@ -23,13 +31,16 @@ const ScoreField: React.FC<ScoreFieldProps> = ({
   value,
   max,
   step = 0.1,
+  helpText,
   onChange,
   onSetMax,
 }) => {
+  const inputId = React.useId();
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <label className="text-sm font-medium text-slate-700">{label}</label>
+        <label htmlFor={inputId} className="text-sm font-medium text-slate-700">{label}</label>
         <button
           type="button"
           onClick={onSetMax}
@@ -41,6 +52,7 @@ const ScoreField: React.FC<ScoreFieldProps> = ({
         </button>
       </div>
       <Input
+        id={inputId}
         type="number"
         min="0"
         max={max}
@@ -49,7 +61,45 @@ const ScoreField: React.FC<ScoreFieldProps> = ({
         onChange={(event) => onChange(parseFloat(event.target.value) || 0)}
         className="rounded-2xl"
       />
+      {helpText ? <p className="mb-0 text-xs text-slate-500">{helpText}</p> : null}
     </div>
+  );
+};
+
+const EvaluationTotalPreview: React.FC<{ total: number }> = ({ total }) => {
+  const formattedTotal = total.toFixed(1);
+
+  return (
+    <output
+      aria-live="polite"
+      className="block rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 text-slate-900"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-600 text-white">
+            <i className="bi bi-calculator-fill" aria-hidden="true" />
+          </span>
+          <div>
+            <span className="block text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
+              Total calculado
+            </span>
+            <span className="mt-1 block text-xs text-slate-500">
+              Se actualiza automáticamente con cada criterio.
+            </span>
+          </div>
+        </div>
+        <span className="shrink-0 text-right">
+          <strong className="block text-2xl font-bold text-blue-700">{formattedTotal}%</strong>
+          <small className="text-xs text-slate-500">{formattedTotal} / 100 puntos</small>
+        </span>
+      </div>
+      <span className="mt-3 block h-2 overflow-hidden rounded-full bg-blue-100" aria-hidden="true">
+        <span
+          className="block h-full rounded-full bg-blue-600"
+          style={{ width: `${Math.min(Math.max(total, 0), 100)}%` }}
+        />
+      </span>
+    </output>
   );
 };
 
@@ -289,6 +339,20 @@ export const StudentEvaluationDialog: React.FC<StudentEvaluationDialogProps> = (
   onChange,
   onSetAllMax,
 }) => {
+  const totalModules = classroom.modules?.length || 8;
+  const attendanceMax = classroom.evaluationCriteria?.attendance || 0;
+  const attendancePreview = getAttendanceScorePreview(
+    evaluationForm.attendance,
+    attendanceMax,
+    totalModules
+  );
+  const attendanceStep = getAttendancePointStep(attendanceMax, totalModules);
+  const evaluationTotal = calculateEvaluationTotalPreview(
+    evaluationForm,
+    classroom.evaluationCriteria,
+    totalModules
+  );
+
   return (
     <Dialog
       isOpen={isOpen}
@@ -337,12 +401,35 @@ export const StudentEvaluationDialog: React.FC<StudentEvaluationDialogProps> = (
           </button>
         </div>
 
+        <EvaluationTotalPreview total={evaluationTotal} />
+
         <ScoreField
           label={`Cuestionarios (máx. ${classroom.evaluationCriteria?.questionnaires || 0})`}
           value={evaluationForm.questionnaires}
           max={classroom.evaluationCriteria?.questionnaires || 0}
           onChange={(value) => onChange({ ...evaluationForm, questionnaires: value })}
           onSetMax={() => onChange({ ...evaluationForm, questionnaires: classroom.evaluationCriteria?.questionnaires || 0 })}
+        />
+
+        <ScoreField
+          label={`Asistencia (máx. ${attendanceMax})`}
+          value={evaluationForm.attendance}
+          max={attendanceMax}
+          step={attendanceStep}
+          helpText={`Equivale a ${attendancePreview.presentCount} de ${attendancePreview.totalModules} asistencias. Al guardar se ajustará a ${attendancePreview.effectiveScore.toFixed(2)} puntos; si cambias el valor, las excusas se reemplazarán por estados presente/ausente.`}
+          onChange={(value) => onChange({ ...evaluationForm, attendance: value })}
+          onSetMax={() => onChange({ ...evaluationForm, attendance: attendanceMax })}
+        />
+
+        <ScoreField
+          label={`Participación (máx. ${classroom.evaluationCriteria?.participation || 0})`}
+          value={evaluationForm.participation}
+          max={classroom.evaluationCriteria?.participation || 0}
+          onChange={(value) => onChange({ ...evaluationForm, participation: value })}
+          onSetMax={() => onChange({
+            ...evaluationForm,
+            participation: classroom.evaluationCriteria?.participation || 0,
+          })}
         />
 
         <ScoreField
@@ -377,7 +464,7 @@ export const StudentEvaluationDialog: React.FC<StudentEvaluationDialogProps> = (
         })}
 
         <Alert color="info" className="mb-0">
-          La asistencia y la participación se calculan automáticamente según el historial del curso.
+          Si cambias asistencia, se sincronizarán los módulos presentes y ausentes. La participación actualizará también el acumulado usado en el pase semanal.
         </Alert>
       </div>
     </Dialog>
@@ -407,6 +494,20 @@ export const BulkEvaluationDialog: React.FC<BulkEvaluationDialogProps> = ({
   onChange,
   onSetAllMax,
 }) => {
+  const totalModules = classroom.modules?.length || 8;
+  const attendanceMax = classroom.evaluationCriteria?.attendance || 0;
+  const attendancePreview = getAttendanceScorePreview(
+    bulkEvaluationForm.attendance,
+    attendanceMax,
+    totalModules
+  );
+  const attendanceStep = getAttendancePointStep(attendanceMax, totalModules);
+  const evaluationTotal = calculateEvaluationTotalPreview(
+    bulkEvaluationForm,
+    classroom.evaluationCriteria,
+    totalModules
+  );
+
   return (
     <Dialog
       isOpen={isOpen}
@@ -446,7 +547,7 @@ export const BulkEvaluationDialog: React.FC<BulkEvaluationDialogProps> = ({
     >
       <div className="space-y-4">
         <Alert color="info" className="mb-0">
-          Se aplicarán estas puntuaciones a {selectedCount} estudiantes seleccionados. La asistencia y participación se mantienen individuales.
+          Se aplicarán todas estas puntuaciones a {selectedCount} estudiantes. La asistencia sincronizará sus módulos y la participación actualizará sus acumulados.
         </Alert>
 
         <div className="flex justify-end">
@@ -460,6 +561,8 @@ export const BulkEvaluationDialog: React.FC<BulkEvaluationDialogProps> = ({
           </button>
         </div>
 
+        <EvaluationTotalPreview total={evaluationTotal} />
+
         <ScoreField
           label={`Cuestionarios (máx. ${classroom.evaluationCriteria?.questionnaires || 0})`}
           value={bulkEvaluationForm.questionnaires}
@@ -467,6 +570,28 @@ export const BulkEvaluationDialog: React.FC<BulkEvaluationDialogProps> = ({
           step={0.5}
           onChange={(value) => onChange({ ...bulkEvaluationForm, questionnaires: value })}
           onSetMax={() => onChange({ ...bulkEvaluationForm, questionnaires: classroom.evaluationCriteria?.questionnaires || 0 })}
+        />
+
+        <ScoreField
+          label={`Asistencia (máx. ${attendanceMax})`}
+          value={bulkEvaluationForm.attendance}
+          max={attendanceMax}
+          step={attendanceStep}
+          helpText={`Se marcarán ${attendancePreview.presentCount} de ${attendancePreview.totalModules} módulos como presentes (${attendancePreview.effectiveScore.toFixed(2)} puntos efectivos) y se reemplazarán las excusas existentes.`}
+          onChange={(value) => onChange({ ...bulkEvaluationForm, attendance: value })}
+          onSetMax={() => onChange({ ...bulkEvaluationForm, attendance: attendanceMax })}
+        />
+
+        <ScoreField
+          label={`Participación (máx. ${classroom.evaluationCriteria?.participation || 0})`}
+          value={bulkEvaluationForm.participation}
+          max={classroom.evaluationCriteria?.participation || 0}
+          step={0.5}
+          onChange={(value) => onChange({ ...bulkEvaluationForm, participation: value })}
+          onSetMax={() => onChange({
+            ...bulkEvaluationForm,
+            participation: classroom.evaluationCriteria?.participation || 0,
+          })}
         />
 
         <ScoreField

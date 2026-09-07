@@ -26,6 +26,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { IClassroom } from '../../models';
+import { ManagementHero, ManagementSkeleton, TopProgressBar } from '../../components/common/ManagementWorkspace';
+import '../../styles/management-workspace.css';
 
 const WhatsAppGroupManager: React.FC = () => {
   const navigate = useNavigate();
@@ -143,69 +145,54 @@ const WhatsAppGroupManager: React.FC = () => {
     navigate(`/admin/classroom/${classroomId}`);
   };
 
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="success" />
-        <p className="mt-3">Cargando grupos...</p>
-      </Container>
-    );
-  }
-
   const withGroup = allClassrooms.filter(c => c.whatsappGroup).length;
   const withoutGroup = allClassrooms.filter(c => !c.whatsappGroup).length;
+  const workspaceBusy = loading || syncing || creating;
 
   return (
-    <Container fluid className="py-3 px-2 px-sm-3">
-      {/* Header */}
-      <Row className="mb-3">
-        <Col>
-          <Button
-            color="link"
-            className="p-0 mb-2 text-decoration-none"
-            onClick={() => navigate('/admin/whatsapp')}
-          >
-            <i className="bi bi-arrow-left me-2"></i>
-            Volver
+    <Container fluid className="management-workspace management-workspace--whatsapp whatsapp-workspace" aria-busy={workspaceBusy}>
+      <TopProgressBar active={workspaceBusy} label="Actualizando grupos…" tone="whatsapp" />
+      <ManagementHero
+        eyebrow="Organización por clase"
+        title="Grupos de WhatsApp"
+        description="Identifica rápidamente las clases pendientes, crea sus grupos y mantén los participantes sincronizados."
+        icon="bi-people-fill"
+        tone="whatsapp"
+        backLabel="Volver a WhatsApp"
+        onBack={() => navigate('/admin/whatsapp')}
+        actions={(
+          <Button color="light" onClick={loadClassrooms} disabled={workspaceBusy}>
+            <i className="bi bi-arrow-clockwise me-2" />Actualizar grupos
           </Button>
-          
-          <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <h4 className="mb-1">
-                <i className="bi bi-people me-2"></i>
-                Administración de Grupos
-              </h4>
-              <p className="text-muted mb-0 small">
-                Gestiona los grupos de WhatsApp de tus clases
-              </p>
-            </div>
-          </div>
-        </Col>
-      </Row>
+        )}
+      />
 
       {/* Stats */}
-      <Row className="mb-3">
-        <Col xs="4">
-          <Card className="text-center border-0 shadow-sm">
-            <CardBody className="py-2">
-              <h5 className="mb-0">{allClassrooms.length}</h5>
-              <small className="text-muted">Total Clases</small>
+      <Row className="management-stat-grid g-3 mb-3">
+        <Col xs="12" sm="4">
+          <Card className="management-stat-card">
+            <CardBody>
+              <span className="management-stat-card__icon"><i className="bi bi-collection" /></span>
+              <div><h5 className="management-stat-card__value">{allClassrooms.length}</h5>
+              <small className="management-stat-card__label">Total de clases</small></div>
             </CardBody>
           </Card>
         </Col>
-        <Col xs="4">
-          <Card className="text-center border-0 shadow-sm">
-            <CardBody className="py-2">
-              <h5 className="mb-0 text-success">{withGroup}</h5>
-              <small className="text-muted">Con Grupo</small>
+        <Col xs="6" sm="4">
+          <Card className="management-stat-card">
+            <CardBody>
+              <span className="management-stat-card__icon"><i className="bi bi-whatsapp" /></span>
+              <div><h5 className="management-stat-card__value text-success">{withGroup}</h5>
+              <small className="management-stat-card__label">Con grupo</small></div>
             </CardBody>
           </Card>
         </Col>
-        <Col xs="4">
-          <Card className="text-center border-0 shadow-sm">
-            <CardBody className="py-2">
-              <h5 className="mb-0 text-warning">{withoutGroup}</h5>
-              <small className="text-muted">Sin Grupo</small>
+        <Col xs="6" sm="4">
+          <Card className="management-stat-card">
+            <CardBody>
+              <span className="management-stat-card__icon"><i className="bi bi-exclamation-circle" /></span>
+              <div><h5 className="management-stat-card__value text-warning">{withoutGroup}</h5>
+              <small className="management-stat-card__label">Sin grupo</small></div>
             </CardBody>
           </Card>
         </Col>
@@ -214,7 +201,7 @@ const WhatsAppGroupManager: React.FC = () => {
       {/* Progress Bar */}
       <Row className="mb-3">
         <Col>
-          <Card className="border-0 shadow-sm">
+          <Card className="management-card">
             <CardBody className="py-2">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <small className="text-muted">Progreso de Configuración</small>
@@ -233,7 +220,7 @@ const WhatsAppGroupManager: React.FC = () => {
       </Row>
 
       {/* Filters */}
-      <Row className="mb-3">
+      <Row className="management-toolbar mx-0">
         <Col xs="12" md="8" className="mb-2">
           <InputGroup size="sm">
             <InputGroupText>
@@ -262,7 +249,9 @@ const WhatsAppGroupManager: React.FC = () => {
       </Row>
 
       {/* Classrooms Table - Mobile Responsive */}
-      {classrooms.length === 0 ? (
+      {loading && allClassrooms.length === 0 ? (
+        <ManagementSkeleton rows={4} compact />
+      ) : classrooms.length === 0 ? (
         <Alert color="info" className="text-center">
           <i className="bi bi-info-circle me-2"></i>
           No se encontraron clases con los filtros aplicados
@@ -271,7 +260,7 @@ const WhatsAppGroupManager: React.FC = () => {
         <Row>
           {/* Desktop View */}
           <Col className="d-none d-md-block">
-            <Card className="border-0 shadow-sm">
+            <Card className="management-card management-table-shell">
               <CardBody className="p-0">
                 <div className="table-responsive">
                   <Table hover className="mb-0">
@@ -363,7 +352,7 @@ const WhatsAppGroupManager: React.FC = () => {
           {/* Mobile View */}
           <Col className="d-md-none">
             {classrooms.map(classroom => (
-              <Card key={classroom.id} className="border-0 shadow-sm mb-3">
+              <Card key={classroom.id} className="management-card whatsapp-classroom-card mb-3">
                 <CardBody>
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <div>
@@ -435,6 +424,7 @@ const WhatsAppGroupManager: React.FC = () => {
         isOpen={createGroupModal} 
         toggle={() => setCreateGroupModal(false)}
         centered
+        className="management-modal"
       >
         <ModalHeader toggle={() => setCreateGroupModal(false)}>
           Crear Grupo de WhatsApp
@@ -490,6 +480,7 @@ const WhatsAppGroupManager: React.FC = () => {
         isOpen={syncModal} 
         toggle={() => setSyncModal(false)}
         centered
+        className="management-modal"
       >
         <ModalHeader toggle={() => setSyncModal(false)}>
           Sincronizar Grupo

@@ -33,6 +33,8 @@ import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
 import { UserService } from '../../services/user/user.service';
 import { EvaluationService } from '../../services/evaluation/evaluation.service';
 import { IClassroom, IWhatsappMessage, IUser } from '../../models';
+import { ManagementHero, ManagementSkeleton, TopProgressBar } from '../../components/common/ManagementWorkspace';
+import '../../styles/management-workspace.css';
 
 interface SendingProgress {
   classroomId: string;
@@ -540,52 +542,37 @@ const BulkMessaging: React.FC = () => {
     return sum;
   }, 0);
 
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="success" />
-        <p className="mt-3">Cargando clases...</p>
-      </Container>
-    );
-  }
+  const workspaceBusy = loading || sending;
 
   return (
-    <Container fluid className="py-3 px-2 px-sm-3">
-      {/* Custom Styles */}
-      <style>{`
-        .hover-bg-light:hover {
-          background-color: #f8f9fa !important;
-        }
-      `}</style>
-      
-      {/* Header */}
-      <Row className="mb-3">
-        <Col>
-          <Button
-            color="link"
-            className="p-0 mb-2 text-decoration-none"
-            onClick={() => navigate('/admin/whatsapp')}
-          >
-            <i className="bi bi-arrow-left me-2"></i>
-            Volver
+    <Container fluid className="management-workspace management-workspace--whatsapp whatsapp-workspace bulk-messaging-workspace" aria-busy={workspaceBusy}>
+      <TopProgressBar
+        active={workspaceBusy}
+        label={sending ? `Enviando mensajes: ${Math.round(currentProgress)}%` : 'Cargando destinatarios…'}
+        tone="whatsapp"
+      />
+      <ManagementHero
+        eyebrow="Comunicación segmentada"
+        title="Mensajería masiva"
+        description="Selecciona clases, decide si el envío será grupal o individual y personaliza el contenido antes de enviarlo."
+        icon="bi-send-fill"
+        tone="whatsapp"
+        backLabel="Volver a WhatsApp"
+        onBack={() => navigate('/admin/whatsapp')}
+        meta={selectedClassrooms.size > 0 ? (
+          <span><i className="bi bi-people me-1" />{totalRecipients} destinatario(s) preparados</span>
+        ) : (
+          <span><i className="bi bi-shield-check me-1" />Revisa la selección antes de enviar</span>
+        )}
+        actions={(
+          <Button color="light" onClick={() => navigate('/admin/whatsapp/groups')}>
+            <i className="bi bi-people me-2" />Administrar grupos
           </Button>
-          
-          <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <h4 className="mb-1">
-                <i className="bi bi-send me-2"></i>
-                Mensajería Masiva
-              </h4>
-              <p className="text-muted mb-0 small">
-                Envía mensajes a múltiples grupos de WhatsApp
-              </p>
-            </div>
-          </div>
-        </Col>
-      </Row>
+        )}
+      />
 
       {/* Warning Alert */}
-      {classrooms.length === 0 && (
+      {!loading && classrooms.length === 0 && (
         <Alert color="warning">
           <i className="bi bi-exclamation-triangle me-2"></i>
           No hay clases con grupos de WhatsApp activos. 
@@ -599,10 +586,10 @@ const BulkMessaging: React.FC = () => {
         </Alert>
       )}
 
-      <Row>
+      <Row className="bulk-message-layout g-3">
         {/* Left Column - Classroom Selection */}
         <Col lg={7} className="mb-3">
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="management-card bulk-classrooms-card h-100">
             <CardHeader className="bg-white d-flex justify-content-between align-items-center">
               <h6 className="mb-0">
                 <i className="bi bi-list-check me-2"></i>
@@ -642,8 +629,10 @@ const BulkMessaging: React.FC = () => {
               </div>
 
               {/* Classroom List */}
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {filteredClassrooms.length === 0 ? (
+              <div className="bulk-classrooms-list">
+                {loading ? (
+                  <ManagementSkeleton rows={4} compact />
+                ) : filteredClassrooms.length === 0 ? (
                   <Alert color="info" className="mb-0">
                     No se encontraron clases
                   </Alert>
@@ -651,15 +640,10 @@ const BulkMessaging: React.FC = () => {
                   filteredClassrooms.map(classroom => (
                     <div 
                       key={classroom.id}
-                      className="border rounded mb-2"
-                      style={{ 
-                        backgroundColor: selectedClassrooms.has(classroom.id) ? '#f0f9ff' : 'white'
-                      }}
+                      className={`bulk-classroom-option ${selectedClassrooms.has(classroom.id) ? 'bulk-classroom-option--selected' : ''}`}
                     >
                       <div 
                         className="form-check p-2 d-flex gap-2"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleSelectClassroom(classroom.id)}
                       >
                         <Input
                           type="checkbox"
@@ -694,10 +678,7 @@ const BulkMessaging: React.FC = () => {
                       
                       {/* Individual/Group Send Switch */}
                       {selectedClassrooms.has(classroom.id) && (
-                        <div 
-                          className="px-2 pb-2 pt-0 border-top"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="px-2 pb-2 pt-0 border-top">
                           <div className="d-flex align-items-center justify-content-between">
                             <small className="text-muted">
                               <i className={`bi ${sendToIndividuals.get(classroom.id) ? 'bi-person-fill' : 'bi-people-fill'} me-1`}></i>
@@ -727,10 +708,11 @@ const BulkMessaging: React.FC = () => {
                           {/* Student Selection Accordion - Only show when individual sending is enabled */}
                           {sendToIndividuals.get(classroom.id) && classroomStudents.has(classroom.id) && (
                             <div className="mt-2">
-                              <div
-                                className="d-flex align-items-center justify-content-between p-2 bg-light rounded"
-                                style={{ cursor: 'pointer' }}
+                              <button
+                                type="button"
+                                className="d-flex w-100 align-items-center justify-content-between border-0 p-2 bg-light rounded text-start"
                                 onClick={() => toggleAccordion(classroom.id)}
+                                aria-expanded={openAccordions.has(classroom.id)}
                               >
                                 <small className="fw-bold text-primary">
                                   <i className={`bi ${openAccordions.has(classroom.id) ? 'bi-chevron-down' : 'bi-chevron-right'} me-1`}></i>
@@ -739,19 +721,17 @@ const BulkMessaging: React.FC = () => {
                                 <Badge color="primary" pill>
                                   {classroomStudents.get(classroom.id)!.length - (excludedStudents.get(classroom.id)?.size || 0)} / {classroomStudents.get(classroom.id)!.length}
                                 </Badge>
-                              </div>
+                              </button>
                               
                               {/* Accordion Content */}
                               {openAccordions.has(classroom.id) && (
-                                <div className="border rounded mt-2 p-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                <div className="bulk-student-list border rounded mt-2 p-2">
                                   {classroomStudents.get(classroom.id)!.map(student => {
                                     const isExcluded = excludedStudents.get(classroom.id)?.has(student.id) || false;
                                     return (
                                       <div
                                         key={student.id}
                                         className="form-check mb-1 p-1 rounded hover-bg-light d-flex gap-2"
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => toggleStudentExclusion(classroom.id, student.id)}
                                       >
                                         <Input
                                           type="checkbox"
@@ -808,7 +788,7 @@ const BulkMessaging: React.FC = () => {
 
         {/* Right Column - Message Composition */}
         <Col lg={5} className="mb-3">
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="management-card bulk-composer-card h-100">
             <CardHeader className="bg-white">
               <h6 className="mb-0">
                 <i className="bi bi-pencil-square me-2"></i>
@@ -818,7 +798,7 @@ const BulkMessaging: React.FC = () => {
             <CardBody>
               <Form>
                 {/* Available Properties Info */}
-                <Alert color="info" className="mb-3">
+                <Alert color="info" className="bulk-variables-panel mb-3">
                   <div className="d-flex justify-content-between align-items-start">
                     <small className="fw-bold">
                       <i className="bi bi-magic me-1"></i>
@@ -1019,7 +999,7 @@ const BulkMessaging: React.FC = () => {
                     ) : (
                       <>
                         <i className="bi bi-send-fill me-2"></i>
-                        Enviar a {selectedClassrooms.size} Grupos
+                        Enviar a {totalRecipients} destinatario(s)
                       </>
                     )}
                   </Button>
@@ -1036,6 +1016,7 @@ const BulkMessaging: React.FC = () => {
         toggle={() => !sending && setProgressModal(false)}
         size="lg"
         centered
+        className="management-modal"
       >
         <ModalHeader toggle={() => !sending && setProgressModal(false)}>
           Enviando Mensajes
@@ -1056,7 +1037,7 @@ const BulkMessaging: React.FC = () => {
             />
           </div>
 
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div className="bulk-progress-list">
             <Table size="sm" hover>
               <thead className="table-light sticky-top">
                 <tr>

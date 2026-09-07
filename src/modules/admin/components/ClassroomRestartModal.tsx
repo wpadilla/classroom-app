@@ -172,7 +172,7 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
   const canRestart = validation.isValid && state === 'ready';
 
   return (
-    <Modal isOpen={isOpen} toggle={handleClose} size="lg">
+    <Modal isOpen={isOpen} toggle={handleClose} size="lg" className="management-modal">
       <ModalHeader toggle={handleClose}>
         <i className="bi bi-arrow-clockwise me-2"></i>
         Reiniciar Clase
@@ -218,8 +218,8 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
           <Alert color="danger">
             <h6 className="mb-2">Errores de Validación:</h6>
             <ul className="mb-0">
-              {validation.errors.map((error, index) => (
-                <li key={index}>{error}</li>
+              {validation.errors.map((error) => (
+                <li key={error}>{error}</li>
               ))}
             </ul>
           </Alert>
@@ -230,8 +230,8 @@ const ClassroomRestartModal: React.FC<ClassroomRestartModalProps> = ({
           <Alert color="warning">
             <h6 className="mb-2">Advertencias:</h6>
             <ul className="mb-0">
-              {validation.warnings.map((warning, index) => (
-                <li key={index}>{warning}</li>
+              {validation.warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
               ))}
             </ul>
           </Alert>

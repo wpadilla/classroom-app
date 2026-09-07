@@ -23,6 +23,8 @@ import { toast } from 'react-toastify';
 import { WhatsappService } from '../../services/whatsapp/whatsapp.service';
 import { ClassroomService } from '../../services/classroom/classroom.service';
 import { IWhatsappSession, IClassroom } from '../../models';
+import { ManagementHero, TopProgressBar } from '../../components/common/ManagementWorkspace';
+import '../../styles/management-workspace.css';
 const sessionId = 'bibleAssistant';
 
 const WhatsAppManager: React.FC = () => {
@@ -185,49 +187,37 @@ const WhatsAppManager: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="success" />
-        <p className="mt-3">Cargando estado de WhatsApp...</p>
-      </Container>
-    );
-  }
-
   const isConnected = session?.status === 'connected' || session?.status === 'authenticated';
+  const workspaceBusy = loading || loadingClassrooms || connecting || disconnecting;
 
   return (
-    <Container fluid className="py-3 px-2 px-sm-3">
-      {/* Header */}
-      <Row className="mb-3">
-        <Col>
-          <Button
-            color="link"
-            className="p-0 mb-2 text-decoration-none"
-            onClick={() => navigate('/admin/dashboard')}
-          >
-            <i className="bi bi-arrow-left me-2"></i>
-            Volver al Panel
+    <Container fluid className="management-workspace management-workspace--whatsapp whatsapp-workspace" aria-busy={workspaceBusy}>
+      <TopProgressBar active={workspaceBusy} label="Sincronizando WhatsApp…" tone="whatsapp" />
+      <ManagementHero
+        eyebrow="Centro de comunicaciones"
+        title="Administración de WhatsApp"
+        description="Supervisa la sesión, gestiona los grupos de clase y accede a la mensajería masiva desde un mismo lugar."
+        icon="bi-whatsapp"
+        tone="whatsapp"
+        backLabel="Volver al panel"
+        onBack={() => navigate('/admin/dashboard')}
+        meta={(
+          <span>
+            <i className={`bi ${getStatusIcon(session?.status || 'disconnected')} me-1`} />
+            Estado: {getStatusText(session?.status || 'disconnected')}
+          </span>
+        )}
+        actions={(
+          <Button color="light" onClick={loadSessionStatus} disabled={workspaceBusy}>
+            <i className="bi bi-arrow-clockwise me-2" />Actualizar estado
           </Button>
-          
-          <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <h4 className="mb-1">
-                <i className="bi bi-whatsapp text-success me-2"></i>
-                Administración de WhatsApp
-              </h4>
-              <p className="text-muted mb-0 small">
-                Gestiona la conexión y grupos de WhatsApp
-              </p>
-            </div>
-          </div>
-        </Col>
-      </Row>
+        )}
+      />
 
       {/* Session Status Card */}
-      <Row className="mb-3">
+      <Row className="g-3 mb-3">
         <Col md={6} className="mb-3">
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="management-card h-100">
             <CardHeader className="bg-white">
               <h6 className="mb-0">
                 <i className="bi bi-phone me-2"></i>
@@ -267,7 +257,7 @@ const WhatsAppManager: React.FC = () => {
                   <Button
                     color="success"
                     onClick={handleConnect}
-                    disabled={connecting}
+                    disabled={connecting || loading}
                   >
                     {connecting ? (
                       <>
@@ -317,7 +307,7 @@ const WhatsAppManager: React.FC = () => {
 
         {/* Quick Stats */}
         <Col md={6} className="mb-3">
-          <Card className="border-0 shadow-sm h-100">
+          <Card className="management-card h-100">
             <CardHeader className="bg-white">
               <h6 className="mb-0">
                 <i className="bi bi-bar-chart me-2"></i>
@@ -325,26 +315,20 @@ const WhatsAppManager: React.FC = () => {
               </h6>
             </CardHeader>
             <CardBody>
-              {loadingClassrooms ? (
-                <div className="text-center py-4">
-                  <Spinner size="sm" color="primary" />
-                </div>
-              ) : (
-                <Row className="text-center">
-                  <Col xs="6" className="mb-3">
-                    <div className="display-4 text-success mb-2">
-                      {classroomsWithGroups.length}
-                    </div>
-                    <small className="text-muted">Grupos Activos</small>
-                  </Col>
-                  <Col xs="6" className="mb-3">
-                    <div className="display-4 text-primary mb-2">
-                      {classroomsWithGroups.reduce((sum, c) => sum + (c.studentIds?.length || 0), 0)}
-                    </div>
-                    <small className="text-muted">Estudiantes en Grupos</small>
-                  </Col>
-                </Row>
-              )}
+              <Row className={`text-center whatsapp-inline-stats ${loadingClassrooms ? 'opacity-50' : ''}`}>
+                <Col xs="6" className="mb-3">
+                  <div className="display-4 text-success mb-2">
+                    {classroomsWithGroups.length}
+                  </div>
+                  <small className="text-muted">Grupos Activos</small>
+                </Col>
+                <Col xs="6" className="mb-3">
+                  <div className="display-4 text-primary mb-2">
+                    {classroomsWithGroups.reduce((sum, c) => sum + (c.studentIds?.length || 0), 0)}
+                  </div>
+                  <small className="text-muted">Estudiantes en Grupos</small>
+                </Col>
+              </Row>
               
               <div className="d-grid gap-2 mt-3">
                 <Button
@@ -372,7 +356,7 @@ const WhatsAppManager: React.FC = () => {
       {!isConnected && (
         <Row>
           <Col>
-            <Alert color="info">
+            <Alert color="info" className="management-guidance">
               <h6 className="alert-heading">
                 <i className="bi bi-info-circle me-2"></i>
                 Instrucciones de Conexión
@@ -394,7 +378,7 @@ const WhatsAppManager: React.FC = () => {
       {isConnected && classroomsWithGroups.length > 0 && (
         <Row>
           <Col>
-            <Card className="border-0 shadow-sm">
+            <Card className="management-card">
               <CardHeader className="bg-white d-flex justify-content-between align-items-center">
                 <h6 className="mb-0">
                   <i className="bi bi-people me-2"></i>
@@ -411,11 +395,11 @@ const WhatsAppManager: React.FC = () => {
               <CardBody className="p-0">
                 <div className="list-group list-group-flush">
                   {classroomsWithGroups.slice(0, 5).map(classroom => (
-                    <div
+                    <button
+                      type="button"
                       key={classroom.id}
-                      className="list-group-item list-group-item-action"
+                      className="list-group-item list-group-item-action w-100 border-start-0 border-end-0 text-start"
                       onClick={() => navigate(`/admin/classroom/${classroom.id}`)}
-                      style={{ cursor: 'pointer' }}
                     >
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
@@ -435,7 +419,7 @@ const WhatsAppManager: React.FC = () => {
                           </small>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </CardBody>
@@ -449,7 +433,7 @@ const WhatsAppManager: React.FC = () => {
         isOpen={qrModal} 
         toggle={() => setQrModal(false)}
         centered
-        className="modal-dialog-scrollable"
+        className="management-modal modal-dialog-scrollable"
       >
         <ModalHeader toggle={() => setQrModal(false)}>
           Escanea el Código QR
@@ -492,4 +476,3 @@ const WhatsAppManager: React.FC = () => {
 };
 
 export default WhatsAppManager;
-

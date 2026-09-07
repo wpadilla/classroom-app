@@ -172,7 +172,7 @@ const ClassroomPaymentsSection: React.FC<ClassroomPaymentsSectionProps> = ({
         </button>
       )}
     >
-      <div className="rounded-[28px] p-2 bg-white">
+      <div className="classroom-management-panel rounded-[28px] p-2 bg-white">
         {paymentsLoading ? (
           <div className="py-8 text-center text-slate-500">
             <Spinner color="primary" />
@@ -292,9 +292,9 @@ const ClassroomPaymentsSection: React.FC<ClassroomPaymentsSectionProps> = ({
               <AnimatePresence initial={false}>
                 {studentBalancesOpen ? (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.24, ease: 'easeInOut' }}
                     className="overflow-hidden"
                   >
@@ -368,9 +368,9 @@ const ClassroomPaymentsSection: React.FC<ClassroomPaymentsSectionProps> = ({
                                 <AnimatePresence initial={false}>
                                   {isExpanded ? (
                                     <motion.div
-                                      initial={{ height: 0, opacity: 0 }}
-                                      animate={{ height: 'auto', opacity: 1 }}
-                                      exit={{ height: 0, opacity: 0 }}
+                                      initial={{ opacity: 0, y: -8 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -8 }}
                                       transition={{ duration: 0.24, ease: 'easeInOut' }}
                                       className="overflow-hidden"
                                     >
@@ -615,6 +615,7 @@ const ClassroomPaymentsSection: React.FC<ClassroomPaymentsSectionProps> = ({
         <div className="space-y-4">
           <div className="grid gap-3 lg:min-w-[360px]">
             <select
+              aria-label="Filtrar pagos por estudiante"
               value={paymentFilterStudentId}
               onChange={(event) => onPaymentFilterStudentIdChange(event.target.value)}
               className="block w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm"

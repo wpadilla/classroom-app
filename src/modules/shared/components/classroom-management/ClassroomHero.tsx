@@ -74,6 +74,7 @@ const ClassroomHero: React.FC<ClassroomHeroProps> = ({
 
   return (
     <MobileHero
+      className="classroom-management-hero"
       eyebrow="Gestión de clase"
       title={classroom.subject}
       description={`${classroom.name} · Controla asistencia, participación, evaluaciones y recursos sin salir del flujo móvil.`}

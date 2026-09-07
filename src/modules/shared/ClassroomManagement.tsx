@@ -53,6 +53,8 @@ import {
   ClassroomPaymentFormState,
   ClassroomWhatsappDialog,
 } from './components/classroom-management/ClassroomDialogs';
+import { ManagementSkeleton, TopProgressBar } from '../../components/common/ManagementWorkspace';
+import '../../styles/management-workspace.css';
 
 const ClassroomManagement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -487,7 +489,8 @@ const ClassroomManagement: React.FC = () => {
     }
   }, [
     buildOptimisticEvaluation,
-    classroom?.evaluationCriteria.attendance,
+    classroom?.evaluationCriteria,
+    classroom?.modules.length,
     enqueueEvaluationWrite,
     id,
     isFinalized,
@@ -1428,9 +1431,25 @@ const ClassroomManagement: React.FC = () => {
   };
 
 
+  const workspaceBusy = loading || uploadingResource || sendingMessage || creatingGroup || syncingGroup || paymentsLoading;
+
+  if (loading && !classroom) {
+    return (
+      <div className="management-workspace classroom-management-workspace" aria-busy="true">
+        <TopProgressBar active label="Cargando la clase…" />
+        <div className="classroom-loading-hero">
+          <span className="classroom-loading-hero__eyebrow">Gestión de clase</span>
+          <span className="classroom-loading-hero__title" />
+          <span className="classroom-loading-hero__text" />
+        </div>
+        <ManagementSkeleton rows={4} />
+      </div>
+    );
+  }
+
   if (!classroom) {
     return (
-      <div className="px-1 py-4">
+      <div className="management-workspace classroom-management-workspace py-4">
         <MobileInfoBanner
           icon="bi-exclamation-octagon"
           title="Clase no encontrada"
@@ -1442,7 +1461,11 @@ const ClassroomManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 px-1 pb-8 -mx-3 -my-3">
+    <div className="management-workspace classroom-management-workspace space-y-4" aria-busy={workspaceBusy}>
+      <TopProgressBar
+        active={workspaceBusy}
+        label={loading ? 'Actualizando la clase…' : 'Guardando cambios…'}
+      />
       <ClassroomHero
         classroom={classroom}
         studentsCount={students.length}
@@ -1539,7 +1562,7 @@ const ClassroomManagement: React.FC = () => {
         badgeColor="bg-slate-100 text-slate-700"
         defaultOpen={false}
       >
-        <div className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+        <div className="classroom-management-panel rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100">
           <StudentEnrollment classroom={classroom} onUpdate={loadClassroomData} />
         </div>
       </SectionHeader>

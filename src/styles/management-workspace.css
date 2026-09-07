@@ -1,0 +1,839 @@
+.management-workspace {
+  --workspace-accent: #2563eb;
+  --workspace-accent-soft: #dbeafe;
+  width: min(100%, 1560px);
+  min-height: 100%;
+  margin-inline: auto;
+  padding: clamp(0.5rem, 1.6vw, 1.5rem);
+  color: #0f172a;
+}
+
+.management-workspace--whatsapp {
+  --workspace-accent: #16a34a;
+  --workspace-accent-soft: #dcfce7;
+}
+
+.management-workspace--analytics {
+  --workspace-accent: #4f46e5;
+  --workspace-accent-soft: #e0e7ff;
+}
+
+.management-top-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 2100;
+  pointer-events: none;
+}
+
+.management-top-progress__track {
+  height: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, #cbd5e1 36%, transparent);
+}
+
+.management-top-progress__bar {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  box-shadow: 0 0 18px rgba(37, 99, 235, 0.45);
+  animation: management-progress-slide 1.15s ease-in-out infinite;
+}
+
+.management-top-progress--whatsapp .management-top-progress__bar {
+  background: linear-gradient(90deg, #16a34a, #2dd4bf);
+  box-shadow: 0 0 18px rgba(22, 163, 74, 0.45);
+}
+
+.management-top-progress--analytics .management-top-progress__bar {
+  background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+  box-shadow: 0 0 18px rgba(79, 70, 229, 0.45);
+}
+
+.management-top-progress__label {
+  position: absolute;
+  top: 0.65rem;
+  right: max(0.75rem, env(safe-area-inset-right));
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+@keyframes management-progress-slide {
+  0% { transform: translateX(-110%); }
+  55% { transform: translateX(115%); }
+  100% { transform: translateX(250%); }
+}
+
+.management-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border-radius: 30px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(56, 189, 248, 0.3), transparent 32%),
+    linear-gradient(135deg, #0f172a 0%, #172554 55%, #1d4ed8 125%);
+  box-shadow: 0 24px 55px rgba(15, 23, 42, 0.18);
+}
+
+.management-hero::after {
+  content: '';
+  position: absolute;
+  right: -4.5rem;
+  bottom: -6.5rem;
+  width: 17rem;
+  height: 17rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2.5rem rgba(255, 255, 255, 0.025), 0 0 0 5rem rgba(255, 255, 255, 0.02);
+}
+
+.management-hero--whatsapp {
+  background:
+    radial-gradient(circle at 86% 12%, rgba(74, 222, 128, 0.28), transparent 34%),
+    linear-gradient(135deg, #052e16 0%, #14532d 58%, #047857 120%);
+}
+
+.management-hero--analytics {
+  background:
+    radial-gradient(circle at 82% 8%, rgba(196, 181, 253, 0.3), transparent 34%),
+    linear-gradient(135deg, #111827 0%, #312e81 58%, #6d28d9 125%);
+}
+
+.management-hero__content,
+.management-hero__actions {
+  position: relative;
+  z-index: 1;
+}
+
+.management-hero__content {
+  min-width: 0;
+  max-width: 840px;
+}
+
+.management-hero__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 38px;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.management-hero__back:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  transform: translateX(-2px);
+}
+
+.management-hero__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.management-hero__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.11);
+  font-size: 1.35rem;
+  backdrop-filter: blur(10px);
+}
+
+.management-hero__copy {
+  min-width: 0;
+}
+
+.management-hero__eyebrow {
+  margin: 0 0 0.35rem;
+  color: #bae6fd;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.management-hero--whatsapp .management-hero__eyebrow { color: #bbf7d0; }
+.management-hero--analytics .management-hero__eyebrow { color: #ddd6fe; }
+
+.management-hero__title {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.65rem, 3vw, 2.4rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+
+.management-hero__description {
+  max-width: 720px;
+  margin: 0.55rem 0 0;
+  color: rgba(226, 232, 240, 0.88);
+  font-size: clamp(0.88rem, 1.5vw, 1rem);
+  line-height: 1.65;
+}
+
+.management-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.78rem;
+}
+
+.management-hero__actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.management-hero__actions .btn {
+  min-height: 46px;
+  padding-inline: 1rem;
+  border-radius: 14px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.management-hero__actions .btn-light {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: #fff;
+  color: #0f172a;
+}
+
+.management-panel,
+.management-workspace .management-card {
+  overflow: hidden;
+  border: 1px solid #e8edf4 !important;
+  border-radius: 24px !important;
+  background: #fff;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.055) !important;
+}
+
+.management-workspace .management-card > .card-header {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid #edf1f6;
+  background: #fff;
+}
+
+.management-workspace .management-card > .card-body {
+  padding: 1.15rem;
+}
+
+.management-workspace .management-card h6,
+.management-panel__title {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.management-stat-grid > [class*='col'] {
+  display: flex;
+}
+
+.management-stat-card {
+  width: 100%;
+  border: 1px solid #e8edf4 !important;
+  border-radius: 22px !important;
+  background: linear-gradient(145deg, #fff, #f8fafc);
+  box-shadow: 0 9px 28px rgba(15, 23, 42, 0.05) !important;
+}
+
+.management-stat-card .card-body {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 92px;
+  padding: 1rem;
+}
+
+.management-stat-card__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 15px;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent);
+  font-size: 1.15rem;
+}
+
+.management-stat-card__value {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.management-stat-card__label {
+  display: block;
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.management-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.32fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  border: 1px solid #e8edf4;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+}
+
+.management-toolbar > [class*='col'] {
+  width: auto;
+  margin: 0 !important;
+  padding: 0;
+}
+
+.management-workspace .form-control,
+.management-workspace .form-select,
+.management-workspace .input-group-text {
+  min-height: 44px;
+  border-color: #dbe3ee;
+}
+
+.management-workspace .form-control,
+.management-workspace .form-select {
+  border-radius: 13px;
+}
+
+.management-workspace .input-group > .form-control {
+  border-radius: 0 13px 13px 0;
+}
+
+.management-workspace .input-group-text {
+  border-radius: 13px 0 0 13px;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.management-table-shell {
+  overflow: hidden;
+  border: 1px solid #e8edf4;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.management-workspace .table {
+  margin-bottom: 0;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.management-workspace .table thead th {
+  padding: 0.85rem 0.9rem;
+  border-bottom-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.management-workspace .table tbody td {
+  padding: 0.9rem;
+  border-bottom-color: #edf2f7;
+}
+
+.management-workspace .table tbody tr:last-child td { border-bottom: 0; }
+
+.management-empty {
+  padding: clamp(2rem, 6vw, 4rem) 1rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 24px;
+  background: #f8fafc;
+  text-align: center;
+  color: #64748b;
+}
+
+.management-skeleton {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1.15rem;
+  border: 1px solid #e8edf4;
+  border-radius: 24px;
+  background: #fff;
+}
+
+.management-skeleton__row {
+  display: block;
+  height: 76px;
+  overflow: hidden;
+  border-radius: 17px;
+  background: linear-gradient(90deg, #eef2f7 20%, #f8fafc 45%, #eef2f7 70%);
+  background-size: 250% 100%;
+  animation: management-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.management-skeleton--compact .management-skeleton__row { height: 44px; }
+
+@keyframes management-skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+.management-modal .modal-content {
+  overflow: hidden;
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 28px 85px rgba(15, 23, 42, 0.25);
+}
+
+.management-modal .modal-header,
+.management-modal .modal-footer {
+  padding: 1rem 1.25rem;
+  border-color: #edf1f6;
+}
+
+.management-modal .modal-body { padding: 1.25rem; }
+.management-modal .modal-title { font-size: 1.05rem; font-weight: 750; }
+
+.management-modal .form-control,
+.management-modal .form-select,
+.management-modal .input-group-text {
+  min-height: 44px;
+  border-color: #dbe3ee;
+}
+
+.management-modal .form-control,
+.management-modal .form-select {
+  border-radius: 13px;
+}
+
+.management-modal textarea.form-control { min-height: 96px; }
+
+.management-modal label:not(.form-check-label) {
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.management-modal .table-responsive {
+  overflow: hidden auto;
+  border: 1px solid #e8edf4;
+  border-radius: 16px;
+}
+
+.whatsapp-workspace .card-header h6 i,
+.whatsapp-workspace .management-panel__title i {
+  color: var(--workspace-accent);
+}
+
+.whatsapp-workspace .management-guidance {
+  padding: 1.15rem;
+  border: 1px solid #bae6fd;
+  border-radius: 20px;
+  background: #f0f9ff;
+}
+
+.whatsapp-workspace .management-guidance li {
+  margin-block: 0.35rem;
+  color: #334155;
+}
+
+.whatsapp-inline-stats .display-4 {
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 800;
+}
+
+.whatsapp-workspace .list-group-item {
+  padding: 1rem 1.15rem;
+  border-color: #edf2f7;
+  transition: background 160ms ease;
+}
+
+.whatsapp-workspace .list-group-item:hover { background: #f8fafc; }
+
+.whatsapp-workspace .progress {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: #e8edf4;
+}
+
+.whatsapp-workspace .progress-bar { border-radius: inherit; }
+
+.whatsapp-classroom-card .card-body {
+  padding: 1rem;
+}
+
+.bulk-message-layout > [class*='col'] {
+  margin-bottom: 0 !important;
+}
+
+.bulk-classrooms-list {
+  max-height: min(58vh, 650px);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  overscroll-behavior: contain;
+}
+
+.bulk-classroom-option {
+  overflow: hidden;
+  margin-bottom: 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.bulk-classroom-option:hover {
+  border-color: #86efac;
+  transform: translateY(-1px);
+}
+
+.bulk-classroom-option--selected {
+  border-color: #4ade80;
+  background: #f0fdf4;
+  box-shadow: inset 3px 0 #22c55e;
+}
+
+.bulk-classroom-option > .form-check {
+  min-height: 72px;
+  padding: 0.85rem !important;
+}
+
+.bulk-student-list {
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.hover-bg-light:hover { background-color: #f8fafc !important; }
+
+.bulk-variables-panel {
+  border: 1px solid #bae6fd;
+  border-radius: 18px;
+  background: #f0f9ff;
+}
+
+.bulk-composer-card textarea.form-control { min-height: 130px; }
+
+.bulk-progress-list {
+  max-height: min(55vh, 460px);
+  overflow-y: auto;
+}
+
+.statistics-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
+}
+
+.statistics-tabs-shell {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-bottom: 1rem;
+  padding: 0.45rem;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(14px);
+  scrollbar-width: thin;
+}
+
+.statistics-tabs {
+  width: max-content;
+  min-width: 100%;
+  gap: 0.3rem;
+  border: 0 !important;
+}
+
+.statistics-tabs .nav-link {
+  min-height: 42px;
+  padding: 0.6rem 0.85rem;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.statistics-tabs .nav-link:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.statistics-tabs .nav-link.active {
+  background: #eef2ff;
+  color: #4338ca;
+  box-shadow: inset 0 0 0 1px #c7d2fe;
+}
+
+.statistics-tab-intro {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e8edf4;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.statistics-tab-intro__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 14px;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.statistics-tab-intro h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.statistics-tab-intro p {
+  margin: 0.2rem 0 0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.statistics-tab-content .card {
+  overflow: hidden;
+  border: 1px solid #e8edf4 !important;
+  border-radius: 22px !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.052) !important;
+}
+
+.statistics-tab-content .card:not(.bg-primary):not(.bg-success):not(.bg-info):not(.bg-light) {
+  background: #fff;
+}
+
+.statistics-tab-content .card.bg-primary,
+.statistics-tab-content .card.bg-success,
+.statistics-tab-content .card.bg-info {
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.1));
+}
+
+.statistics-tab-content .card-body {
+  padding: clamp(1rem, 2vw, 1.25rem);
+}
+
+.statistics-tab-content h6 {
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.statistics-tab-content .apexcharts-canvas,
+.statistics-tab-content .apexcharts-svg {
+  max-width: 100% !important;
+}
+
+.statistics-tab-content .table-responsive {
+  border: 1px solid #edf1f6;
+  border-radius: 16px;
+}
+
+.statistics-tab-content .progress {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: #e8edf4;
+}
+
+.statistics-tab-content .progress-bar { border-radius: inherit; }
+
+@media (min-width: 992px) {
+  .bulk-composer-card {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.classroom-management-workspace {
+  max-width: 1500px;
+  padding-bottom: 4rem;
+}
+
+.classroom-management-workspace > * {
+  scroll-margin-top: 5rem;
+}
+
+.classroom-management-panel {
+  border: 1px solid #e8edf4;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.055) !important;
+}
+
+.classroom-management-hero .btn,
+.classroom-management-hero .dropdown-toggle {
+  min-height: 44px;
+}
+
+.classroom-loading-hero {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 220px;
+  margin-bottom: 1rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border-radius: 28px;
+  background: linear-gradient(135deg, #0f172a, #172554 58%, #3730a3);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+  align-content: center;
+}
+
+.classroom-loading-hero__eyebrow {
+  color: #bfdbfe;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.classroom-loading-hero__title,
+.classroom-loading-hero__text {
+  display: block;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.classroom-loading-hero__title { width: min(70%, 460px); height: 35px; }
+.classroom-loading-hero__text { width: min(92%, 680px); height: 18px; }
+
+@media (max-width: 767.98px) {
+  .management-workspace {
+    width: calc(100% + 1rem);
+    margin-inline: -0.5rem;
+    padding: 0.35rem 0.5rem 5rem;
+  }
+
+  .management-hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1.1rem;
+    padding: 1.15rem;
+    border-radius: 24px;
+  }
+
+  .management-hero__heading { gap: 0.75rem; }
+  .management-hero__icon { width: 2.8rem; height: 2.8rem; border-radius: 15px; }
+  .management-hero__actions { display: grid; grid-template-columns: 1fr; width: 100%; }
+  .management-hero__actions .btn { width: 100%; }
+
+  .management-toolbar { grid-template-columns: 1fr; padding: 0.65rem; }
+
+  .management-stat-card .card-body { min-height: 82px; padding: 0.85rem; }
+  .management-stat-card__value { font-size: 1.3rem; }
+
+  .management-modal.modal-dialog {
+    width: calc(100% - 1rem);
+    max-width: none;
+    margin: 0.5rem;
+  }
+
+  .management-modal .modal-content {
+    max-height: calc(100dvh - 1rem);
+    border-radius: 20px;
+  }
+
+  .management-modal .modal-body {
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .management-modal .modal-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .management-modal .modal-footer .btn {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .classroom-management-workspace {
+    padding-bottom: 5rem;
+  }
+
+  .classroom-management-hero .btn,
+  .classroom-management-hero .dropdown,
+  .classroom-management-hero .dropdown-toggle,
+  .classroom-management-hero > section > div:last-child > div {
+    width: 100%;
+  }
+
+  .classroom-management-panel {
+    border-radius: 22px !important;
+  }
+
+  .classroom-loading-hero {
+    min-height: 185px;
+    border-radius: 24px;
+  }
+
+  .bulk-classrooms-list { max-height: none; }
+  .bulk-classroom-option > .form-check { padding: 0.75rem !important; }
+
+  .statistics-error { align-items: stretch; flex-direction: column; }
+  .statistics-tabs-shell { top: 0; margin-inline: -0.15rem; }
+  .statistics-tab-intro { align-items: flex-start; }
+  .statistics-tab-content .row { --bs-gutter-x: 0.75rem; }
+  .statistics-tab-content [class*='mb-4'] { margin-bottom: 0.85rem !important; }
+}
+
+@media (max-width: 420px) {
+  .management-hero__icon { display: none; }
+  .management-top-progress__label { top: 0.5rem; font-size: 0.67rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .management-top-progress__bar,
+  .management-skeleton__row { animation-duration: 2.5s; }
+}

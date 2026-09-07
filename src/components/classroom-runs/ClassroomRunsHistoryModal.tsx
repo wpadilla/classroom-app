@@ -63,7 +63,7 @@ const ClassroomRunsHistoryModal: React.FC<ClassroomRunsHistoryModalProps> = ({
   const totalBalance = paymentTotals.totalDue - paymentTotals.totalPaid;
 
   return (
-    <Modal isOpen={isOpen} toggle={onClose} size="xl">
+    <Modal isOpen={isOpen} toggle={onClose} size="xl" className="management-modal">
       <ModalHeader toggle={onClose}>
         <i className="bi bi-archive me-2"></i>
         Historial de Ejecuciones - {classroom?.subject}

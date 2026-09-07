@@ -49,15 +49,16 @@ const ClassroomResourcesSection: React.FC<ClassroomResourcesSectionProps> = ({
       badgeColor="bg-slate-100 text-slate-700"
       defaultOpen={false}
     >
-      <div className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+      <div className="classroom-management-panel rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100">
         {!isFinalized ? (
           <div className="mb-4 rounded-[24px] border border-dashed border-slate-200 bg-slate-50 p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
               <div className="flex-1">
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label htmlFor="classroom-resource-upload" className="mb-2 block text-sm font-semibold text-slate-700">
                   Subir nuevo recurso
                 </label>
                 <input
+                  id="classroom-resource-upload"
                   type="file"
                   onChange={(event) => onFileChange(event.target.files?.[0] || null)}
                   disabled={uploadingResource}

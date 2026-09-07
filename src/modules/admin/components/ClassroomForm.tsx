@@ -142,7 +142,7 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
   teachers
 }) => {
   const [formData, setFormData] = React.useState<ClassroomFormData>(
-    createInitialFormState(classroom, initialData, programClassrooms)
+    () => createInitialFormState(classroom, initialData, programClassrooms)
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -240,9 +240,20 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
   const isEditMode = !!classroom;
   const totalAvailablePositions = classroom ? programClassrooms.length : programClassrooms.length + 1;
   const positionOptions = Array.from({ length: Math.max(totalAvailablePositions, 1) }, (_, index) => index + 1);
+  const assignableTeachers = React.useMemo(
+    () => teachers
+      .filter((user) => user.isTeacher === true)
+      .sort((left, right) =>
+        `${left.firstName} ${left.lastName}`.localeCompare(
+          `${right.firstName} ${right.lastName}`,
+          'es'
+        )
+      ),
+    [teachers]
+  );
 
   return (
-    <Modal isOpen={isOpen} toggle={handleClose} size="lg">
+    <Modal isOpen={isOpen} toggle={handleClose} size="lg" className="management-modal">
       <ModalHeader toggle={handleClose}>
         {isEditMode ? 'Editar Clase' : `Nueva Clase para ${program?.name || ''}`}
       </ModalHeader>
@@ -330,12 +341,17 @@ const ClassroomForm: React.FC<ClassroomFormProps> = ({
                   onChange={(e) => updateField('teacherId', e.target.value)}
                 >
                   <option value="">Seleccione un profesor</option>
-                  {teachers.map(teacher => (
+                  {assignableTeachers.map(teacher => (
                     <option key={teacher.id} value={teacher.id}>
                       {teacher.firstName} {teacher.lastName}
                     </option>
                   ))}
                 </Input>
+                {assignableTeachers.length === 0 && (
+                  <small className="text-warning">
+                    No hay usuarios marcados con la propiedad “Es profesor”.
+                  </small>
+                )}
               </FormGroup>
             </Col>
             <Col md={6}>

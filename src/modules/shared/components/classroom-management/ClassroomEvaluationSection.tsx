@@ -47,7 +47,7 @@ const ClassroomEvaluationSection: React.FC<ClassroomEvaluationSectionProps> = ({
         </button>
       )}
     >
-      <div className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+      <div className="classroom-management-panel rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100">
         <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-3 text-sm text-blue-900">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">

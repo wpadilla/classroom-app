@@ -139,6 +139,7 @@ export class WhatsappService {
         `${this.apiUrl}/group/sync`,
         payload
       );
+      console.log('Sync group response:', JSON.stringify(response));
       const operation = response.data?.participantsOperation;
 
       if (!operation) {

@@ -1,5 +1,5 @@
 .program-management-page {
-  @apply px-1 pb-6 -mx-3 -my-3;
+  @apply pb-8;
 }
 
 .program-management-hero {
@@ -136,4 +136,83 @@
 
 .program-management-info-item__label {
   @apply mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500;
+}
+
+.program-management-page .modal-body .form-label,
+.program-management-page .form-label {
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.program-management-page .dropdown-menu {
+  padding: 0.45rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+}
+
+.program-management-page .dropdown-item {
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+@media (max-width: 767.98px) {
+  .program-management-hero {
+    border-radius: 24px;
+  }
+
+  .program-management-hero__button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .program-management-stat__body {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .program-management-stat__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .program-management-card {
+    border-radius: 22px;
+  }
+
+  .program-management-card__header > div {
+    flex-wrap: nowrap !important;
+  }
+
+  .program-management-card__meta {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .program-management-classroom-card__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .program-management-classroom-card__actions > .btn,
+  .program-management-classroom-card__actions > div:not(.form-check) {
+    width: 100%;
+  }
+
+  .program-management-classroom-card__order-actions {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 380px) {
+  .program-management-stat__body {
+    padding: 0.75rem;
+  }
+
+  .program-management-stat h3 {
+    font-size: 1.2rem;
+  }
 }

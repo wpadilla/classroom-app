@@ -53,7 +53,7 @@ const ClassroomParticipationSection: React.FC<ClassroomParticipationSectionProps
       badgeColor="bg-purple-100 text-purple-700"
       defaultOpen={false}
     >
-      <div className="rounded-[28px] bg-white p-0 shadow-sm ring-1 ring-slate-100 overflow-hidden">
+      <div className="classroom-management-panel rounded-[28px] bg-white p-0 shadow-sm ring-1 ring-slate-100 overflow-hidden">
         <div className="p-3">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>

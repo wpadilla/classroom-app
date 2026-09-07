@@ -20,7 +20,6 @@ import {
   Label,
   Input,
   Alert,
-  Spinner,
   Progress,
   UncontrolledDropdown,
   DropdownToggle,
@@ -39,7 +38,9 @@ import ClassroomRunsHistoryModal from '../../components/classroom-runs/Classroom
 import ClassroomRunDetailsModal from '../../components/classroom-runs/ClassroomRunDetailsModal';
 import { formatDateForInput } from '../../utils/moduleUtils';
 import { formatProgramEnrollmentRange, isProgramEnrollmentActive } from '../../utils/programPeriods';
+import { ManagementSkeleton, TopProgressBar } from '../../components/common/ManagementWorkspace';
 import './ProgramManagement.css';
+import '../../styles/management-workspace.css';
 
 const ProgramManagement: React.FC = () => {
   // State
@@ -182,6 +183,7 @@ const ProgramManagement: React.FC = () => {
     }
 
     try {
+      setLoading(true);
       if (editingProgram) {
         const updatePayload = {
           ...programForm,
@@ -220,6 +222,8 @@ const ProgramManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Error saving program:', error);
       toast.error(error.message || 'Error al guardar programa');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -227,6 +231,7 @@ const ProgramManagement: React.FC = () => {
     if (!programToDelete) return;
 
     try {
+      setLoading(true);
       await ProgramService.deleteProgram(programToDelete.id);
       toast.success('Programa eliminado exitosamente');
       setDeleteModal(false);
@@ -235,17 +240,22 @@ const ProgramManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Error deleting program:', error);
       toast.error(error.message || 'Error al eliminar programa');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleToggleProgramStatus = async (program: IProgram) => {
     try {
+      setLoading(true);
       await ProgramService.toggleProgramStatus(program.id);
       toast.success(`Programa ${program.isActive ? 'desactivado' : 'activado'} exitosamente`);
       await loadData();
     } catch (error) {
       console.error('Error toggling program status:', error);
       toast.error('Error al cambiar el estado del programa');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -269,6 +279,7 @@ const ProgramManagement: React.FC = () => {
     }
 
     try {
+      setLoading(true);
       if (editingClassroom) {
         // Update existing classroom
         await ClassroomService.updateClassroom(editingClassroom.id, {
@@ -322,6 +333,8 @@ const ProgramManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Error saving classroom:', error);
       throw error; // Re-throw to be handled by the form
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -334,6 +347,7 @@ const ProgramManagement: React.FC = () => {
 
   const handleToggleClassroomStatus = async (classroomId: string, currentStatus: boolean) => {
     try {
+      setLoading(true);
       await ClassroomService.updateClassroom(classroomId, {
         isActive: !currentStatus
       });
@@ -342,6 +356,8 @@ const ProgramManagement: React.FC = () => {
     } catch (error) {
       console.error('Error toggling classroom status:', error);
       toast.error('Error al cambiar el estado de la clase');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -351,6 +367,7 @@ const ProgramManagement: React.FC = () => {
     direction: 'up' | 'down'
   ) => {
     try {
+      setLoading(true);
       await ClassroomService.moveClassroomProgramPosition(programId, classroomId, direction);
       toast.success(
         `Clase movida ${direction === 'up' ? 'hacia arriba' : 'hacia abajo'} exitosamente`
@@ -359,6 +376,8 @@ const ProgramManagement: React.FC = () => {
     } catch (error) {
       console.error('Error moving classroom position:', error);
       toast.error('No se pudo actualizar el orden de la clase');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -375,6 +394,7 @@ const ProgramManagement: React.FC = () => {
 
   const handleViewClassroomRuns = async (classroom: IClassroom) => {
     try {
+      setLoading(true);
       const runs = await ClassroomService.getClassroomRuns(classroom.id);
       setClassroomRuns(runs);
       setSelectedClassroomForRuns(classroom);
@@ -382,17 +402,22 @@ const ProgramManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading classroom runs:', error);
       toast.error('Error al cargar el historial');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleViewStats = async (program: IProgram) => {
     try {
+      setLoading(true);
       const stats = await ProgramService.getProgramStatistics(program.id);
       setSelectedProgramStats({ program, stats });
       setStatsModal(true);
     } catch (error) {
       console.error('Error getting program stats:', error);
       toast.error('Error al obtener estadísticas');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -428,17 +453,9 @@ const ProgramManagement: React.FC = () => {
     return 'Básico';
   };
 
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner size="lg" color="primary" />
-        <p className="mt-3">Cargando programas...</p>
-      </Container>
-    );
-  }
-
   return (
-    <Container className="program-management-page py-3">
+    <Container fluid className="management-workspace program-management-page" aria-busy={loading}>
+      <TopProgressBar active={loading} label="Actualizando programas…" />
       {/* Header */}
       <Row className="mb-4">
         <Col>
@@ -460,7 +477,7 @@ const ProgramManagement: React.FC = () => {
 
       {/* Statistics */}
       <Row className="g-3 mb-4">
-        <Col md={3}>
+        <Col xs={6} lg={3}>
           <Card className="program-management-stat">
             <CardBody className="program-management-stat__body">
               <div className="program-management-stat__icon bg-slate-100 text-slate-700">
@@ -473,7 +490,7 @@ const ProgramManagement: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        <Col md={3}>
+        <Col xs={6} lg={3}>
           <Card className="program-management-stat">
             <CardBody className="program-management-stat__body">
               <div className="program-management-stat__icon bg-emerald-50 text-emerald-600">
@@ -488,7 +505,7 @@ const ProgramManagement: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        <Col md={3}>
+        <Col xs={6} lg={3}>
           <Card className="program-management-stat">
             <CardBody className="program-management-stat__body">
               <div className="program-management-stat__icon bg-sky-50 text-sky-600">
@@ -501,7 +518,7 @@ const ProgramManagement: React.FC = () => {
             </CardBody>
           </Card>
         </Col>
-        <Col md={3}>
+        <Col xs={6} lg={3}>
           <Card className="program-management-stat">
             <CardBody className="program-management-stat__body">
               <div className="program-management-stat__icon bg-amber-50 text-amber-600">
@@ -520,10 +537,18 @@ const ProgramManagement: React.FC = () => {
 
       {/* Programs List */}
       {programs.length === 0 ? (
-        <Alert color="info">
-          <i className="bi bi-info-circle me-2"></i>
-          No hay programas registrados. Cree el primer programa.
-        </Alert>
+        loading ? (
+          <ManagementSkeleton rows={3} />
+        ) : (
+          <div className="management-empty">
+            <i className="bi bi-collection fs-2 d-block mb-2" aria-hidden="true" />
+            <strong>No hay programas registrados</strong>
+            <p className="mb-3 mt-1">Crea el primer programa para organizar su pensum y sus clases.</p>
+            <Button color="primary" onClick={() => handleOpenProgramModal()}>
+              <i className="bi bi-plus-circle me-2" />Crear programa
+            </Button>
+          </div>
+        )
       ) : (
         programs.map(program => {
           const programClassrooms = getProgramClassrooms(program.id);
@@ -859,7 +884,7 @@ const ProgramManagement: React.FC = () => {
       )}
 
       {/* Program Modal */}
-      <Modal isOpen={programModal} toggle={() => setProgramModal(false)} size="lg">
+      <Modal isOpen={programModal} toggle={() => setProgramModal(false)} size="lg" className="management-modal">
         <ModalHeader toggle={() => setProgramModal(false)}>
           {editingProgram ? 'Editar Programa' : 'Nuevo Programa'}
         </ModalHeader>
@@ -1020,7 +1045,7 @@ const ProgramManagement: React.FC = () => {
           <Button color="secondary" onClick={() => setProgramModal(false)}>
             Cancelar
           </Button>
-          <Button color="primary" onClick={handleSaveProgram}>
+          <Button color="primary" onClick={handleSaveProgram} disabled={loading}>
             {editingProgram ? 'Actualizar' : 'Crear'} Programa
           </Button>
         </ModalFooter>
@@ -1064,7 +1089,7 @@ const ProgramManagement: React.FC = () => {
       />
 
       {/* Statistics Modal */}
-      <Modal isOpen={statsModal} toggle={() => setStatsModal(false)}>
+      <Modal isOpen={statsModal} toggle={() => setStatsModal(false)} className="management-modal">
         <ModalHeader toggle={() => setStatsModal(false)}>
           Estadísticas - {selectedProgramStats?.program.name}
         </ModalHeader>
@@ -1116,7 +1141,7 @@ const ProgramManagement: React.FC = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal isOpen={deleteModal} toggle={() => setDeleteModal(false)}>
+      <Modal isOpen={deleteModal} toggle={() => setDeleteModal(false)} className="management-modal">
         <ModalHeader toggle={() => setDeleteModal(false)}>
           Confirmar Eliminación
         </ModalHeader>
@@ -1131,7 +1156,7 @@ const ProgramManagement: React.FC = () => {
           <Button color="secondary" onClick={() => setDeleteModal(false)}>
             Cancelar
           </Button>
-          <Button color="danger" onClick={handleDeleteProgram}>
+          <Button color="danger" onClick={handleDeleteProgram} disabled={loading}>
             Eliminar Programa
           </Button>
         </ModalFooter>

@@ -62,7 +62,9 @@ const ClassroomList: React.FC = () => {
       setPrograms(programsMap);
 
       // Load teachers
-      const teachersData = await UserService.getUsersByRole('teacher');
+      // `isTeacher` is the source of truth because a user can keep another
+      // primary role (for example student or admin) and also teach classes.
+      const teachersData = await UserService.getTeachers();
       const teachersMap = new Map<string, IUser>();
       teachersData.forEach(teacher => {
         teachersMap.set(teacher.id, teacher);

@@ -54,7 +54,7 @@ const ClassroomAttendanceSection: React.FC<ClassroomAttendanceSectionProps> = ({
       badge={currentModule ? `Semana ${currentModule.weekNumber}` : 'Pendiente'}
       badgeColor={currentModule?.isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}
     >
-      <div className="rounded-[28px] bg-white p-2 shadow-sm ring-1 ring-slate-100">
+      <div className="classroom-management-panel rounded-[28px] bg-white p-2 shadow-sm ring-1 ring-slate-100">
         <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-1 text-base font-semibold text-slate-900">

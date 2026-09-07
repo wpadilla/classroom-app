@@ -25,7 +25,7 @@ const ClassroomModuleProgress: React.FC<ClassroomModuleProgressProps> = ({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, delay: 0.05 }}
-      className="rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100"
+      className="classroom-management-panel rounded-[28px] bg-white p-4 shadow-sm ring-1 ring-slate-100"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -48,7 +48,7 @@ const ClassroomModuleProgress: React.FC<ClassroomModuleProgressProps> = ({
 
       <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
+          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-[width]"
           style={{ width: `${progress}%` }}
         />
       </div>

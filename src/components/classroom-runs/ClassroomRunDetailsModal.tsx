@@ -249,7 +249,7 @@ const ClassroomRunDetailsModal: React.FC<ClassroomRunDetailsModalProps> = ({
 
   return (
     <>
-    <Modal isOpen={isOpen} toggle={onClose} size="xl">
+    <Modal isOpen={isOpen} toggle={onClose} size="xl" className="management-modal">
       <ModalHeader toggle={onClose}>
         <i className="bi bi-file-earmark-text me-2"></i>
         Detalles Completos - Ejecución {run && `#${run.runNumber}`}

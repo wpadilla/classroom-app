@@ -18,8 +18,8 @@ This is a scalable, reusable PDF generation system built on top of `@react-pdf/r
 The system uses these dependencies (already installed):
 
 ```bash
-pnpm add chart.js@4.5.1 react-chartjs-2@5.3.0
-pnpm add @react-pdf/renderer
+npm install chart.js@4.5.1 react-chartjs-2@5.3.0
+npm install @react-pdf/renderer
 ```
 
 ## Quick Start
